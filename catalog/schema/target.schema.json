@@ -1,0 +1,670 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orin Stage JP6 Exact Target Catalog Entry",
+  "description": "Schema v1 for a single Orin Stage JetPack 6 exact-target catalog record. Runtime/acquisition evidence belongs in the later target lock, not in this catalog entry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "aliases",
+    "support",
+    "release",
+    "target",
+    "userspace",
+    "nvidia_stack",
+    "construction_inputs",
+    "toolchain",
+    "packages",
+    "checksums",
+    "licensing",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^nvidia\\.jetpack-6\\.\\d+(?:\\.\\d+)?(?:-dp)?\\.jetson-linux-36\\.\\d+(?:\\.\\d+)?$"
+    },
+    "aliases": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^jetson-orin@jp6\\.\\d+(?:\\.\\d+)?(?:-dp)?$"
+      }
+    },
+    "support": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "enum": ["validation-pending", "supported", "unavailable"]
+        }
+      }
+    },
+    "release": {
+      "$ref": "#/$defs/release"
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "userspace": {
+      "$ref": "#/$defs/userspace"
+    },
+    "nvidia_stack": {
+      "$ref": "#/$defs/nvidiaStack"
+    },
+    "construction_inputs": {
+      "$ref": "#/$defs/constructionInputs"
+    },
+    "toolchain": {
+      "$ref": "#/$defs/toolchain"
+    },
+    "packages": {
+      "$ref": "#/$defs/packages"
+    },
+    "checksums": {
+      "$ref": "#/$defs/checksums"
+    },
+    "licensing": {
+      "$ref": "#/$defs/licensing"
+    },
+    "sources": {
+      "$ref": "#/$defs/sources"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "release": {
+            "properties": {
+              "jetpack": {
+                "properties": {
+                  "availability": {"const": "developer-preview"}
+                },
+                "required": ["availability"]
+              }
+            },
+            "required": ["jetpack"]
+          }
+        },
+        "required": ["release"]
+      },
+      "then": {
+        "properties": {
+          "support": {
+            "properties": {
+              "status": {"const": "unavailable"}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "httpsUri": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "versionString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jetpack", "jetson_linux", "l4t", "date"],
+      "properties": {
+        "jetpack": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["version", "availability", "lifecycle", "officially_published"],
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "pattern": "^6\\.\\d+(?:\\.\\d+)?$"
+                },
+                "availability": {"const": "ga"},
+                "lifecycle": {"const": "production"},
+                "officially_published": {"const": true}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["version", "availability", "lifecycle", "officially_published"],
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "pattern": "^6\\.\\d+(?:\\.\\d+)? DP$"
+                },
+                "availability": {"const": "developer-preview"},
+                "lifecycle": {"const": "pre-production"},
+                "officially_published": {"const": true}
+              }
+            }
+          ]
+        },
+        "jetson_linux": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["display_version", "release_revision", "artifact_revision", "release_tag"],
+          "properties": {
+            "display_version": {"$ref": "#/$defs/jetsonLinuxVersion"},
+            "release_revision": {"$ref": "#/$defs/jetsonLinuxVersion"},
+            "artifact_revision": {"$ref": "#/$defs/jetsonLinuxVersion"},
+            "release_tag": {
+              "type": "string",
+              "pattern": "^jetson_36\\.\\d+(?:\\.\\d+)?$"
+            }
+          }
+        },
+        "l4t": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "relation_to_jetson_linux"],
+          "properties": {
+            "version": {"$ref": "#/$defs/jetsonLinuxVersion"},
+            "relation_to_jetson_linux": {"const": "same_release_line_alias"}
+          }
+        },
+        "date": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "precision", "scope", "jetpack_exact_date"],
+          "properties": {
+            "value": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+            },
+            "precision": {"const": "month"},
+            "scope": {"const": "jetson_linux"},
+            "jetpack_exact_date": {"const": "not_explicitly_verified"}
+          }
+        }
+      }
+    },
+    "jetsonLinuxVersion": {
+      "type": "string",
+      "pattern": "^36\\.\\d+(?:\\.\\d+)?$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["families", "soc", "hardware_profiles"],
+      "properties": {
+        "families": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "Jetson AGX Orin Series",
+              "Jetson Orin NX Series",
+              "Jetson Orin Nano Series"
+            ]
+          }
+        },
+        "soc": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository_platform"],
+          "properties": {
+            "repository_platform": {"const": "t234"}
+          }
+        },
+        "hardware_profiles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/slug"}
+        }
+      }
+    },
+    "userspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ubuntu", "architecture", "kernel"],
+      "properties": {
+        "ubuntu": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "suite", "relation"],
+          "properties": {
+            "version": {"$ref": "#/$defs/versionString"},
+            "suite": {"$ref": "#/$defs/slug"},
+            "relation": {"const": "sample_rootfs_is_ubuntu_based"}
+          }
+        },
+        "architecture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target_abi", "debian_architecture"],
+          "properties": {
+            "target_abi": {"const": "aarch64"},
+            "debian_architecture": {"const": "arm64"}
+          }
+        },
+        "kernel": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["series", "package_release", "verification"],
+          "properties": {
+            "series": {"$ref": "#/$defs/versionString"},
+            "package_release": {"$ref": "#/$defs/versionString"},
+            "verification": {
+              "enum": ["exact", "source_conflict_repo_package_preferred"]
+            }
+          }
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "verification"],
+      "properties": {
+        "version": {"$ref": "#/$defs/versionString"},
+        "verification": {
+          "enum": [
+            "exact",
+            "source_conflict",
+            "source_conflict_repo_package_preferred",
+            "source_conflict_resolved_by_release_notes_and_repository",
+            "not_explicitly_verified"
+          ]
+        }
+      }
+    },
+    "nvidiaStack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cuda", "tensorrt", "cudnn", "vpi", "dla", "dlfw"],
+      "properties": {
+        "cuda": {"$ref": "#/$defs/component"},
+        "tensorrt": {"$ref": "#/$defs/component"},
+        "cudnn": {"$ref": "#/$defs/component"},
+        "vpi": {"$ref": "#/$defs/component"},
+        "dla": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "verification"],
+          "properties": {
+            "version": {"$ref": "#/$defs/versionString"},
+            "overview_label": {"$ref": "#/$defs/versionString"},
+            "verification": {
+              "enum": ["exact", "source_conflict"]
+            }
+          }
+        },
+        "dlfw": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["release_train", "verification"],
+              "properties": {
+                "release_train": {"type": "null"},
+                "verification": {"const": "not_explicitly_verified"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["release_train", "note"],
+              "properties": {
+                "release_train": {"$ref": "#/$defs/versionString"},
+                "note": {"const": "bundle_or_release_train_not_individual_package_semver"}
+              }
+            }
+          ]
+        }
+      }
+    },
+    "constructionArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["official_name", "filename", "release"],
+      "properties": {
+        "official_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/\\\\]+$"
+        },
+        "release": {"$ref": "#/$defs/jetsonLinuxVersion"}
+      }
+    },
+    "constructionInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bsp", "sample_rootfs"],
+      "properties": {
+        "bsp": {"$ref": "#/$defs/constructionArtifact"},
+        "sample_rootfs": {"$ref": "#/$defs/constructionArtifact"}
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cross_compiler"],
+      "properties": {
+        "cross_compiler": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["binary", "source_bundle"],
+          "properties": {
+            "binary": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["vendor", "bundle", "gcc", "binutils", "glibc", "prefix"],
+              "properties": {
+                "vendor": {"type": "string", "minLength": 1},
+                "bundle": {"$ref": "#/$defs/versionString"},
+                "gcc": {"$ref": "#/$defs/versionString"},
+                "binutils": {"$ref": "#/$defs/versionString"},
+                "glibc": {"$ref": "#/$defs/versionString"},
+                "prefix": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9._+-]+-$"
+                }
+              }
+            },
+            "source_bundle": {
+              "type": ["string", "null"]
+            }
+          }
+        }
+      }
+    },
+    "packages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "manifest", "meta_package"],
+      "properties": {
+        "repository": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base", "suites", "channel_is_mutable"],
+          "properties": {
+            "base": {"$ref": "#/$defs/httpsUri"},
+            "suites": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "channel_is_mutable": {"type": "boolean"}
+          }
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "url", "is_full_jetpack_dependency_closure"],
+          "properties": {
+            "type": {"const": "bsp_tar_manifest"},
+            "url": {"$ref": "#/$defs/httpsUri"},
+            "is_full_jetpack_dependency_closure": {"const": false}
+          }
+        },
+        "meta_package": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "version_build", "architecture", "runtime_name", "development_name"],
+              "properties": {
+                "name": {"const": "nvidia-jetpack"},
+                "version_build": {"type": "string", "minLength": 1},
+                "architecture": {"const": "arm64"},
+                "runtime_name": {"const": "nvidia-jetpack-runtime"},
+                "development_name": {"const": "nvidia-jetpack-dev"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "version_build",
+                "version_build_candidates",
+                "exact_selection_deferred_to_lock",
+                "architecture",
+                "runtime_name",
+                "development_name"
+              ],
+              "properties": {
+                "name": {"const": "nvidia-jetpack"},
+                "version_build": {"type": "null"},
+                "version_build_candidates": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {"type": "string", "minLength": 1}
+                },
+                "exact_selection_deferred_to_lock": {"const": true},
+                "architecture": {"const": "arm64"},
+                "runtime_name": {"const": "nvidia-jetpack-runtime"},
+                "development_name": {"const": "nvidia-jetpack-dev"}
+              }
+            }
+          ]
+        }
+      }
+    },
+    "checksumArtifactKnown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "digest"],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/\\\\]+$"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "checksumArtifactUnknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "digest"],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/\\\\]+$"
+        },
+        "digest": {"type": "null"}
+      }
+    },
+    "checksums": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["official"],
+      "properties": {
+        "official": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["algorithm", "source", "artifacts"],
+              "properties": {
+                "algorithm": {"const": "sha1"},
+                "source": {"$ref": "#/$defs/httpsUri"},
+                "artifacts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["bsp", "sample_rootfs"],
+                  "properties": {
+                    "bsp": {"$ref": "#/$defs/checksumArtifactKnown"},
+                    "sample_rootfs": {"$ref": "#/$defs/checksumArtifactKnown"}
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "algorithm", "source", "artifacts"],
+              "properties": {
+                "status": {"const": "not_explicitly_published"},
+                "algorithm": {"type": "null"},
+                "source": {"type": "null"},
+                "artifacts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["bsp", "sample_rootfs"],
+                  "properties": {
+                    "bsp": {"$ref": "#/$defs/checksumArtifactUnknown"},
+                    "sample_rootfs": {"$ref": "#/$defs/checksumArtifactUnknown"}
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "licensing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jetson_linux", "project_policy"],
+      "properties": {
+        "jetson_linux": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["agreement", "version", "source"],
+          "properties": {
+            "agreement": {"const": "NVIDIA Driver License Agreement"},
+            "version": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])-([0-2]\\d|3[01])$"
+            },
+            "source": {"$ref": "#/$defs/httpsUri"}
+          }
+        },
+        "project_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["redistributes_nvidia_artifacts", "acquisition"],
+          "properties": {
+            "redistributes_nvidia_artifacts": {"const": false},
+            "acquisition": {"const": "official_nvidia_sources"}
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accessed_at", "references", "evidence"],
+      "properties": {
+        "accessed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])-([0-2]\\d|3[01])$"
+        },
+        "references": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "jetpack_archive",
+            "jetpack_release",
+            "jetson_linux_archive",
+            "jetson_linux_release",
+            "developer_guide",
+            "release_notes",
+            "package_repository",
+            "release_checksums"
+          ],
+          "properties": {
+            "jetpack_archive": {"$ref": "#/$defs/httpsUri"},
+            "jetpack_release": {"$ref": "#/$defs/httpsUri"},
+            "jetpack_release_notes": {"$ref": "#/$defs/httpsUri"},
+            "jetson_linux_archive": {"$ref": "#/$defs/httpsUri"},
+            "jetson_linux_release": {"$ref": "#/$defs/httpsUri"},
+            "developer_guide": {"$ref": "#/$defs/httpsUri"},
+            "release_notes": {"$ref": "#/$defs/httpsUri"},
+            "package_repository": {"$ref": "#/$defs/httpsUri"},
+            "release_checksums": {
+              "oneOf": [
+                {"$ref": "#/$defs/httpsUri"},
+                {"type": "null"}
+              ]
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidenceItem"}
+        }
+      }
+    },
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "status", "claims"],
+      "properties": {
+        "field": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*$"
+        },
+        "status": {
+          "enum": [
+            "filename_case_variant",
+            "multiple_official_builds",
+            "naming_alias",
+            "not_explicitly_published",
+            "not_explicitly_verified",
+            "policy_exclusion",
+            "sdk_manager_revision_label",
+            "source_binary_label_difference",
+            "source_conflict",
+            "source_copy_error",
+            "source_label_variation",
+            "source_link_error"
+          ]
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["value", "source_role"],
+            "properties": {
+              "value": {
+                "type": ["string", "null"]
+              },
+              "source_role": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,168 @@
+schema_version: 1
+id: nvidia.jetpack-6.2.3.jetson-linux-36.5.2
+aliases:
+  - jetson-orin@jp6.2.3
+
+support:
+  status: validation-pending
+release:
+  jetpack:
+    version: "6.2.3"
+    availability: ga
+    lifecycle: production
+    officially_published: true
+  jetson_linux:
+    display_version: "36.5.2"
+    release_revision: "36.5.2"
+    artifact_revision: "36.5.2"
+    release_tag: jetson_36.5.2
+  l4t:
+    version: "36.5.2"
+    relation_to_jetson_linux: same_release_line_alias
+  date:
+    value: "2026-08"
+    precision: month
+    scope: jetson_linux
+    jetpack_exact_date: not_explicitly_verified
+target:
+  families:
+    - Jetson AGX Orin Series
+    - Jetson Orin NX Series
+    - Jetson Orin Nano Series
+  soc:
+    repository_platform: t234
+  hardware_profiles:
+    - orin-nx-16gb-p3767-0000-on-p3768-0000
+    - orin-nx-8gb-p3767-0001-on-p3768-0000
+userspace:
+  ubuntu:
+    version: "22.04"
+    suite: jammy
+    relation: sample_rootfs_is_ubuntu_based
+  architecture:
+    target_abi: aarch64
+    debian_architecture: arm64
+  kernel:
+    series: "5.15 LTS"
+    package_release: "5.15.199-tegra"
+    verification: source_conflict_repo_package_preferred
+
+nvidia_stack:
+  cuda:
+    version: "12.6.10"
+    verification: exact
+  tensorrt:
+    version: "10.3.0"
+    verification: exact
+  cudnn:
+    version: "9.3.0"
+    verification: exact
+  vpi:
+    version: "3.2"
+    verification: exact
+  dla:
+    version: "3.14"
+    overview_label: "3.1"
+    verification: source_conflict
+  dlfw:
+    release_train: "24.0"
+    note: bundle_or_release_train_not_individual_package_semver
+
+construction_inputs:
+  bsp:
+    official_name: NVIDIA Jetson Linux Driver Package (BSP)
+    filename: Jetson_Linux_R36.5.2_aarch64.tbz2
+    release: "36.5.2"
+  sample_rootfs:
+    official_name: Sample Root Filesystem
+    filename: Tegra_Linux_Sample-Root-Filesystem_R36.5.2_aarch64.tbz2
+    release: "36.5.2"
+
+toolchain:
+  cross_compiler:
+    binary:
+      vendor: Bootlin
+      bundle: "gcc 11.3.0 2022.08-1 aarch64"
+      gcc: "11.3.0"
+      binutils: "2.38"
+      glibc: "2.35"
+      prefix: aarch64-buildroot-linux-gnu-
+
+    source_bundle: null
+
+packages:
+  repository:
+    base: https://repo.download.nvidia.com/jetson/
+    suites:
+      - "common r36.5 main"
+      - "t234 r36.5 main"
+    channel_is_mutable: true
+  manifest:
+    type: bsp_tar_manifest
+    url: https://docs.nvidia.com/jetson/archives/r36.5.2/DeveloperGuide/RM/PackageManifest.html
+    is_full_jetpack_dependency_closure: false
+  meta_package:
+    name: nvidia-jetpack
+    version_build: "6.2.3+b81"
+    architecture: arm64
+    runtime_name: nvidia-jetpack-runtime
+    development_name: nvidia-jetpack-dev
+
+checksums:
+  official:
+    algorithm: sha1
+    source: https://developer.nvidia.com/downloads/embedded/l4t/r36_release_v5.2/releases/release_sha_hashes.txt
+
+    artifacts:
+      bsp:
+        filename: Jetson_Linux_R36.5.2_aarch64.tbz2
+        digest: "7ef67819e28b1dfb72bc6cb30d667b558d67063d"
+
+      sample_rootfs:
+        filename: Tegra_Linux_Sample-Root-Filesystem_R36.5.2_aarch64.tbz2
+        digest: "fb95b63ddf297a5f42613c94b2085eaa23e740f2"
+
+licensing:
+  jetson_linux:
+    agreement: NVIDIA Driver License Agreement
+    version: "2025-02-25"
+    source: https://developer.nvidia.com/downloads/embedded/l4t/r36_release_v5.2/releases/tegra_software_license_agreement-tegra-linux.txt
+
+  project_policy:
+    redistributes_nvidia_artifacts: false
+    acquisition: official_nvidia_sources
+
+sources:
+  accessed_at: "2026-08-17"
+
+  references:
+    jetpack_archive: https://developer.nvidia.com/embedded/jetpack-archive
+    jetpack_release: https://developer.nvidia.com/embedded/jetpack-sdk-623
+    jetson_linux_archive: https://developer.nvidia.com/embedded/jetson-linux-archive
+    jetson_linux_release: https://developer.nvidia.com/embedded/jetson-linux-r3652
+    developer_guide: https://docs.nvidia.com/jetson/archives/r36.5.2/DeveloperGuide/index.html
+    release_notes: https://docs.nvidia.com/jetson/archives/r36.5.2/ReleaseNotes/Jetson_Linux_Release_Notes_r36.5.2.pdf
+    package_repository: https://repo.download.nvidia.com/jetson/
+    release_checksums: https://developer.nvidia.com/downloads/embedded/l4t/r36_release_v5.2/releases/release_sha_hashes.txt
+  evidence:
+    - field: userspace.kernel.package_release
+      status: source_conflict
+      claims:
+        - value: "5.15.148"
+          source_role: stale_developer_guide_table
+        - value: "5.15.199-tegra"
+          source_role: release_specific_repo_package
+    - field: nvidia_stack.dla.version
+      status: source_conflict
+      claims:
+        - value: "3.1"
+          source_role: jetpack_overview
+        - value: "3.14"
+          source_role: jetpack_detailed_component
+    - field: release.jetpack
+      status: source_copy_error
+      claims:
+        - value: "6.2.3 / Jetson Linux 36.5.2"
+          source_role: canonical_release_identity
+        - value: "stack packaged with JetPack 6.2.2"
+          source_role: stale_jetpack_overview_text
