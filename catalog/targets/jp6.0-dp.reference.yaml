@@ -1,0 +1,176 @@
+schema_version: 1
+id: nvidia.jetpack-6.0-dp.jetson-linux-36.2
+aliases:
+  - jetson-orin@jp6.0-dp
+
+support:
+  status: unavailable
+
+release:
+  jetpack:
+    version: "6.0 DP"
+    availability: developer-preview
+    lifecycle: pre-production
+    officially_published: true
+  jetson_linux:
+    display_version: "36.2"
+    release_revision: "36.2"
+    artifact_revision: "36.2.0"
+    release_tag: jetson_36.2
+  l4t:
+    version: "36.2"
+    relation_to_jetson_linux: same_release_line_alias
+  date:
+    value: "2023-12"
+    precision: month
+    scope: jetson_linux
+    jetpack_exact_date: not_explicitly_verified
+
+target:
+  families:
+    - Jetson AGX Orin Series
+    - Jetson Orin NX Series
+    - Jetson Orin Nano Series
+  soc:
+    repository_platform: t234
+  hardware_profiles:
+    - orin-nx-16gb-p3767-0000-on-p3768-0000
+    - orin-nx-8gb-p3767-0001-on-p3768-0000
+
+userspace:
+  ubuntu:
+    version: "22.04"
+    suite: jammy
+    relation: sample_rootfs_is_ubuntu_based
+  architecture:
+    target_abi: aarch64
+    debian_architecture: arm64
+  kernel:
+    series: "5.15 LTS"
+    package_release: "5.15.122-tegra"
+    verification: exact
+
+nvidia_stack:
+  cuda:
+    version: "12.2.12"
+    verification: exact
+  tensorrt:
+    version: "8.6.2"
+    verification: exact
+  cudnn:
+    version: "8.9.4"
+    verification: exact
+  vpi:
+    version: "3.0"
+    verification: exact
+  dla:
+    version: "3.14"
+    verification: exact
+  dlfw:
+    release_train: null
+    verification: not_explicitly_verified
+
+construction_inputs:
+  bsp:
+    official_name: NVIDIA Jetson Linux Driver Package (BSP)
+    filename: jetson_linux_r36.2.0_aarch64.tbz2
+    release: "36.2.0"
+  sample_rootfs:
+    official_name: Sample Root Filesystem
+    filename: tegra_linux_sample-root-filesystem_r36.2.0_aarch64.tbz2
+    release: "36.2.0"
+
+toolchain:
+  cross_compiler:
+    binary:
+      vendor: Bootlin
+      bundle: "gcc 11.3.0 2022.08-1 aarch64"
+      gcc: "11.3.0"
+      binutils: "2.38"
+      glibc: "2.35"
+      prefix: aarch64-buildroot-linux-gnu-
+
+    source_bundle: null
+
+packages:
+  repository:
+    base: https://repo.download.nvidia.com/jetson/
+    suites:
+      - "common r36.2 main"
+      - "t234 r36.2 main"
+    channel_is_mutable: true
+  manifest:
+    type: bsp_tar_manifest
+    url: https://docs.nvidia.com/jetson/archives/r36.2/DeveloperGuide/RM/PackageManifest.html
+    is_full_jetpack_dependency_closure: false
+  meta_package:
+    name: nvidia-jetpack
+    version_build: "6.0-b52"
+    architecture: arm64
+    runtime_name: nvidia-jetpack-runtime
+    development_name: nvidia-jetpack-dev
+
+checksums:
+  official:
+    status: not_explicitly_published
+    algorithm: null
+    source: null
+    artifacts:
+      bsp:
+        filename: jetson_linux_r36.2.0_aarch64.tbz2
+        digest: null
+      sample_rootfs:
+        filename: tegra_linux_sample-root-filesystem_r36.2.0_aarch64.tbz2
+        digest: null
+
+licensing:
+  jetson_linux:
+    agreement: NVIDIA Driver License Agreement
+    version: "2023-11-23"
+    source: https://developer.nvidia.com/downloads/embedded/l4t/r36_release_v2.0/release/tegra_software_license_agreement-tegra-linux.txt
+
+  project_policy:
+    redistributes_nvidia_artifacts: false
+    acquisition: official_nvidia_sources
+
+sources:
+  accessed_at: "2026-08-17"
+
+  references:
+    jetpack_archive: https://developer.nvidia.com/embedded/jetpack-archive
+    jetpack_release: https://developer.nvidia.com/embedded/jetpack-sdk-60dp
+    jetpack_release_notes: https://docs.nvidia.com/jetson/jetpack/6.0DP/release-notes/index.html
+    jetson_linux_archive: https://developer.nvidia.com/embedded/jetson-linux-archive
+    jetson_linux_release: https://developer.nvidia.com/embedded/jetson-linux-r362
+    developer_guide: https://docs.nvidia.com/jetson/archives/r36.2/DeveloperGuide/index.html
+    release_notes: https://developer.nvidia.com/downloads/embedded/l4t/r36_release_v2.0/docs/jetson_linux_release_notes_r36.2.0.pdf
+    package_repository: https://repo.download.nvidia.com/jetson/
+    release_checksums: null
+  evidence:
+    - field: support.status
+      status: policy_exclusion
+      claims:
+        - value: developer_preview
+          source_role: nvidia_release_quality
+        - value: excluded_from_production_catalog
+          source_role: orin_stage_scope_policy
+
+    - field: release.jetson_linux
+      status: naming_alias
+      claims:
+        - value: "36.2"
+          source_role: release_page_release_notes_and_archive
+        - value: "36.2.0"
+          source_role: artifact_revision
+
+    - field: checksums.official
+      status: not_explicitly_published
+      claims:
+        - value: "No Release sha1sum hashes link is present on the current r36.2 release page"
+          source_role: jetson_linux_release_page
+
+    - field: nvidia_stack.dlfw.release_train
+      status: not_explicitly_verified
+      claims:
+        - value: null
+          source_role: official_sources_reviewed
