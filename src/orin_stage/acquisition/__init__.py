@@ -1,0 +1,1 @@
+"""NVIDIA artifact acquisition adapters."""
