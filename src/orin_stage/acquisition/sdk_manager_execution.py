@@ -33,6 +33,7 @@ def build_response_file_execution_plan(
     command = (
         executable,
         "--cli",
+        "--auto",
         "--action",
         "downloadonly",
         "--response-file",

@@ -31,6 +31,28 @@ def _discovery() -> SdkManagerDiscovery:
     )
 
 
+def _response(tmp_path: Path) -> SdkManagerResponseFile:
+    return SdkManagerResponseFile(
+        path=(tmp_path / "sdkm" / "responses" / "x.ini"),
+        sha256="a" * 64,
+        role_id=JP6_DEVELOPER_ROLE_V1.role_id,
+        role_digest=JP6_DEVELOPER_ROLE_V1.digest(),
+    )
+
+
+def _verified_artifact(kind: str, filename: str, content: bytes) -> VerifiedAcquisitionArtifact:
+    sha1 = hashlib.sha1(content).hexdigest()
+    return VerifiedAcquisitionArtifact(
+        kind=kind,
+        filename=filename,
+        relative_path=filename,
+        size=len(content),
+        sha1=sha1,
+        sha256=hashlib.sha256(content).hexdigest(),
+        official_sha1=sha1,
+    )
+
+
 def test_acquisition_digest_changes_with_response_identity(tmp_path: Path) -> None:
     first = SdkManagerResponseFile(
         path=tmp_path / "a.ini",
@@ -50,7 +72,7 @@ def test_acquisition_digest_changes_with_response_identity(tmp_path: Path) -> No
     ) != build_acquisition_digest(_discovery(), second, JP6_DEVELOPER_ROLE_V1)
 
 
-def test_receipt_cache_hit_requires_artifact_and_sdkm_metadata_hashes(
+def test_receipt_cache_hit_requires_complete_artifact_set_and_hashes(
     tmp_path: Path,
 ) -> None:
     downloads = tmp_path / "sdkm" / "downloads"
@@ -59,17 +81,14 @@ def test_receipt_cache_hit_requires_artifact_and_sdkm_metadata_hashes(
     downloads.mkdir(parents=True)
     metadata.mkdir(parents=True)
 
-    artifact_bytes = b"artifact"
+    bsp_bytes = b"bsp artifact"
+    rootfs_bytes = b"sample rootfs artifact"
     metadata_bytes = b"sdkm response export"
-    (downloads / "artifact.tbz2").write_bytes(artifact_bytes)
+    (downloads / "bsp.tbz2").write_bytes(bsp_bytes)
+    (downloads / "rootfs.tbz2").write_bytes(rootfs_bytes)
     (metadata / "export.ini").write_bytes(metadata_bytes)
 
-    response = SdkManagerResponseFile(
-        path=(tmp_path / "sdkm" / "responses" / "x.ini"),
-        sha256="a" * 64,
-        role_id=JP6_DEVELOPER_ROLE_V1.role_id,
-        role_digest=JP6_DEVELOPER_ROLE_V1.digest(),
-    )
+    response = _response(tmp_path)
     digest = build_acquisition_digest(_discovery(), response, JP6_DEVELOPER_ROLE_V1)
     receipt = make_receipt(
         _discovery(),
@@ -77,15 +96,8 @@ def test_receipt_cache_hit_requires_artifact_and_sdkm_metadata_hashes(
         response,
         download_root=downloads,
         artifacts=(
-            VerifiedAcquisitionArtifact(
-                kind="bsp",
-                filename="artifact.tbz2",
-                relative_path="artifact.tbz2",
-                size=len(artifact_bytes),
-                sha1=hashlib.sha1(artifact_bytes).hexdigest(),
-                sha256=hashlib.sha256(artifact_bytes).hexdigest(),
-                official_sha1=hashlib.sha1(artifact_bytes).hexdigest(),
-            ),
+            _verified_artifact("bsp", "bsp.tbz2", bsp_bytes),
+            _verified_artifact("sample_rootfs", "rootfs.tbz2", rootfs_bytes),
         ),
         sdk_manager_metadata=(
             AcquisitionMetadataFile(
@@ -104,7 +116,44 @@ def test_receipt_cache_hit_requires_artifact_and_sdkm_metadata_hashes(
         receipt_path, expected_digest=digest, download_root=downloads
     )
 
-    (downloads / "artifact.tbz2").write_bytes(b"tampered")
+    (downloads / "bsp.tbz2").write_bytes(b"tampered")
+    assert not receipt_is_cache_hit(
+        receipt_path, expected_digest=digest, download_root=downloads
+    )
+
+
+def test_receipt_cache_hit_rejects_missing_sample_rootfs(tmp_path: Path) -> None:
+    downloads = tmp_path / "sdkm" / "downloads"
+    receipt_dir = tmp_path / "sdkm" / "receipts" / "abc"
+    metadata = receipt_dir / "metadata"
+    downloads.mkdir(parents=True)
+    metadata.mkdir(parents=True)
+
+    bsp_bytes = b"bsp artifact"
+    metadata_bytes = b"sdkm response export"
+    (downloads / "bsp.tbz2").write_bytes(bsp_bytes)
+    (metadata / "export.ini").write_bytes(metadata_bytes)
+
+    response = _response(tmp_path)
+    digest = build_acquisition_digest(_discovery(), response, JP6_DEVELOPER_ROLE_V1)
+    receipt = make_receipt(
+        _discovery(),
+        JP6_DEVELOPER_ROLE_V1,
+        response,
+        download_root=downloads,
+        artifacts=(_verified_artifact("bsp", "bsp.tbz2", bsp_bytes),),
+        sdk_manager_metadata=(
+            AcquisitionMetadataFile(
+                relative_path="export.ini",
+                size=len(metadata_bytes),
+                sha256=hashlib.sha256(metadata_bytes).hexdigest(),
+            ),
+        ),
+        now=lambda: datetime(2026, 8, 18, tzinfo=timezone.utc),
+    )
+    receipt_path = receipt_dir / "receipt.json"
+    write_receipt_atomic(receipt_path, receipt)
+
     assert not receipt_is_cache_hit(
         receipt_path, expected_digest=digest, download_root=downloads
     )

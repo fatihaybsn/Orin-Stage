@@ -35,11 +35,16 @@ def test_jp6_developer_role_is_explicit_and_versioned() -> None:
     role = JP6_DEVELOPER_ROLE_V1
 
     assert role.role_id == "jp6-developer-v1"
-    assert role.include_host is True
+    assert role.include_host is False
+    assert role.install_method == "direct_flash"
     assert role.select_groups == (
         "Jetson Linux",
         "Jetson Runtime Components",
         "Jetson SDK Components",
+    )
+    assert role.deselect_groups == (
+        "Developer Tools",
+        "Jetson Platform Services",
     )
     assert role.additional_sdks == ()
     assert len(role.digest()) == 64
@@ -48,8 +53,10 @@ def test_jp6_developer_role_is_explicit_and_versioned() -> None:
 def test_role_digest_changes_when_selection_changes() -> None:
     changed = SdkManagerComponentRole(
         role_id="jp6-developer-v1",
-        include_host=False,
+        include_host=JP6_DEVELOPER_ROLE_V1.include_host,
+        install_method="other_method",
         select_groups=JP6_DEVELOPER_ROLE_V1.select_groups,
+        deselect_groups=("Developer Tools",),
     )
     assert changed.digest() != JP6_DEVELOPER_ROLE_V1.digest()
 
@@ -64,8 +71,12 @@ def test_response_file_is_minimal_and_does_not_accept_license_or_flash() -> None
     assert "action = downloadonly" in text
     assert "version = 6.2.3" in text
     assert "target = JETSON_ORIN_NX_TARGETS" in text
-    assert "host = true" in text
-    assert text.count("select[] = ") == 3
+    assert "install-method = direct_flash" in text
+    assert "host = true" not in text
+    assert sum(line.startswith("select[] = ") for line in text.splitlines()) == 3
+    assert "deselect[] = Developer Tools" in text
+    assert "deselect[] = Jetson Platform Services" in text
+    assert sum(line.startswith("deselect[] = ") for line in text.splitlines()) == 2
     assert "flash =" not in text
     assert "license =" not in text
     assert "sudo-password" not in text

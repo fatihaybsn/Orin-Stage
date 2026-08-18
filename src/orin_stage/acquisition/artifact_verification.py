@@ -23,6 +23,9 @@ class AcquisitionArtifactChecksumError(AcquisitionArtifactError):
     pass
 
 
+CONSTRUCTION_ARTIFACT_KINDS = ("bsp", "sample_rootfs")
+
+
 @dataclass(frozen=True, slots=True)
 class VerifiedAcquisitionArtifact:
     kind: str
@@ -96,7 +99,7 @@ def verify_catalog_construction_artifacts(
     checksum_artifacts = official["artifacts"]
     verified: list[VerifiedAcquisitionArtifact] = []
 
-    for kind in ("bsp", "sample_rootfs"):
+    for kind in CONSTRUCTION_ARTIFACT_KINDS:
         expected_filename = construction[kind]["filename"]
         checksum_entry = checksum_artifacts[kind]
         official_filename = checksum_entry["filename"]

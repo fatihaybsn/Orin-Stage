@@ -32,6 +32,7 @@ def test_execution_plan_uses_response_file_and_exports_evidence(tmp_path: Path) 
     assert plan.command == (
         "sdkmanager",
         "--cli",
+        "--auto",
         "--action",
         "downloadonly",
         "--response-file",
@@ -42,6 +43,7 @@ def test_execution_plan_uses_response_file_and_exports_evidence(tmp_path: Path) 
         str((tmp_path / "logs").resolve()),
         "--exit-on-finish",
     )
+    assert "--auto" in plan.command
     assert "--licenses" not in plan.command
     assert "--license" not in plan.command
     assert "--flash" not in plan.command

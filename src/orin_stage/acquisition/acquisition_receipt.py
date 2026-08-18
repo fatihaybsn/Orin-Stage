@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, Mapping
 
 from .artifact_verification import (
+    CONSTRUCTION_ARTIFACT_KINDS,
     VerifiedAcquisitionArtifact,
     verify_receipt_artifact,
 )
@@ -43,6 +44,7 @@ class AcquisitionReceipt:
     role_digest: str
     include_host: bool
     selected_groups: tuple[str, ...]
+    deselected_groups: tuple[str, ...]
     response_file_sha256: str
     download_root: str
     artifacts: tuple[VerifiedAcquisitionArtifact, ...]
@@ -52,6 +54,7 @@ class AcquisitionReceipt:
     def to_dict(self) -> dict[str, object]:
         data = asdict(self)
         data["selected_groups"] = list(self.selected_groups)
+        data["deselected_groups"] = list(self.deselected_groups)
         data["artifacts"] = [asdict(item) for item in self.artifacts]
         data["sdk_manager_metadata"] = [
             asdict(item) for item in self.sdk_manager_metadata
@@ -136,6 +139,7 @@ def make_receipt(
         role_digest=role.digest(),
         include_host=role.include_host,
         selected_groups=role.select_groups,
+        deselected_groups=role.deselect_groups,
         response_file_sha256=response_file.sha256,
         download_root=str(Path(download_root)),
         artifacts=artifacts,
@@ -192,11 +196,21 @@ def receipt_is_cache_hit(
         return False
 
     artifacts = data.get("artifacts")
-    if not isinstance(artifacts, list) or not artifacts:
+    if not isinstance(artifacts, list):
         return False
+
+    expected_kinds = frozenset(CONSTRUCTION_ARTIFACT_KINDS)
+    seen_kinds: set[str] = set()
+    if len(artifacts) != len(expected_kinds):
+        return False
+
     for item in artifacts:
         if not isinstance(item, dict):
             return False
+        kind = item.get("kind")
+        if not isinstance(kind, str) or kind in seen_kinds:
+            return False
+        seen_kinds.add(kind)
         try:
             ok = verify_receipt_artifact(
                 download_root,
@@ -208,6 +222,9 @@ def receipt_is_cache_hit(
             return False
         if not ok:
             return False
+
+    if seen_kinds != expected_kinds:
+        return False
 
     metadata = data.get("sdk_manager_metadata")
     if not isinstance(metadata, list) or not metadata:

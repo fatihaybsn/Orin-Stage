@@ -51,28 +51,37 @@ def _write_sdkm_state(root: Path) -> Path:
     return state
 
 
+def _fake_verified_artifacts(download_root: Path) -> tuple[VerifiedAcquisitionArtifact, ...]:
+    specs = (
+        ("bsp", "fake-bsp.tbz2", b"fake verified bsp bytes"),
+        ("sample_rootfs", "fake-rootfs.tbz2", b"fake verified rootfs bytes"),
+    )
+    verified: list[VerifiedAcquisitionArtifact] = []
+    for kind, filename, content in specs:
+        (download_root / filename).write_bytes(content)
+        sha1 = hashlib.sha1(content).hexdigest()
+        verified.append(
+            VerifiedAcquisitionArtifact(
+                kind=kind,
+                filename=filename,
+                relative_path=filename,
+                size=len(content),
+                sha1=sha1,
+                sha256=hashlib.sha256(content).hexdigest(),
+                official_sha1=sha1,
+            )
+        )
+    return tuple(verified)
+
+
 def test_end_to_end_acquisition_publishes_receipt_and_then_hits_cache(
     tmp_path: Path, monkeypatch
 ) -> None:
     data_root = tmp_path.resolve() / "data"
     sdkm_state = _write_sdkm_state(tmp_path.resolve())
-    artifact = b"fake verified bytes"
 
     def fake_verify(target, *, download_root: Path):
-        path = download_root / "fake.tbz2"
-        if not path.exists():
-            path.write_bytes(artifact)
-        return (
-            VerifiedAcquisitionArtifact(
-                kind="bsp",
-                filename="fake.tbz2",
-                relative_path="fake.tbz2",
-                size=len(artifact),
-                sha1=hashlib.sha1(artifact).hexdigest(),
-                sha256=hashlib.sha256(artifact).hexdigest(),
-                official_sha1=hashlib.sha1(artifact).hexdigest(),
-            ),
-        )
+        return _fake_verified_artifacts(download_root)
 
     monkeypatch.setattr(
         "orin_stage.acquisition.sdk_manager_acquisition.verify_catalog_construction_artifacts",
@@ -121,22 +130,9 @@ def test_end_to_end_acquisition_publishes_receipt_and_then_hits_cache(
 def test_corrupted_cache_forces_download_again(tmp_path: Path, monkeypatch) -> None:
     data_root = tmp_path.resolve() / "data"
     sdkm_state = _write_sdkm_state(tmp_path.resolve())
-    artifact = b"fake verified bytes"
 
     def fake_verify(target, *, download_root: Path):
-        path = download_root / "fake.tbz2"
-        path.write_bytes(artifact)
-        return (
-            VerifiedAcquisitionArtifact(
-                kind="bsp",
-                filename="fake.tbz2",
-                relative_path="fake.tbz2",
-                size=len(artifact),
-                sha1=hashlib.sha1(artifact).hexdigest(),
-                sha256=hashlib.sha256(artifact).hexdigest(),
-                official_sha1=hashlib.sha1(artifact).hexdigest(),
-            ),
-        )
+        return _fake_verified_artifacts(download_root)
 
     monkeypatch.setattr(
         "orin_stage.acquisition.sdk_manager_acquisition.verify_catalog_construction_artifacts",
@@ -161,7 +157,7 @@ def test_corrupted_cache_forces_download_again(tmp_path: Path, monkeypatch) -> N
         execute=fake_execute,
         sdk_manager_state_root=sdkm_state,
     )
-    (data_root / "sdkm" / "downloads" / "fake.tbz2").write_bytes(b"bad")
+    (data_root / "sdkm" / "downloads" / "fake-bsp.tbz2").write_bytes(b"bad")
 
     second = ensure_sdk_manager_acquisition(
         FakeSdkManagerClient(),
