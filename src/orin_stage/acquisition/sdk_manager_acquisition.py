@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import fcntl
 import os
 import shutil
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -46,6 +48,49 @@ class AcquisitionResult:
 
 def _safe_filename(value: str) -> str:
     return "".join(char if char.isalnum() or char in ".-_" else "_" for char in value)
+
+
+@contextmanager
+def _acquisition_lock(path: Path):
+    """Serialize access to the shared SDK Manager acquisition state."""
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+b") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _remove_abandoned_publish_dirs(receipts: Path, acquisition_digest: str) -> None:
+    for prefix in (
+        f".staging-{acquisition_digest}-",
+        f".stale-{acquisition_digest}-",
+    ):
+        for path in receipts.glob(f"{prefix}*"):
+            if path.is_dir():
+                shutil.rmtree(path, ignore_errors=True)
+
+
+def _publish_staging_directory(staging: Path, final_dir: Path) -> None:
+    """Publish a complete acquisition directory without exposing partial state."""
+
+    stale: Path | None = None
+    if final_dir.exists():
+        stale = final_dir.parent / f".stale-{final_dir.name}-{uuid.uuid4().hex}"
+        os.replace(final_dir, stale)
+
+    try:
+        os.replace(staging, final_dir)
+    except Exception:
+        if stale is not None and stale.exists() and not final_dir.exists():
+            os.replace(stale, final_dir)
+        raise
+    else:
+        if stale is not None:
+            shutil.rmtree(stale, ignore_errors=True)
 
 
 def ensure_sdk_manager_acquisition(
@@ -115,59 +160,75 @@ def ensure_sdk_manager_acquisition(
             receipt=None,
         )
 
-    staging = receipts / f".staging-{acquisition_digest}-{uuid.uuid4().hex}"
-    metadata = staging / "metadata"
-    logs = staging / "logs"
-    staging.mkdir(parents=True, exist_ok=False)
-
-    try:
-        execution_plan = build_response_file_execution_plan(
-            response_file,
-            metadata_directory=metadata,
-            logs_directory=logs,
-            executable=client.executable,
-        )
-        execute(execution_plan)
-
-        state_root = (
-            Path(sdk_manager_state_root)
-            if sdk_manager_state_root is not None
-            else Path.home() / ".nvsdkm"
-        )
-        copy_sdk_manager_reference_files(
-            state_root,
-            discovery,
-            destination=metadata / "sdkmanager-reference",
-        )
-
-        artifacts = verify_catalog_construction_artifacts(
-            target,
+    lock_path = sdkm_root / ".acquisition.lock"
+    with _acquisition_lock(lock_path):
+        # Another process may have completed the same acquisition while this
+        # process was waiting for the shared SDK Manager lock.
+        if receipt_is_cache_hit(
+            receipt_path,
+            expected_digest=acquisition_digest,
             download_root=downloads,
-        )
-        metadata_files = hash_metadata_files(metadata)
-        if not metadata_files:
-            raise RuntimeError(
-                "SDK Manager completed but did not export response metadata; "
-                "acquisition receipt will not be published"
+        ):
+            return AcquisitionResult(
+                discovery=discovery,
+                response_file=response_file,
+                receipt_path=receipt_path,
+                acquisition_digest=acquisition_digest,
+                cache_hit=True,
+                receipt=None,
             )
 
-        receipt = make_receipt(
-            discovery,
-            role,
-            response_file,
-            download_root=downloads,
-            artifacts=artifacts,
-            sdk_manager_metadata=metadata_files,
-            now=now,
-        )
-        write_receipt_atomic(staging / "receipt.json", receipt)
+        _remove_abandoned_publish_dirs(receipts, acquisition_digest)
+        staging = receipts / f".staging-{acquisition_digest}-{uuid.uuid4().hex}"
+        metadata = staging / "metadata"
+        logs = staging / "logs"
+        staging.mkdir(parents=True, exist_ok=False)
 
-        if final_dir.exists():
-            shutil.rmtree(final_dir)
-        os.replace(staging, final_dir)
-    except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
-        raise
+        try:
+            execution_plan = build_response_file_execution_plan(
+                response_file,
+                metadata_directory=metadata,
+                logs_directory=logs,
+                executable=client.executable,
+            )
+            execute(execution_plan)
+
+            state_root = (
+                Path(sdk_manager_state_root)
+                if sdk_manager_state_root is not None
+                else Path.home() / ".nvsdkm"
+            )
+            copy_sdk_manager_reference_files(
+                state_root,
+                discovery,
+                destination=metadata / "sdkmanager-reference",
+            )
+
+            artifacts = verify_catalog_construction_artifacts(
+                target,
+                download_root=downloads,
+            )
+            metadata_files = hash_metadata_files(metadata)
+            if not metadata_files:
+                raise RuntimeError(
+                    "SDK Manager completed but did not export response metadata; "
+                    "acquisition receipt will not be published"
+                )
+
+            receipt = make_receipt(
+                discovery,
+                role,
+                response_file,
+                download_root=downloads,
+                artifacts=artifacts,
+                sdk_manager_metadata=metadata_files,
+                now=now,
+            )
+            write_receipt_atomic(staging / "receipt.json", receipt)
+            _publish_staging_directory(staging, final_dir)
+        except Exception:
+            shutil.rmtree(staging, ignore_errors=True)
+            raise
 
     return AcquisitionResult(
         discovery=discovery,

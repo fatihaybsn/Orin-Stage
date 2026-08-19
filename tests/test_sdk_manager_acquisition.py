@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+
+from orin_stage.acquisition import sdk_manager_acquisition as acquisition_module
 from orin_stage.acquisition.artifact_verification import VerifiedAcquisitionArtifact
 from orin_stage.acquisition.sdk_manager import SdkManagerClient
 from orin_stage.acquisition.sdk_manager_acquisition import ensure_sdk_manager_acquisition
@@ -171,3 +176,101 @@ def test_corrupted_cache_forces_download_again(tmp_path: Path, monkeypatch) -> N
     assert first.cache_hit is False
     assert second.cache_hit is False
     assert executions == 2
+
+
+
+def test_concurrent_acquisition_executes_sdk_manager_only_once(
+    tmp_path: Path, monkeypatch
+) -> None:
+    data_root = tmp_path.resolve() / "data"
+    sdkm_state = _write_sdkm_state(tmp_path.resolve())
+
+    def fake_verify(target, *, download_root: Path):
+        return _fake_verified_artifacts(download_root)
+
+    monkeypatch.setattr(
+        acquisition_module,
+        "verify_catalog_construction_artifacts",
+        fake_verify,
+    )
+
+    original_cache_check = acquisition_module.receipt_is_cache_hit
+    first_check_threads: set[int] = set()
+    first_checks_done = threading.Event()
+    state_lock = threading.Lock()
+
+    def synchronized_cache_check(*args, **kwargs) -> bool:
+        thread_id = threading.get_ident()
+        with state_lock:
+            is_first_check = thread_id not in first_check_threads
+            if is_first_check:
+                first_check_threads.add(thread_id)
+        result = original_cache_check(*args, **kwargs)
+        if is_first_check:
+            with state_lock:
+                if len(first_check_threads) == 2:
+                    first_checks_done.set()
+        return result
+
+    monkeypatch.setattr(
+        acquisition_module,
+        "receipt_is_cache_hit",
+        synchronized_cache_check,
+    )
+
+    executions = 0
+
+    def fake_execute(plan) -> None:
+        nonlocal executions
+        with state_lock:
+            executions += 1
+        assert first_checks_done.wait(timeout=5)
+        plan.metadata_directory.mkdir(parents=True, exist_ok=True)
+        (plan.metadata_directory / "sdkm-export.ini").write_text(
+            "exported=true\n", encoding="utf-8"
+        )
+
+    def acquire():
+        return ensure_sdk_manager_acquisition(
+            FakeSdkManagerClient(),
+            _target(),
+            required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
+            data_root=data_root,
+            execute=fake_execute,
+            sdk_manager_state_root=sdkm_state,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(acquire), executor.submit(acquire)]
+        results = [future.result(timeout=10) for future in futures]
+
+    assert executions == 1
+    assert sorted(result.cache_hit for result in results) == [False, True]
+    assert results[0].receipt_path == results[1].receipt_path
+
+
+def test_failed_acquisition_does_not_publish_partial_receipt(
+    tmp_path: Path, monkeypatch
+) -> None:
+    data_root = tmp_path.resolve() / "data"
+
+    def fake_execute(plan) -> None:
+        plan.metadata_directory.mkdir(parents=True, exist_ok=True)
+        (plan.metadata_directory / "partial.ini").write_text(
+            "partial=true\n", encoding="utf-8"
+        )
+        raise RuntimeError("simulated SDK Manager failure")
+
+    with pytest.raises(RuntimeError, match="simulated SDK Manager failure"):
+        ensure_sdk_manager_acquisition(
+            FakeSdkManagerClient(),
+            _target(),
+            required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
+            data_root=data_root,
+            execute=fake_execute,
+        )
+
+    receipts = data_root / "sdkm" / "receipts"
+    assert not list(receipts.glob(".staging-*"))
+    assert not list(receipts.glob(".stale-*"))
+    assert not list(receipts.glob("*/receipt.json"))
