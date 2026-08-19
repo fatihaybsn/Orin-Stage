@@ -67,6 +67,14 @@ def build_acquisition_digest(
     response_file: SdkManagerResponseFile,
     role: SdkManagerComponentRole,
 ) -> str:
+    """Build the identity of one SDK Manager acquisition transaction.
+
+    This digest is intentionally acquisition-specific and must not be reused as
+    immutable-base identity. In particular it includes SDK Manager and response
+    file evidence that can change without changing the verified construction
+    bytes. Base identity is built separately by ``orin_stage.base``.
+    """
+
     payload = {
         "canonical_id": discovery.target.canonical_id,
         "sdk_manager_version": discovery.sdk_manager_version,
