@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 from pathlib import Path
 
@@ -11,7 +12,11 @@ from orin_stage.acquisition.sdk_manager_discovery import SdkManagerDiscovery
 from orin_stage.acquisition.sdk_manager_match import VerifiedSdkManagerTarget
 from orin_stage.acquisition.sdk_manager_response import SdkManagerResponseFile
 from orin_stage.acquisition.sdk_manager_role import JP6_DEVELOPER_ROLE_V1
-from orin_stage.base import BaseIdentityError, build_base_digest
+from orin_stage.base import (
+    BaseIdentityError,
+    build_base_digest,
+    build_base_target_projection_digest,
+)
 
 
 def _artifact(kind: str, content: bytes) -> VerifiedAcquisitionArtifact:
@@ -32,6 +37,46 @@ def _artifacts() -> tuple[VerifiedAcquisitionArtifact, ...]:
         _artifact("bsp", b"verified bsp bytes"),
         _artifact("sample_rootfs", b"verified sample rootfs bytes"),
     )
+
+
+def _target_lock() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "target": {
+            "canonical_id": "nvidia.jetpack-6.2.3.jetson-linux-36.5.2",
+            "jetpack_version": "6.2.3",
+            "l4t_version": "36.5.2",
+            "ubuntu_suite": "jammy",
+            "target_abi": "aarch64",
+            "debian_architecture": "arm64",
+            "repository_platform": "t234",
+        },
+        "construction_packages": {
+            "seed": {
+                "name": "nvidia-jetpack",
+                "version": "6.2.3+b81",
+                "architecture": "arm64",
+            },
+            "packages": [
+                {
+                    "name": "cuda-toolkit-12-6",
+                    "version": "12.6.3-1",
+                    "architecture": "arm64",
+                    "operation": "install",
+                    "filename": "cuda-toolkit-12-6.deb",
+                    "sha256": "a" * 64,
+                }
+            ],
+        },
+        "acquisition": {
+            "sdk_manager_version": "2.4.1",
+            "response_file_sha256": "b" * 64,
+        },
+        "construction": {
+            "qemu": {"version": "qemu 8.2"},
+        },
+        "validation": {"policy_version": 1},
+    }
 
 
 def _discovery() -> SdkManagerDiscovery:
@@ -56,10 +101,29 @@ def _response(path: Path, sha256: str) -> SdkManagerResponseFile:
     )
 
 
+def test_projection_ignores_acquisition_qemu_and_validation_evidence() -> None:
+    original = _target_lock()
+    changed = copy.deepcopy(original)
+    changed["acquisition"]["sdk_manager_version"] = "2.5.0"  # type: ignore[index]
+    changed["acquisition"]["response_file_sha256"] = "c" * 64  # type: ignore[index]
+    changed["construction"]["qemu"]["version"] = "qemu 9.0"  # type: ignore[index]
+    changed["validation"]["policy_version"] = 2  # type: ignore[index]
+
+    assert build_base_target_projection_digest(original) == build_base_target_projection_digest(changed)
+
+
+def test_projection_changes_when_exact_package_set_changes() -> None:
+    original = _target_lock()
+    changed = copy.deepcopy(original)
+    changed["construction_packages"]["packages"][0]["version"] = "12.6.4-1"  # type: ignore[index]
+
+    assert build_base_target_projection_digest(original) != build_base_target_projection_digest(changed)
+
+
 def test_base_digest_is_deterministic_and_artifact_order_independent() -> None:
     artifacts = _artifacts()
     kwargs = {
-        "target_lock_digest": "1" * 64,
+        "base_target_projection_digest": build_base_target_projection_digest(_target_lock()),
         "construction_recipe_digest": "2" * 64,
     }
 
@@ -72,24 +136,25 @@ def test_base_digest_is_deterministic_and_artifact_order_independent() -> None:
 
 def test_base_digest_changes_only_when_base_identity_inputs_change() -> None:
     artifacts = _artifacts()
+    projection = build_base_target_projection_digest(_target_lock())
     original = build_base_digest(
-        target_lock_digest="1" * 64,
+        base_target_projection_digest=projection,
         construction_recipe_digest="2" * 64,
         artifacts=artifacts,
     )
 
-    changed_lock = build_base_digest(
-        target_lock_digest="3" * 64,
+    changed_projection = build_base_digest(
+        base_target_projection_digest="3" * 64,
         construction_recipe_digest="2" * 64,
         artifacts=artifacts,
     )
     changed_recipe = build_base_digest(
-        target_lock_digest="1" * 64,
+        base_target_projection_digest=projection,
         construction_recipe_digest="4" * 64,
         artifacts=artifacts,
     )
     changed_artifact = build_base_digest(
-        target_lock_digest="1" * 64,
+        base_target_projection_digest=projection,
         construction_recipe_digest="2" * 64,
         artifacts=(
             _artifact("bsp", b"different bsp bytes"),
@@ -97,13 +162,13 @@ def test_base_digest_changes_only_when_base_identity_inputs_change() -> None:
         ),
     )
 
-    assert len({original, changed_lock, changed_recipe, changed_artifact}) == 4
+    assert len({original, changed_projection, changed_recipe, changed_artifact}) == 4
 
 
 def test_base_digest_rejects_incomplete_construction_artifact_set() -> None:
     with pytest.raises(BaseIdentityError, match="exact construction artifact set"):
         build_base_digest(
-            target_lock_digest="1" * 64,
+            base_target_projection_digest="1" * 64,
             construction_recipe_digest="2" * 64,
             artifacts=(_artifacts()[0],),
         )
@@ -123,7 +188,7 @@ def test_acquisition_identity_can_change_without_changing_base_identity(
     )
 
     base_inputs = {
-        "target_lock_digest": "1" * 64,
+        "base_target_projection_digest": build_base_target_projection_digest(_target_lock()),
         "construction_recipe_digest": "2" * 64,
         "artifacts": _artifacts(),
     }
