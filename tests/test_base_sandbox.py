@@ -40,6 +40,7 @@ def test_host_construction_sandbox_runs_official_scripts_in_one_disposable_conta
     assert HOST_BUILDER_IMAGE in command
     assert f"{root.resolve()}:/work/Linux_for_Tegra:rw" in command
     shell_script = command[-1]
+    assert "apt-get install -y --no-install-recommends sudo" in shell_script
     assert shell_script.index("l4t_flash_prerequisites.sh") < shell_script.index(
         "apply_binaries.sh"
     )

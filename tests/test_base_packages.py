@@ -22,6 +22,8 @@ from orin_stage.base.packages import (
     parse_apt_simulation,
     parse_apt_simulation_diagnostic,
     render_temporary_nvidia_sources,
+    use_canonical_nvidia_construction_sources,
+    validate_final_nvidia_sources,
 )
 from orin_stage.base.recipe import (
     JP623_ALLOWED_REMOVAL_SET,
@@ -522,6 +524,63 @@ def test_jp623_temporary_sources_are_common_and_t234_r365() -> None:
 
     assert "https://repo.download.nvidia.com/jetson/common r36.5 main" in rendered
     assert "https://repo.download.nvidia.com/jetson/t234 r36.5 main" in rendered
+
+
+def test_vendor_placeholder_and_duplicate_sources_are_disabled_during_construction(
+    tmp_path: Path,
+) -> None:
+    rootfs = tmp_path / "rootfs"
+    sources = rootfs / "etc" / "apt" / "sources.list.d"
+    sources.mkdir(parents=True)
+    official = sources / "nvidia-l4t-apt-source.list"
+    official.write_text(
+        "deb https://repo.download.nvidia.com/jetson/<SOC> r36.5 main\n"
+        "deb https://repo.download.nvidia.com/jetson/common r36.5 main\n",
+        encoding="utf-8",
+    )
+    duplicate = sources / "third-party.list"
+    duplicate.write_text(
+        "deb https://repo.download.nvidia.com/jetson/common r36.5 main\n"
+        "deb https://example.invalid stable main\n",
+        encoding="utf-8",
+    )
+
+    with use_canonical_nvidia_construction_sources(rootfs, _target()) as temporary:
+        assert not official.exists()
+        active = "".join(
+            path.read_text(encoding="utf-8") for path in sorted(sources.glob("*.list"))
+        )
+        assert "<SOC>" not in active
+        assert active.count("/jetson/common r36.5 main") == 1
+        assert active.count("/jetson/t234 r36.5 main") == 1
+        assert temporary.name == "orin-stage-construction.list"
+
+    assert not (sources / "orin-stage-construction.list").exists()
+    assert "<SOC>" not in "".join(
+        path.read_text(encoding="utf-8") for path in sources.iterdir() if path.is_file()
+    )
+    assert "example.invalid" in duplicate.read_text(encoding="utf-8")
+    validate_final_nvidia_sources(rootfs, _target())
+
+
+def test_construction_source_cleanup_is_exception_safe(tmp_path: Path) -> None:
+    rootfs = tmp_path / "rootfs"
+    sources = rootfs / "etc" / "apt" / "sources.list.d"
+    sources.mkdir(parents=True)
+    (sources / "nvidia-l4t-apt-source.list").write_text(
+        "deb https://repo.download.nvidia.com/jetson/<SOC> r36.5 main\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="package resolution failed"):
+        with use_canonical_nvidia_construction_sources(rootfs, _target()):
+            raise RuntimeError("package resolution failed")
+
+    assert not (sources / "orin-stage-construction.list").exists()
+    final = (sources / "nvidia-l4t-apt-source.list").read_text(encoding="utf-8")
+    assert "<SOC>" not in final
+    assert final.count("/jetson/common r36.5 main") == 1
+    assert final.count("/jetson/t234 r36.5 main") == 1
 
 
 def test_package_set_digest_is_order_sensitive_only_to_semantic_rows() -> None:

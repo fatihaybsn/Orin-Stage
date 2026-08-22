@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import subprocess
+from contextlib import AbstractContextManager
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
@@ -17,6 +19,11 @@ class PackageResolutionError(RuntimeError):
     """Raised when the exact construction package transaction cannot be frozen."""
 
 
+_NVIDIA_REPOSITORY = "https://repo.download.nvidia.com/jetson/"
+_OFFICIAL_NVIDIA_SOURCE = "nvidia-l4t-apt-source.list"
+_CONSTRUCTION_NVIDIA_SOURCE = "orin-stage-construction.list"
+_DISABLED_NVIDIA_SOURCE = ".nvidia-l4t-apt-source.list.orin-stage-disabled"
+_UNRESOLVED_PLACEHOLDER = re.compile(r"<[A-Za-z_][A-Za-z0-9_-]*>")
 _REMOVAL_FORBIDDEN_ERROR = "Packages need to be removed but remove is disabled"
 _DENY_ALL_REMOVAL_POLICY_VERSION = "deny-all-v1"
 
@@ -479,6 +486,172 @@ def write_temporary_nvidia_sources(
     source_path.parent.mkdir(parents=True, exist_ok=True)
     source_path.write_text(render_temporary_nvidia_sources(target), encoding="utf-8")
     return source_path
+
+
+def _write_text_atomic(path: Path, content: str) -> None:
+    temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
+    if temporary.exists() or temporary.is_symlink():
+        raise PackageResolutionError(f"temporary APT source path already exists: {temporary}")
+    try:
+        temporary.write_text(content, encoding="utf-8")
+        temporary.chmod(0o644)
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _active_apt_source_paths(rootfs: Path) -> tuple[Path, ...]:
+    apt = Path(rootfs) / "etc" / "apt"
+    paths: list[Path] = []
+    main = apt / "sources.list"
+    if main.is_file() or main.is_symlink():
+        paths.append(main)
+    source_directory = apt / "sources.list.d"
+    if source_directory.is_dir():
+        paths.extend(sorted(source_directory.glob("*.list")))
+        paths.extend(sorted(source_directory.glob("*.sources")))
+    return tuple(paths)
+
+
+def _source_has_nvidia_or_placeholder(content: str) -> bool:
+    return _NVIDIA_REPOSITORY in content or _UNRESOLVED_PLACEHOLDER.search(content) is not None
+
+
+def _without_conflicting_source_entries(path: Path, content: str) -> str:
+    if path.suffix == ".sources":
+        stanzas = re.split(r"(\n[ \t]*\n)", content)
+        kept: list[str] = []
+        for part in stanzas:
+            if not part.strip() or not _source_has_nvidia_or_placeholder(part):
+                kept.append(part)
+        return "".join(kept)
+
+    kept_lines: list[str] = []
+    for line in content.splitlines(keepends=True):
+        active = line.lstrip()
+        if not active.startswith("#") and _source_has_nvidia_or_placeholder(line):
+            continue
+        if _UNRESOLVED_PLACEHOLDER.search(line):
+            continue
+        kept_lines.append(line)
+    return "".join(kept_lines)
+
+
+def _read_regular_source(path: Path) -> str:
+    if path.is_symlink():
+        raise PackageResolutionError(f"refusing symbolic-link APT source during construction: {path}")
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise PackageResolutionError(f"cannot read APT source file: {path}") from exc
+
+
+def validate_final_nvidia_sources(rootfs: Path, target: ResolvedCatalogTarget) -> None:
+    """Require one canonical final NVIDIA source set and no unresolved placeholder."""
+
+    expected = tuple(render_temporary_nvidia_sources(target).splitlines())
+    active_lines: list[str] = []
+    for path in _active_apt_source_paths(rootfs):
+        content = _read_regular_source(path)
+        if _UNRESOLVED_PLACEHOLDER.search(content):
+            raise PackageResolutionError(f"unresolved placeholder remains in APT source: {path}")
+        if path.suffix == ".sources" and _NVIDIA_REPOSITORY in content:
+            raise PackageResolutionError(
+                f"unexpected deb822 NVIDIA source remains alongside canonical source: {path}"
+            )
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and _NVIDIA_REPOSITORY in stripped:
+                active_lines.append(stripped)
+
+    source_directory = Path(rootfs) / "etc" / "apt" / "sources.list.d"
+    if source_directory.is_dir():
+        for path in source_directory.iterdir():
+            if path.is_file() and not path.is_symlink():
+                try:
+                    content = path.read_text(encoding="utf-8")
+                except (OSError, UnicodeError) as exc:
+                    raise PackageResolutionError(f"cannot audit final APT source file: {path}") from exc
+                if _UNRESOLVED_PLACEHOLDER.search(content):
+                    raise PackageResolutionError(
+                        f"unresolved placeholder remains in final APT configuration: {path}"
+                    )
+
+    if tuple(active_lines) != expected:
+        raise PackageResolutionError(
+            "final NVIDIA APT sources are not the exact canonical common + platform set: "
+            f"{active_lines!r}"
+        )
+    temporary = Path(rootfs) / "etc" / "apt" / "sources.list.d" / _CONSTRUCTION_NVIDIA_SOURCE
+    if temporary.exists() or temporary.is_symlink():
+        raise PackageResolutionError(f"construction-only APT source remains in final rootfs: {temporary}")
+
+
+class NvidiaConstructionSources(AbstractContextManager[Path]):
+    """Make catalog repositories authoritative for APT, then publish canonical final sources."""
+
+    def __init__(self, rootfs: Path, target: ResolvedCatalogTarget) -> None:
+        self.rootfs = Path(rootfs)
+        self.target = target
+        source_directory = self.rootfs / "etc" / "apt" / "sources.list.d"
+        self.official_path = source_directory / _OFFICIAL_NVIDIA_SOURCE
+        self.construction_path = source_directory / _CONSTRUCTION_NVIDIA_SOURCE
+        self.disabled_path = source_directory / _DISABLED_NVIDIA_SOURCE
+        self._entered = False
+
+    def _canonicalize_final_sources(self) -> None:
+        self.construction_path.unlink(missing_ok=True)
+        self.disabled_path.unlink(missing_ok=True)
+        if self.official_path.is_symlink():
+            self.official_path.unlink()
+        _write_text_atomic(self.official_path, render_temporary_nvidia_sources(self.target))
+        validate_final_nvidia_sources(self.rootfs, self.target)
+
+    def __enter__(self) -> Path:
+        source_directory = self.official_path.parent
+        source_directory.mkdir(parents=True, exist_ok=True)
+        if self.construction_path.exists() or self.construction_path.is_symlink():
+            raise PackageResolutionError(
+                f"temporary construction source already exists: {self.construction_path}"
+            )
+        if self.disabled_path.exists() or self.disabled_path.is_symlink():
+            raise PackageResolutionError(
+                f"disabled NVIDIA source backup already exists: {self.disabled_path}"
+            )
+
+        try:
+            if self.official_path.exists() or self.official_path.is_symlink():
+                if self.official_path.is_symlink():
+                    raise PackageResolutionError(
+                        f"refusing symbolic-link NVIDIA APT source: {self.official_path}"
+                    )
+                os.replace(self.official_path, self.disabled_path)
+
+            for path in _active_apt_source_paths(self.rootfs):
+                if path in {self.construction_path, self.official_path}:
+                    continue
+                content = _read_regular_source(path)
+                filtered = _without_conflicting_source_entries(path, content)
+                if filtered != content:
+                    _write_text_atomic(path, filtered)
+
+            write_temporary_nvidia_sources(self.rootfs, self.target)
+            self._entered = True
+            return self.construction_path
+        except Exception:
+            self._canonicalize_final_sources()
+            raise
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        self._canonicalize_final_sources()
+        self._entered = False
+        return False
+
+
+def use_canonical_nvidia_construction_sources(
+    rootfs: Path, target: ResolvedCatalogTarget
+) -> NvidiaConstructionSources:
+    return NvidiaConstructionSources(rootfs, target)
 
 
 def resolve_construction_package_set(

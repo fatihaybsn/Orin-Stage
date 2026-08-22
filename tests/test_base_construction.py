@@ -14,11 +14,11 @@ from orin_stage.base.packages import (
     PackageSeed,
     PackageTransactionEvidence,
 )
+from orin_stage.base.validation import RuntimeValidationSnapshot
 from orin_stage.base.recipe import (
     JP623_ALLOWED_REMOVAL_SET,
     JP623_REMOVAL_POLICY_VERSION,
 )
-from orin_stage.base.validation import RuntimeValidationSnapshot
 from orin_stage.catalog.resolver import TargetResolver
 
 
@@ -170,16 +170,10 @@ def test_ensure_jp623_base_publishes_then_reuses_same_base(tmp_path: Path, monke
         def __exit__(self, exc_type, exc, tb):
             return False
 
-    def fake_sources(rootfs: Path, target):
-        path = rootfs / "etc" / "apt" / "sources.list.d" / "orin-stage-construction.list"
-        path.write_text("deb fake\n", encoding="utf-8")
-        return path
-
     monkeypatch.setattr(construction_module.os, "geteuid", lambda: 0)
     monkeypatch.setattr(construction_module, "_extract_official_rootfs", fake_extract)
     monkeypatch.setattr(construction_module, "read_qemu_version", lambda *a, **k: "qemu 8.2")
     monkeypatch.setattr(construction_module, "Arm64ConstructionChroot", FakeChroot)
-    monkeypatch.setattr(construction_module, "write_temporary_nvidia_sources", fake_sources)
 
     def fake_resolve(*args, removal_policy, **kwargs):
         assert removal_policy.version == JP623_REMOVAL_POLICY_VERSION

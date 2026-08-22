@@ -61,7 +61,15 @@ class HostConstructionSandbox:
             self.image,
             "/bin/bash",
             "-ceu",
-            "./tools/l4t_flash_prerequisites.sh\n./apply_binaries.sh",
+            (
+                # The pinned minimal image has no sudo, but NVIDIA's prerequisite
+                # script invokes it. This package exists only in the disposable
+                # builder container and never changes the developer host.
+                "apt-get update\n"
+                "apt-get install -y --no-install-recommends sudo\n"
+                "./tools/l4t_flash_prerequisites.sh\n"
+                "./apply_binaries.sh"
+            ),
         )
         completed = runner(
             tuple(command),

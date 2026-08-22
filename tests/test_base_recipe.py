@@ -25,6 +25,8 @@ def test_recipe_contains_only_step3_construction_semantics() -> None:
     assert "l4t_flash_prerequisites" in encoded
     assert "apply_binaries" in encoded
     assert "qemu-aarch64-static-binfmt-chroot" in encoded
+    assert "catalog-exact-common-plus-platform" in encoded
+    assert "remove-construction-apt-source" in encoded
     assert "SDK Manager" not in encoded
     assert "validation" not in encoded
 

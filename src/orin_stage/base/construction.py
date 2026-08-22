@@ -15,6 +15,7 @@ from orin_stage.catalog.resolver import ResolvedCatalogTarget
 
 from ._json import write_json_atomic
 from .chroot import Arm64ConstructionChroot, read_qemu_version
+from .cleanup import write_construction_lease
 from .identity import (
     build_base_digest,
     build_base_target_projection_digest,
@@ -30,7 +31,7 @@ from .packages import (
     clean_package_archives,
     install_locked_package_set,
     resolve_construction_package_set,
-    write_temporary_nvidia_sources,
+    use_canonical_nvidia_construction_sources,
 )
 from .receipt import (
     base_directory_is_reusable,
@@ -294,10 +295,12 @@ def ensure_jp623_base(
     staging_root.mkdir(parents=True, exist_ok=True)
     targets_root.mkdir(parents=True, exist_ok=True)
     staging = staging_root / f".base-jp623-{uuid.uuid4().hex}"
-    work = staging / "work"
-    work.mkdir(parents=True, exist_ok=False)
+    staging.mkdir(exist_ok=False)
 
     try:
+        write_construction_lease(staging)
+        work = staging / "work"
+        work.mkdir(exist_ok=False)
         _l4t_root, rootfs = _extract_official_rootfs(
             work,
             bsp=artifact_paths["bsp"],
@@ -307,8 +310,7 @@ def ensure_jp623_base(
         )
         qemu_version = read_qemu_version(qemu_binary, runner=runner)
 
-        source_path = write_temporary_nvidia_sources(rootfs, target)
-        try:
+        with use_canonical_nvidia_construction_sources(rootfs, target):
             with Arm64ConstructionChroot(
                 rootfs,
                 qemu_binary=qemu_binary,
@@ -354,9 +356,6 @@ def ensure_jp623_base(
                 )
                 runtime_snapshot = validate_runtime_state(chroot, package_set)
                 clean_package_archives(chroot)
-        finally:
-            source_path.unlink(missing_ok=True)
-
         manifest = build_final_manifest(
             rootfs,
             base_digest=base_digest,

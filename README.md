@@ -76,6 +76,20 @@ ostg inspect --workspace edge-vision
 ostg storage status
 ```
 
+If SDK Manager has already downloaded the JP6.2.3 BSP and Sample RootFS, Step 2
+can verify and adopt those bytes without downloading them again:
+
+```bash
+python tools/adopt_jp623_acquisition.py \
+  --data-root /absolute/orin-stage-data \
+  --existing-download-folder /absolute/sdkmanager-download-folder
+```
+
+The adoption verifies NVIDIA's catalog SHA-1 values, records local SHA-256 and
+size evidence, and publishes a normal acquisition receipt. On the same
+filesystem the managed download entries are hard links, so the large artifacts
+do not consume a second copy of their data.
+
 ---
 
 ## 📄 License

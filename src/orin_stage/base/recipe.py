@@ -49,6 +49,7 @@ _CONSTRUCTION_RECIPE_V1: dict[str, object] = {
         "executor": "rootful-podman-disposable-builder",
         "image": HOST_BUILDER_IMAGE,
         "writable_host_bind": "Linux_for_Tegra-staging-only",
+        "bootstrap_packages": ["sudo"],
     },
     "package_configuration": {
         "architecture": "arm64",
@@ -70,6 +71,13 @@ _CONSTRUCTION_RECIPE_V1: dict[str, object] = {
             "pre_install_gate": "apt-simulation-exact-package-set",
             "post_install_audit": "dpkg-installed-set-exact-difference",
         },
+        "nvidia_repository_sources": {
+            "authority": "catalog-exact-common-plus-platform",
+            "construction_file": "orin-stage-construction.list",
+            "vendor_source_policy": "disable-during-construction-canonicalize-for-final-base",
+            "unresolved_placeholder_policy": "reject",
+            "duplicate_policy": "reject",
+        },
     },
     "cleanup": [
         "apt-clean",
@@ -77,6 +85,8 @@ _CONSTRUCTION_RECIPE_V1: dict[str, object] = {
         "remove-policy-rc.d",
         "restore-resolv-conf",
         "unmount-construction-pseudofs",
+        "remove-construction-apt-source",
+        "write-canonical-final-nvidia-apt-source",
     ],
 }
 
