@@ -10,11 +10,14 @@ from typing import Iterable, Mapping, Sequence
 from orin_stage.catalog.resolver import ResolvedCatalogTarget
 
 from ._json import json_digest
-from .chroot import Arm64ConstructionChroot
+from .chroot import Arm64ConstructionChroot, ChrootError
 
 
 class PackageResolutionError(RuntimeError):
     """Raised when the exact construction package transaction cannot be frozen."""
+
+
+_REMOVAL_FORBIDDEN_ERROR = "Packages need to be removed but remove is disabled"
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +75,21 @@ _SIMULATED_INSTALL = re.compile(
     r"(?:\s+\[(?P<old_version>[^\]]+)\])?\s+"
     r"\((?P<version>\S+)(?:\s+.*?)?\s+\[(?P<architecture>[^\]]+)\]\)$"
 )
+_SIMULATED_REMOVE = re.compile(r"^Remv\s+(?P<name>\S+)")
+_APT_TRANSACTION_SECTIONS = {
+    "The following NEW packages will be installed:": "packages_to_install",
+    "The following packages will be REMOVED:": "packages_to_remove",
+    "The following packages will be upgraded:": "packages_to_upgrade",
+    "The following packages will be DOWNGRADED:": "packages_to_downgrade",
+}
+
+
+@dataclass(frozen=True, slots=True)
+class AptSimulationDiagnostic:
+    packages_to_install: tuple[str, ...]
+    packages_to_remove: tuple[str, ...]
+    packages_to_upgrade: tuple[str, ...]
+    packages_to_downgrade: tuple[str, ...]
 
 
 def package_seed_from_target(target: ResolvedCatalogTarget) -> PackageSeed:
@@ -130,22 +148,125 @@ def parse_apt_simulation(output: str) -> tuple[tuple[str, str, str, str], ...]:
     return tuple(rows)
 
 
+def parse_apt_simulation_diagnostic(output: str) -> AptSimulationDiagnostic:
+    """Extract APT's package action lists from a non-mutating simulation."""
+
+    packages: dict[str, set[str]] = {
+        field: set() for field in _APT_TRANSACTION_SECTIONS.values()
+    }
+    active_field: str | None = None
+    for raw_line in output.splitlines():
+        stripped = raw_line.strip()
+        section = _APT_TRANSACTION_SECTIONS.get(stripped)
+        if section is not None:
+            active_field = section
+            continue
+        if stripped.startswith("The following "):
+            active_field = None
+            continue
+        if active_field is not None and raw_line[:1].isspace():
+            for token in stripped.split():
+                name = token.rstrip("*")
+                if re.fullmatch(
+                    r"[A-Za-z0-9][A-Za-z0-9+.-]*"
+                    r"(?::[A-Za-z0-9][A-Za-z0-9+.-]*)?",
+                    name,
+                ):
+                    packages[active_field].add(name)
+            continue
+        if stripped:
+            active_field = None
+
+        remove_match = _SIMULATED_REMOVE.match(stripped)
+        if remove_match is not None:
+            packages["packages_to_remove"].add(remove_match.group("name"))
+
+    transaction = parse_apt_simulation(output)
+    classified_installs = (
+        packages["packages_to_install"]
+        | packages["packages_to_upgrade"]
+        | packages["packages_to_downgrade"]
+    )
+    for name, _version, architecture, operation in transaction:
+        rendered_name = f"{name}:{architecture}" if architecture != "all" else name
+        if name in classified_installs or rendered_name in classified_installs:
+            continue
+        packages[f"packages_to_{operation}"].add(rendered_name)
+
+    return AptSimulationDiagnostic(
+        packages_to_install=tuple(sorted(packages["packages_to_install"])),
+        packages_to_remove=tuple(sorted(packages["packages_to_remove"])),
+        packages_to_upgrade=tuple(sorted(packages["packages_to_upgrade"])),
+        packages_to_downgrade=tuple(sorted(packages["packages_to_downgrade"])),
+    )
+
+
+def _format_package_list(packages: Sequence[str]) -> str:
+    if not packages:
+        return "- (none)"
+    return "\n".join(f"- {package}" for package in packages)
+
+
+def _removal_diagnostic_error(report: AptSimulationDiagnostic) -> str:
+    return "\n".join(
+        (
+            "JetPack package transaction requires removals.",
+            "",
+            "packages_to_install:",
+            _format_package_list(report.packages_to_install),
+            "",
+            "packages_to_remove:",
+            _format_package_list(report.packages_to_remove),
+            "",
+            "packages_to_upgrade:",
+            _format_package_list(report.packages_to_upgrade),
+            "",
+            "packages_to_downgrade:",
+            _format_package_list(report.packages_to_downgrade),
+            "",
+            "Installation was NOT performed because Orin Stage currently forbids package removals.",
+        )
+    )
+
+
+def _simulation_command(seed: PackageSeed, *, no_remove: bool) -> tuple[str, ...]:
+    options = (
+        "/usr/bin/apt-get",
+        "-s",
+        "-o",
+        "Debug::NoLocking=true",
+    )
+    if no_remove:
+        options += ("--no-remove",)
+    return (*options, "install", seed.apt_spec)
+
+
 def _simulate(
     chroot: Arm64ConstructionChroot,
     seed: PackageSeed,
 ) -> tuple[tuple[str, str, str, str], ...]:
-    completed = chroot.run(
-        (
-            "/usr/bin/apt-get",
-            "-s",
-            "-o",
-            "Debug::NoLocking=true",
-            "--no-remove",
-            "install",
-            seed.apt_spec,
-        ),
-        env={"DEBIAN_FRONTEND": "noninteractive"},
-    )
+    environment = {"DEBIAN_FRONTEND": "noninteractive"}
+    try:
+        completed = chroot.run(
+            _simulation_command(seed, no_remove=True),
+            env=environment,
+        )
+    except ChrootError as exc:
+        if _REMOVAL_FORBIDDEN_ERROR not in str(exc):
+            raise
+        diagnostic = chroot.run(
+            _simulation_command(seed, no_remove=False),
+            check=False,
+            env=environment,
+        )
+        if diagnostic.returncode != 0:
+            detail = diagnostic.stderr.strip() or diagnostic.stdout.strip()
+            raise PackageResolutionError(
+                "APT removal diagnostic simulation failed without changing the rootfs: "
+                f"{detail}"
+            ) from exc
+        report = parse_apt_simulation_diagnostic(diagnostic.stdout)
+        raise PackageResolutionError(_removal_diagnostic_error(report)) from exc
     return parse_apt_simulation(completed.stdout)
 
 
