@@ -7,7 +7,12 @@ from orin_stage.acquisition.artifact_verification import VerifiedAcquisitionArti
 from orin_stage.base._json import write_json_atomic
 from orin_stage.base.identity import build_base_digest, build_base_target_projection_digest
 from orin_stage.base.lock import target_lock_digest, write_target_lock
-from orin_stage.base.packages import ConstructionPackageSet, LockedPackage, PackageSeed
+from orin_stage.base.packages import (
+    ConstructionPackageSet,
+    LockedPackage,
+    PackageSeed,
+    PackageTransactionEvidence,
+)
 from orin_stage.base.receipt import (
     base_directory_is_reusable,
     make_base_receipt,
@@ -91,12 +96,46 @@ def test_published_base_metadata_is_reusable_without_rescanning_rootfs(tmp_path:
         base_target_projection_digest=projection,
         construction_recipe_digest=construction_recipe_digest_v1(),
         construction_package_set_digest=packages.digest(),
+        package_transaction=PackageTransactionEvidence((), "deny-all-v1", ()),
         artifacts=artifacts,
         manifest_path=manifest_path,
     )
     write_base_receipt(receipt_path, receipt)
 
+    assert receipt.to_dict()["packages_removed"] == []
+    assert receipt.to_dict()["removal_policy_version"] == "deny-all-v1"
+    assert receipt.to_dict()["allowed_removal_set"] == []
+
     assert base_directory_is_reusable(target_dir)
 
     manifest_path.write_text("tampered\n", encoding="utf-8")
     assert not base_directory_is_reusable(target_dir)
+
+
+def test_base_receipt_records_package_removal_evidence(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.json"
+    write_json_atomic(manifest, {"schema_version": 1})
+    removed = ("libopencv-core-dev", "libopencv-viz-dev")
+    allowed = (
+        "libopencv-core-dev",
+        "libopencv-viz-dev",
+    )
+
+    receipt = make_base_receipt(
+        base_digest="a" * 64,
+        target_lock_digest_value="b" * 64,
+        base_target_projection_digest="c" * 64,
+        construction_recipe_digest="d" * 64,
+        construction_package_set_digest="e" * 64,
+        package_transaction=PackageTransactionEvidence(
+            packages_removed=removed,
+            removal_policy_version="jp6.2.3-opencv-replacement-v1",
+            allowed_removal_set=allowed,
+        ),
+        artifacts=(),
+        manifest_path=manifest,
+    ).to_dict()
+
+    assert receipt["packages_removed"] == list(removed)
+    assert receipt["removal_policy_version"] == "jp6.2.3-opencv-replacement-v1"
+    assert receipt["allowed_removal_set"] == list(allowed)

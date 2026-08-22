@@ -20,7 +20,12 @@ from orin_stage.acquisition.sdk_manager_role import JP6_DEVELOPER_ROLE_V1
 from orin_stage.base._json import write_json_atomic
 from orin_stage.base.identity import build_base_digest, build_base_target_projection_digest
 from orin_stage.base.lock import target_lock_digest, write_target_lock
-from orin_stage.base.packages import ConstructionPackageSet, LockedPackage, PackageSeed
+from orin_stage.base.packages import (
+    ConstructionPackageSet,
+    LockedPackage,
+    PackageSeed,
+    PackageTransactionEvidence,
+)
 from orin_stage.base.receipt import make_base_receipt, write_base_receipt
 from orin_stage.base.recipe import construction_recipe_digest_v1
 from orin_stage.catalog.resolver import TargetResolver
@@ -216,6 +221,7 @@ def _publish_base(
         base_target_projection_digest=projection,
         construction_recipe_digest=construction_recipe_digest_v1(),
         construction_package_set_digest=package_set.digest(),
+        package_transaction=PackageTransactionEvidence((), "deny-all-v1", ()),
         artifacts=artifacts,
         manifest_path=manifest_path,
     )

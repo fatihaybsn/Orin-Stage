@@ -3,11 +3,21 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 
 from orin_stage.base import construction as construction_module
 from orin_stage.base.construction import _extract_official_rootfs, ensure_jp623_base
-from orin_stage.base.packages import ConstructionPackageSet, LockedPackage, PackageSeed
+from orin_stage.base.packages import (
+    ConstructionPackageSet,
+    LockedPackage,
+    PackageSeed,
+    PackageTransactionEvidence,
+)
+from orin_stage.base.recipe import (
+    JP623_ALLOWED_REMOVAL_SET,
+    JP623_REMOVAL_POLICY_VERSION,
+)
 from orin_stage.base.validation import RuntimeValidationSnapshot
 from orin_stage.catalog.resolver import TargetResolver
 
@@ -170,12 +180,31 @@ def test_ensure_jp623_base_publishes_then_reuses_same_base(tmp_path: Path, monke
     monkeypatch.setattr(construction_module, "read_qemu_version", lambda *a, **k: "qemu 8.2")
     monkeypatch.setattr(construction_module, "Arm64ConstructionChroot", FakeChroot)
     monkeypatch.setattr(construction_module, "write_temporary_nvidia_sources", fake_sources)
+
+    def fake_resolve(*args, removal_policy, **kwargs):
+        assert removal_policy.version == JP623_REMOVAL_POLICY_VERSION
+        assert removal_policy.allowed_removal_set == JP623_ALLOWED_REMOVAL_SET
+        return replace(package_set, removal_policy=removal_policy)
+
     monkeypatch.setattr(
         construction_module,
         "resolve_construction_package_set",
-        lambda *a, **k: package_set,
+        fake_resolve,
     )
-    monkeypatch.setattr(construction_module, "install_locked_package_set", lambda *a, **k: None)
+
+    def fake_install(_chroot, resolved, **kwargs):
+        assert resolved.removal_policy is not None
+        return PackageTransactionEvidence(
+            (),
+            resolved.removal_policy.version,
+            resolved.removal_policy.allowed_removal_set,
+        )
+
+    monkeypatch.setattr(
+        construction_module,
+        "install_locked_package_set",
+        fake_install,
+    )
     monkeypatch.setattr(construction_module, "validate_runtime_state", lambda *a, **k: runtime)
     monkeypatch.setattr(construction_module, "clean_package_archives", lambda *a, **k: None)
     monkeypatch.setattr(
@@ -207,6 +236,10 @@ def test_ensure_jp623_base_publishes_then_reuses_same_base(tmp_path: Path, monke
     assert first.base_path.is_dir()
     assert (first.base_path / "final-aarch64-tree").is_file()
     assert build_count["extract"] == 1
+    receipt = json.loads(first.receipt_path.read_text(encoding="utf-8"))
+    assert receipt["packages_removed"] == []
+    assert receipt["removal_policy_version"] == JP623_REMOVAL_POLICY_VERSION
+    assert receipt["allowed_removal_set"] == list(JP623_ALLOWED_REMOVAL_SET)
 
 
 def test_ensure_rejects_acquisition_receipt_outside_data_root(tmp_path: Path) -> None:

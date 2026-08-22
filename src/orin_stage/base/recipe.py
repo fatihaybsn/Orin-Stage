@@ -9,6 +9,19 @@ from ._json import json_digest
 CONSTRUCTION_RECIPE_ID = "jp6-official-base-v1"
 CONSTRUCTION_RECIPE_VERSION = 1
 HOST_BUILDER_IMAGE = "docker.io/library/ubuntu:jammy-20260627"
+JP623_REMOVAL_POLICY_VERSION = "jp6.2.3-opencv-replacement-v1"
+JP623_ALLOWED_REMOVAL_SET = (
+    "libopencv-core-dev",
+    "libopencv-dnn-dev",
+    "libopencv-flann-dev",
+    "libopencv-imgcodecs-dev",
+    "libopencv-imgproc-dev",
+    "libopencv-ml-dev",
+    "libopencv-photo-dev",
+    "libopencv-shape-dev",
+    "libopencv-video-dev",
+    "libopencv-viz-dev",
+)
 
 # This descriptor is the semantic construction contract. Changing a step or a
 # construction-affecting policy requires a new descriptor and therefore a new
@@ -46,6 +59,17 @@ _CONSTRUCTION_RECIPE_V1: dict[str, object] = {
         "installation": "apt-exact-versions-from-verified-local-archives",
         "service_start_policy": "policy-rc.d-exit-101",
         "upgrade_policy": "no-upgrade-or-dist-upgrade",
+        "removal_policy": {
+            "version": JP623_REMOVAL_POLICY_VERSION,
+            "scope": {
+                "jetpack_version": "6.2.3",
+                "l4t_version": "36.5.2",
+            },
+            "decision": "allow-subset-of-exact-set",
+            "allowed_removal_set": list(JP623_ALLOWED_REMOVAL_SET),
+            "pre_install_gate": "apt-simulation-exact-package-set",
+            "post_install_audit": "dpkg-installed-set-exact-difference",
+        },
     },
     "cleanup": [
         "apt-clean",

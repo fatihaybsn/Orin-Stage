@@ -26,6 +26,7 @@ from .lock import (
     write_target_lock,
 )
 from .packages import (
+    PackageRemovalPolicy,
     clean_package_archives,
     install_locked_package_set,
     resolve_construction_package_set,
@@ -36,7 +37,11 @@ from .receipt import (
     make_base_receipt,
     write_base_receipt,
 )
-from .recipe import construction_recipe_digest_v1
+from .recipe import (
+    JP623_ALLOWED_REMOVAL_SET,
+    JP623_REMOVAL_POLICY_VERSION,
+    construction_recipe_digest_v1,
+)
 from .sandbox import HostConstructionSandbox
 from .validation import build_final_manifest, validate_runtime_state
 
@@ -264,6 +269,12 @@ def ensure_jp623_base(
     artifact_paths = _verified_artifact_paths(acquisition_receipt)
     artifacts = acquisition_artifacts_from_receipt(acquisition_receipt)
     recipe_digest = construction_recipe_digest_v1()
+    removal_policy = PackageRemovalPolicy(
+        version=JP623_REMOVAL_POLICY_VERSION,
+        jetpack_version="6.2.3",
+        l4t_version="36.5.2",
+        allowed_removal_set=JP623_ALLOWED_REMOVAL_SET,
+    )
     sandbox = HostConstructionSandbox()
 
     reused = _find_reusable_candidate(
@@ -306,6 +317,7 @@ def ensure_jp623_base(
                 package_set = resolve_construction_package_set(
                     chroot,
                     target,
+                    removal_policy=removal_policy,
                     runner=runner,
                 )
                 lock = build_canonical_target_lock(
@@ -335,7 +347,11 @@ def ensure_jp623_base(
                 if reused is not None and reused.base_digest == base_digest:
                     return reused
 
-                install_locked_package_set(chroot, package_set, runner=runner)
+                package_transaction = install_locked_package_set(
+                    chroot,
+                    package_set,
+                    runner=runner,
+                )
                 runtime_snapshot = validate_runtime_state(chroot, package_set)
                 clean_package_archives(chroot)
         finally:
@@ -383,6 +399,7 @@ def ensure_jp623_base(
             base_target_projection_digest=projection_digest,
             construction_recipe_digest=recipe_digest,
             construction_package_set_digest=package_set.digest(),
+            package_transaction=package_transaction,
             artifacts=artifacts,
             manifest_path=manifest_path,
         )

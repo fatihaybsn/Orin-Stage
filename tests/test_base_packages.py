@@ -1,21 +1,31 @@
 from __future__ import annotations
 
+import copy
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+from orin_stage.base import packages as packages_module
 from orin_stage.base.chroot import ChrootError
 from orin_stage.base.packages import (
     ConstructionPackageSet,
     LockedPackage,
     PackageResolutionError,
+    PackageRemovalPolicy,
     PackageSeed,
     _simulate,
+    _simulate_transaction,
     _deb_control,
+    install_locked_package_set,
     parse_apt_simulation,
     parse_apt_simulation_diagnostic,
     render_temporary_nvidia_sources,
+)
+from orin_stage.base.recipe import (
+    JP623_ALLOWED_REMOVAL_SET,
+    JP623_REMOVAL_POLICY_VERSION,
 )
 from orin_stage.catalog.resolver import TargetResolver
 
@@ -29,6 +39,30 @@ def _target():
         REPO_ROOT / "catalog" / "schema" / "target.schema.json",
     )
     return resolver.resolve("jetson-orin@jp6.2.3")
+
+
+def _removal_policy(
+    allowed: tuple[str, ...] = JP623_ALLOWED_REMOVAL_SET,
+) -> PackageRemovalPolicy:
+    return PackageRemovalPolicy(
+        version=JP623_REMOVAL_POLICY_VERSION,
+        jetpack_version="6.2.3",
+        l4t_version="36.5.2",
+        allowed_removal_set=allowed,
+    )
+
+
+def _simulation_with_removals(packages: tuple[str, ...]) -> str:
+    rendered = " ".join(packages)
+    removal_rows = "\n".join(f"Remv {package} [1.0]" for package in packages)
+    return (
+        "The following NEW packages will be installed:\n"
+        "  nvidia-opencv\n"
+        "The following packages will be REMOVED:\n"
+        f"  {rendered}\n"
+        "Inst nvidia-opencv (1.0 NVIDIA:repo [arm64])\n"
+        f"{removal_rows}\n"
+    )
 
 
 def test_parse_apt_simulation_freezes_install_and_upgrade_operations() -> None:
@@ -153,6 +187,334 @@ def test_successful_no_remove_simulation_behavior_is_unchanged() -> None:
     assert transaction == (("cuda-cudart-12-6", "12.6.77-1", "arm64", "install"),)
     assert len(chroot.calls) == 1
     assert "--no-remove" in chroot.calls[0]
+
+
+def test_jp623_policy_keeps_normal_no_removal_path() -> None:
+    output = "Inst nvidia-opencv (1.0 NVIDIA:repo [arm64])\n"
+
+    class Chroot:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, ...]] = []
+
+        def run(self, command, *, check=True, env=None):
+            rendered = tuple(command)
+            self.calls.append(rendered)
+            return subprocess.CompletedProcess(rendered, 0, output, "")
+
+    chroot = Chroot()
+    result = _simulate_transaction(  # type: ignore[arg-type]
+        chroot,
+        ("nvidia-jetpack:arm64=6.2.3+b81",),
+        removal_policy=_removal_policy(),
+    )
+
+    assert result.diagnostic.packages_to_remove == ()
+    assert result.transaction == (("nvidia-opencv", "1.0", "arm64", "install"),)
+    assert len(chroot.calls) == 1
+    assert "--no-remove" in chroot.calls[0]
+
+
+def test_jp623_removal_policy_rejects_other_releases() -> None:
+    target = _target()
+    record = copy.deepcopy(target.record)
+    record["release"]["jetpack"]["version"] = "6.3.0"
+
+    with pytest.raises(PackageResolutionError, match="applies only"):
+        _removal_policy().validate_target(replace(target, record=record))
+
+
+@pytest.mark.parametrize(
+    "packages_to_remove",
+    [
+        JP623_ALLOWED_REMOVAL_SET,
+        ("libopencv-core-dev", "libopencv-viz-dev"),
+    ],
+    ids=("exact-allowlist", "allowlist-subset"),
+)
+def test_jp623_policy_accepts_exact_allowlist_and_subsets(
+    packages_to_remove: tuple[str, ...],
+) -> None:
+    output = _simulation_with_removals(packages_to_remove)
+
+    class Chroot:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, ...]] = []
+
+        def run(self, command, *, check=True, env=None):
+            rendered = tuple(command)
+            self.calls.append(rendered)
+            if "--no-remove" in rendered:
+                raise ChrootError(
+                    "E: Packages need to be removed but remove is disabled."
+                )
+            return subprocess.CompletedProcess(rendered, 0, output, "")
+
+    chroot = Chroot()
+    result = _simulate_transaction(  # type: ignore[arg-type]
+        chroot,
+        ("nvidia-jetpack:arm64=6.2.3+b81",),
+        removal_policy=_removal_policy(),
+    )
+
+    assert result.diagnostic.packages_to_remove == tuple(sorted(packages_to_remove))
+    assert len(chroot.calls) == 2
+    assert all("-s" in command for command in chroot.calls)
+    assert "--no-remove" in chroot.calls[0]
+    assert "--no-remove" not in chroot.calls[1]
+
+
+@pytest.mark.parametrize(
+    "packages_to_remove, unexpected",
+    [
+        (("libc6",), "libc6"),
+        (("libopencv-core-dev", "systemd"), "systemd"),
+    ],
+    ids=("single-unexpected", "allowlist-plus-critical"),
+)
+def test_jp623_policy_rejects_any_package_outside_exact_allowlist(
+    packages_to_remove: tuple[str, ...],
+    unexpected: str,
+) -> None:
+    output = _simulation_with_removals(packages_to_remove)
+
+    class Chroot:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, ...]] = []
+
+        def run(self, command, *, check=True, env=None):
+            rendered = tuple(command)
+            self.calls.append(rendered)
+            if "--no-remove" in rendered:
+                raise ChrootError(
+                    "E: Packages need to be removed but remove is disabled."
+                )
+            return subprocess.CompletedProcess(rendered, 0, output, "")
+
+    chroot = Chroot()
+    with pytest.raises(PackageResolutionError, match=unexpected):
+        _simulate_transaction(  # type: ignore[arg-type]
+            chroot,
+            ("nvidia-jetpack:arm64=6.2.3+b81",),
+            removal_policy=_removal_policy(),
+        )
+
+    assert len(chroot.calls) == 2
+    assert all("-s" in command for command in chroot.calls)
+
+
+def test_real_transaction_runs_only_after_removal_validation(monkeypatch, tmp_path: Path) -> None:
+    output = _simulation_with_removals(("systemd",))
+
+    class Chroot:
+        rootfs = tmp_path
+
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, ...]] = []
+
+        def run(self, command, *, check=True, env=None):
+            rendered = tuple(command)
+            self.calls.append(rendered)
+            if "--no-remove" in rendered:
+                raise ChrootError(
+                    "E: Packages need to be removed but remove is disabled."
+                )
+            return subprocess.CompletedProcess(rendered, 0, output, "")
+
+    package_set = ConstructionPackageSet(
+        seed=PackageSeed("nvidia-jetpack", "6.2.3+b81", "arm64"),
+        repository_base="https://repo.download.nvidia.com/jetson/",
+        repository_suites=("common r36.5 main", "t234 r36.5 main"),
+        packages=(
+            LockedPackage(
+                "nvidia-opencv", "1.0", "arm64", "install", "opencv.deb", "a" * 64
+            ),
+        ),
+        removal_policy=_removal_policy(),
+        packages_removed=("libopencv-core-dev",),
+    )
+    archive_validation_called = False
+
+    def verify(*args, **kwargs):
+        nonlocal archive_validation_called
+        archive_validation_called = True
+
+    monkeypatch.setattr(packages_module, "verify_locked_package_archives", verify)
+    chroot = Chroot()
+
+    with pytest.raises(PackageResolutionError, match="systemd"):
+        install_locked_package_set(chroot, package_set)  # type: ignore[arg-type]
+
+    assert not archive_validation_called
+    assert all("-s" in command for command in chroot.calls)
+
+
+def test_validated_removals_are_applied_and_post_verified(monkeypatch, tmp_path: Path) -> None:
+    removed = "libopencv-core-dev"
+    output = _simulation_with_removals((removed,))
+
+    class Chroot:
+        rootfs = tmp_path
+
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, ...]] = []
+            self.snapshots = iter(
+                (
+                    f"base-files\tinstall ok installed\n{removed}\tinstall ok installed\n",
+                    "base-files\tinstall ok installed\n"
+                    "nvidia-opencv\tinstall ok installed\n",
+                )
+            )
+
+        def run(self, command, *, check=True, env=None):
+            rendered = tuple(command)
+            self.calls.append(rendered)
+            if "-s" in rendered and "--no-remove" in rendered:
+                raise ChrootError(
+                    "E: Packages need to be removed but remove is disabled."
+                )
+            if "-s" in rendered:
+                return subprocess.CompletedProcess(rendered, 0, output, "")
+            if rendered[0] == "/usr/bin/dpkg-query":
+                return subprocess.CompletedProcess(rendered, 0, next(self.snapshots), "")
+            return subprocess.CompletedProcess(rendered, 0, "", "")
+
+    monkeypatch.setattr(
+        packages_module,
+        "verify_locked_package_archives",
+        lambda *args, **kwargs: None,
+    )
+    package_set = ConstructionPackageSet(
+        seed=PackageSeed("nvidia-jetpack", "6.2.3+b81", "arm64"),
+        repository_base="https://repo.download.nvidia.com/jetson/",
+        repository_suites=("common r36.5 main", "t234 r36.5 main"),
+        packages=(
+            LockedPackage(
+                "nvidia-opencv", "1.0", "arm64", "install", "opencv.deb", "a" * 64
+            ),
+        ),
+        removal_policy=_removal_policy(),
+        packages_removed=(removed,),
+    )
+    chroot = Chroot()
+
+    evidence = install_locked_package_set(chroot, package_set)  # type: ignore[arg-type]
+
+    assert evidence.packages_removed == (removed,)
+    assert evidence.removal_policy_version == JP623_REMOVAL_POLICY_VERSION
+    assert evidence.allowed_removal_set == JP623_ALLOWED_REMOVAL_SET
+    real_installs = [
+        command
+        for command in chroot.calls
+        if command[0] == "/usr/bin/apt-get" and "-s" not in command
+    ]
+    assert len(real_installs) == 1
+    assert "--no-remove" not in real_installs[0]
+
+
+def test_real_transaction_without_removals_keeps_no_remove_guard(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    output = "Inst nvidia-opencv (1.0 NVIDIA:repo [arm64])\n"
+
+    class Chroot:
+        rootfs = tmp_path
+
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, ...]] = []
+            self.snapshots = iter(
+                (
+                    "base-files\tinstall ok installed\n",
+                    "base-files\tinstall ok installed\n"
+                    "nvidia-opencv\tinstall ok installed\n",
+                )
+            )
+
+        def run(self, command, *, check=True, env=None):
+            rendered = tuple(command)
+            self.calls.append(rendered)
+            if "-s" in rendered:
+                return subprocess.CompletedProcess(rendered, 0, output, "")
+            if rendered[0] == "/usr/bin/dpkg-query":
+                return subprocess.CompletedProcess(rendered, 0, next(self.snapshots), "")
+            return subprocess.CompletedProcess(rendered, 0, "", "")
+
+    monkeypatch.setattr(
+        packages_module,
+        "verify_locked_package_archives",
+        lambda *args, **kwargs: None,
+    )
+    package_set = ConstructionPackageSet(
+        seed=PackageSeed("nvidia-jetpack", "6.2.3+b81", "arm64"),
+        repository_base="https://repo.download.nvidia.com/jetson/",
+        repository_suites=("common r36.5 main", "t234 r36.5 main"),
+        packages=(
+            LockedPackage(
+                "nvidia-opencv", "1.0", "arm64", "install", "opencv.deb", "a" * 64
+            ),
+        ),
+        removal_policy=_removal_policy(),
+    )
+    chroot = Chroot()
+
+    evidence = install_locked_package_set(chroot, package_set)  # type: ignore[arg-type]
+
+    assert evidence.packages_removed == ()
+    real_install = next(
+        command
+        for command in chroot.calls
+        if command[0] == "/usr/bin/apt-get" and "-s" not in command
+    )
+    assert "--no-remove" in real_install
+
+
+def test_post_install_unexpected_removal_fails_validation(monkeypatch, tmp_path: Path) -> None:
+    removed = "libopencv-core-dev"
+    output = _simulation_with_removals((removed,))
+
+    class Chroot:
+        rootfs = tmp_path
+
+        def __init__(self) -> None:
+            self.snapshots = iter(
+                (
+                    f"{removed}\tinstall ok installed\nsystemd\tinstall ok installed\n",
+                    "",
+                )
+            )
+
+        def run(self, command, *, check=True, env=None):
+            rendered = tuple(command)
+            if "-s" in rendered and "--no-remove" in rendered:
+                raise ChrootError(
+                    "E: Packages need to be removed but remove is disabled."
+                )
+            if "-s" in rendered:
+                return subprocess.CompletedProcess(rendered, 0, output, "")
+            if rendered[0] == "/usr/bin/dpkg-query":
+                return subprocess.CompletedProcess(rendered, 0, next(self.snapshots), "")
+            return subprocess.CompletedProcess(rendered, 0, "", "")
+
+    monkeypatch.setattr(
+        packages_module,
+        "verify_locked_package_archives",
+        lambda *args, **kwargs: None,
+    )
+    package_set = ConstructionPackageSet(
+        seed=PackageSeed("nvidia-jetpack", "6.2.3+b81", "arm64"),
+        repository_base="https://repo.download.nvidia.com/jetson/",
+        repository_suites=("common r36.5 main", "t234 r36.5 main"),
+        packages=(
+            LockedPackage(
+                "nvidia-opencv", "1.0", "arm64", "install", "opencv.deb", "a" * 64
+            ),
+        ),
+        removal_policy=_removal_policy(),
+        packages_removed=(removed,),
+    )
+
+    with pytest.raises(PackageResolutionError, match="systemd"):
+        install_locked_package_set(Chroot(), package_set)  # type: ignore[arg-type]
 
 
 def test_jp623_temporary_sources_are_common_and_t234_r365() -> None:

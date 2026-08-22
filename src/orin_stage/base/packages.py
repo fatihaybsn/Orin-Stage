@@ -18,6 +18,7 @@ class PackageResolutionError(RuntimeError):
 
 
 _REMOVAL_FORBIDDEN_ERROR = "Packages need to be removed but remove is disabled"
+_DENY_ALL_REMOVAL_POLICY_VERSION = "deny-all-v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +32,43 @@ class PackageSeed:
         if self.architecture == "all":
             return f"{self.name}={self.version}"
         return f"{self.name}:{self.architecture}={self.version}"
+
+
+@dataclass(frozen=True, slots=True)
+class PackageRemovalPolicy:
+    version: str
+    jetpack_version: str
+    l4t_version: str
+    allowed_removal_set: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if not self.version:
+            raise ValueError("package removal policy version must not be empty")
+        if self.allowed_removal_set != tuple(sorted(set(self.allowed_removal_set))):
+            raise ValueError("allowed package removal set must be unique and sorted")
+
+    def validate_target(self, target: ResolvedCatalogTarget) -> None:
+        jetpack = str(target.record["release"]["jetpack"]["version"])
+        l4t = str(target.record["release"]["l4t"]["version"])
+        if (jetpack, l4t) != (self.jetpack_version, self.l4t_version):
+            raise PackageResolutionError(
+                f"package removal policy {self.version!r} applies only to "
+                f"JetPack {self.jetpack_version} / L4T {self.l4t_version}"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class PackageTransactionEvidence:
+    packages_removed: tuple[str, ...]
+    removal_policy_version: str
+    allowed_removal_set: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "packages_removed": list(self.packages_removed),
+            "removal_policy_version": self.removal_policy_version,
+            "allowed_removal_set": list(self.allowed_removal_set),
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +93,8 @@ class ConstructionPackageSet:
     repository_base: str
     repository_suites: tuple[str, ...]
     packages: tuple[LockedPackage, ...]
+    removal_policy: PackageRemovalPolicy | None = None
+    packages_removed: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -64,6 +104,19 @@ class ConstructionPackageSet:
                 "suites": list(self.repository_suites),
             },
             "packages": [asdict(package) for package in self.packages],
+            "package_removal": {
+                "packages_removed": list(self.packages_removed),
+                "removal_policy_version": (
+                    self.removal_policy.version
+                    if self.removal_policy is not None
+                    else _DENY_ALL_REMOVAL_POLICY_VERSION
+                ),
+                "allowed_removal_set": (
+                    list(self.removal_policy.allowed_removal_set)
+                    if self.removal_policy is not None
+                    else []
+                ),
+            },
         }
 
     def digest(self) -> str:
@@ -90,6 +143,12 @@ class AptSimulationDiagnostic:
     packages_to_remove: tuple[str, ...]
     packages_to_upgrade: tuple[str, ...]
     packages_to_downgrade: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _AptSimulationResult:
+    transaction: tuple[tuple[str, str, str, str], ...]
+    diagnostic: AptSimulationDiagnostic
 
 
 def package_seed_from_target(target: ResolvedCatalogTarget) -> PackageSeed:
@@ -229,7 +288,48 @@ def _removal_diagnostic_error(report: AptSimulationDiagnostic) -> str:
     )
 
 
-def _simulation_command(seed: PackageSeed, *, no_remove: bool) -> tuple[str, ...]:
+def _unexpected_removal_error(
+    report: AptSimulationDiagnostic,
+    policy: PackageRemovalPolicy,
+) -> str:
+    unexpected = tuple(
+        sorted(set(report.packages_to_remove) - set(policy.allowed_removal_set))
+    )
+    return "\n".join(
+        (
+            f"APT transaction violates package removal policy {policy.version}.",
+            "",
+            "Unexpected packages requested for removal:",
+            _format_package_list(unexpected),
+            "",
+            "packages_to_remove:",
+            _format_package_list(report.packages_to_remove),
+            "",
+            "allowed_removal_set:",
+            _format_package_list(policy.allowed_removal_set),
+            "",
+            "Installation was NOT performed.",
+        )
+    )
+
+
+def _validate_removal_report(
+    report: AptSimulationDiagnostic,
+    policy: PackageRemovalPolicy | None,
+) -> None:
+    if not report.packages_to_remove:
+        return
+    if policy is None:
+        raise PackageResolutionError(_removal_diagnostic_error(report))
+    if not set(report.packages_to_remove).issubset(policy.allowed_removal_set):
+        raise PackageResolutionError(_unexpected_removal_error(report, policy))
+
+
+def _simulation_command(
+    apt_specs: Sequence[str],
+    *,
+    no_remove: bool,
+) -> tuple[str, ...]:
     options = (
         "/usr/bin/apt-get",
         "-s",
@@ -238,24 +338,26 @@ def _simulation_command(seed: PackageSeed, *, no_remove: bool) -> tuple[str, ...
     )
     if no_remove:
         options += ("--no-remove",)
-    return (*options, "install", seed.apt_spec)
+    return (*options, "install", *apt_specs)
 
 
-def _simulate(
+def _simulate_transaction(
     chroot: Arm64ConstructionChroot,
-    seed: PackageSeed,
-) -> tuple[tuple[str, str, str, str], ...]:
+    apt_specs: Sequence[str],
+    *,
+    removal_policy: PackageRemovalPolicy | None,
+) -> _AptSimulationResult:
     environment = {"DEBIAN_FRONTEND": "noninteractive"}
     try:
         completed = chroot.run(
-            _simulation_command(seed, no_remove=True),
+            _simulation_command(apt_specs, no_remove=True),
             env=environment,
         )
     except ChrootError as exc:
         if _REMOVAL_FORBIDDEN_ERROR not in str(exc):
             raise
         diagnostic = chroot.run(
-            _simulation_command(seed, no_remove=False),
+            _simulation_command(apt_specs, no_remove=False),
             check=False,
             env=environment,
         )
@@ -266,8 +368,32 @@ def _simulate(
                 f"{detail}"
             ) from exc
         report = parse_apt_simulation_diagnostic(diagnostic.stdout)
-        raise PackageResolutionError(_removal_diagnostic_error(report)) from exc
-    return parse_apt_simulation(completed.stdout)
+        try:
+            _validate_removal_report(report, removal_policy)
+        except PackageResolutionError as policy_error:
+            raise policy_error from exc
+        return _AptSimulationResult(
+            transaction=parse_apt_simulation(diagnostic.stdout),
+            diagnostic=report,
+        )
+
+    report = parse_apt_simulation_diagnostic(completed.stdout)
+    _validate_removal_report(report, removal_policy)
+    return _AptSimulationResult(
+        transaction=parse_apt_simulation(completed.stdout),
+        diagnostic=report,
+    )
+
+
+def _simulate(
+    chroot: Arm64ConstructionChroot,
+    seed: PackageSeed,
+) -> tuple[tuple[str, str, str, str], ...]:
+    return _simulate_transaction(
+        chroot,
+        (seed.apt_spec,),
+        removal_policy=None,
+    ).transaction
 
 
 def _deb_control(
@@ -359,13 +485,21 @@ def resolve_construction_package_set(
     chroot: Arm64ConstructionChroot,
     target: ResolvedCatalogTarget,
     *,
+    removal_policy: PackageRemovalPolicy | None = None,
     runner=subprocess.run,
 ) -> ConstructionPackageSet:
     """Resolve, download and byte-lock the exact transaction for nvidia-jetpack."""
 
     seed = package_seed_from_target(target)
+    if removal_policy is not None:
+        removal_policy.validate_target(target)
     chroot.run(("/usr/bin/apt-get", "update"), env={"DEBIAN_FRONTEND": "noninteractive"})
-    transaction = _simulate(chroot, seed)
+    simulation = _simulate_transaction(
+        chroot,
+        (seed.apt_spec,),
+        removal_policy=removal_policy,
+    )
+    transaction = simulation.transaction
     if not transaction:
         raise PackageResolutionError(
             "nvidia-jetpack exact seed produced an empty construction transaction"
@@ -375,15 +509,15 @@ def resolve_construction_package_set(
         f"{name}={version}" if arch == "all" else f"{name}:{arch}={version}"
         for name, version, arch, _operation in transaction
     ]
+    download_options = [
+        "/usr/bin/apt-get",
+        "--download-only",
+        "--yes",
+    ]
+    if not simulation.diagnostic.packages_to_remove:
+        download_options.append("--no-remove")
     chroot.run(
-        (
-            "/usr/bin/apt-get",
-            "--download-only",
-            "--yes",
-            "--no-remove",
-            "install",
-            *exact_specs,
-        ),
+        (*download_options, "install", *exact_specs),
         env={"DEBIAN_FRONTEND": "noninteractive"},
     )
 
@@ -414,6 +548,8 @@ def resolve_construction_package_set(
         repository_base=str(repository["base"]),
         repository_suites=tuple(str(item) for item in repository["suites"]),
         packages=tuple(locked),
+        removal_policy=removal_policy,
+        packages_removed=simulation.diagnostic.packages_to_remove,
     )
 
 
@@ -440,36 +576,117 @@ def verify_locked_package_archives(
             )
 
 
+def _installed_package_names(chroot: Arm64ConstructionChroot) -> frozenset[str]:
+    completed = chroot.run(
+        (
+            "/usr/bin/dpkg-query",
+            "--show",
+            "--showformat=${Package}\\t${Status}\\n",
+        )
+    )
+    installed: set[str] = set()
+    for raw_line in completed.stdout.splitlines():
+        name, separator, status = raw_line.partition("\t")
+        if not separator or not name:
+            raise PackageResolutionError(
+                f"cannot parse dpkg installed-package snapshot line: {raw_line!r}"
+            )
+        if status == "install ok installed":
+            installed.add(name)
+    return frozenset(installed)
+
+
+def _validate_actual_removals(
+    *,
+    before: frozenset[str],
+    after: frozenset[str],
+    expected: Sequence[str],
+) -> tuple[str, ...]:
+    actual = tuple(sorted(before - after))
+    expected_set = set(expected)
+    unexpected = tuple(sorted(set(actual) - expected_set))
+    missing = tuple(sorted(expected_set - set(actual)))
+    if unexpected or missing:
+        raise PackageResolutionError(
+            "installed package removal set differs from the validated APT simulation.\n\n"
+            "unexpected_packages_removed:\n"
+            f"{_format_package_list(unexpected)}\n\n"
+            "expected_packages_not_removed:\n"
+            f"{_format_package_list(missing)}"
+        )
+    return actual
+
+
 def install_locked_package_set(
     chroot: Arm64ConstructionChroot,
     package_set: ConstructionPackageSet,
     *,
     runner=subprocess.run,
-) -> None:
+) -> PackageTransactionEvidence:
     """Install only after the current apt simulation exactly matches the frozen lock."""
 
-    current = _simulate(chroot, package_set.seed)
+    specs = tuple(package.apt_spec for package in package_set.packages)
+    current = _simulate_transaction(
+        chroot,
+        specs,
+        removal_policy=package_set.removal_policy,
+    )
     expected = tuple(
         (package.name, package.version, package.architecture, package.operation)
         for package in package_set.packages
     )
-    if current != expected:
+    if current.transaction != expected:
         raise PackageResolutionError(
             "APT transaction changed after package lock was created; refusing construction"
         )
+    if current.diagnostic.packages_to_remove != package_set.packages_removed:
+        raise PackageResolutionError(
+            "APT package removal set changed after package lock was created; "
+            "refusing construction"
+        )
 
     verify_locked_package_archives(chroot.rootfs, package_set, runner=runner)
-    specs = tuple(package.apt_spec for package in package_set.packages)
+    before = _installed_package_names(chroot)
+    install_options = [
+        "/usr/bin/apt-get",
+        "--no-download",
+        "--yes",
+    ]
+    if not package_set.packages_removed:
+        install_options.append("--no-remove")
     chroot.run(
-        (
-            "/usr/bin/apt-get",
-            "--no-download",
-            "--yes",
-            "--no-remove",
-            "install",
-            *specs,
-        ),
+        (*install_options, "install", *specs),
         env={"DEBIAN_FRONTEND": "noninteractive"},
+    )
+    after = _installed_package_names(chroot)
+    actual_removed = _validate_actual_removals(
+        before=before,
+        after=after,
+        expected=package_set.packages_removed,
+    )
+    missing_installed = tuple(
+        sorted({package.name for package in package_set.packages} - set(after))
+    )
+    if missing_installed:
+        raise PackageResolutionError(
+            "validated replacement transaction did not leave every locked package installed.\n\n"
+            "missing_locked_packages:\n"
+            f"{_format_package_list(missing_installed)}"
+        )
+    if package_set.removal_policy is None:
+        if actual_removed:
+            raise PackageResolutionError(
+                "packages were removed without an explicit package removal policy"
+            )
+        policy_version = _DENY_ALL_REMOVAL_POLICY_VERSION
+        allowed_removal_set: tuple[str, ...] = ()
+    else:
+        policy_version = package_set.removal_policy.version
+        allowed_removal_set = package_set.removal_policy.allowed_removal_set
+    return PackageTransactionEvidence(
+        packages_removed=actual_removed,
+        removal_policy_version=policy_version,
+        allowed_removal_set=allowed_removal_set,
     )
 
 

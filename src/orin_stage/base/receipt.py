@@ -15,6 +15,7 @@ from .identity import (
     build_base_target_projection_digest,
 )
 from .lock import load_target_lock, target_lock_digest
+from .packages import PackageTransactionEvidence
 
 
 BASE_RECEIPT_SCHEMA_VERSION = 1
@@ -35,6 +36,9 @@ class BaseReceipt:
     base_target_projection_digest: str
     construction_recipe_digest: str
     construction_package_set_digest: str
+    packages_removed: tuple[str, ...]
+    removal_policy_version: str
+    allowed_removal_set: tuple[str, ...]
     construction_artifacts: tuple[dict[str, str], ...]
     manifest_sha256: str
     validation_policy_id: str
@@ -44,6 +48,8 @@ class BaseReceipt:
     def to_dict(self) -> dict[str, object]:
         data = asdict(self)
         data["construction_artifacts"] = list(self.construction_artifacts)
+        data["packages_removed"] = list(self.packages_removed)
+        data["allowed_removal_set"] = list(self.allowed_removal_set)
         return data
 
 
@@ -54,6 +60,7 @@ def make_base_receipt(
     base_target_projection_digest: str,
     construction_recipe_digest: str,
     construction_package_set_digest: str,
+    package_transaction: PackageTransactionEvidence,
     artifacts: tuple[VerifiedAcquisitionArtifact, ...],
     manifest_path: Path,
     now: Callable[[], datetime] | None = None,
@@ -77,6 +84,9 @@ def make_base_receipt(
         base_target_projection_digest=base_target_projection_digest,
         construction_recipe_digest=construction_recipe_digest,
         construction_package_set_digest=construction_package_set_digest,
+        packages_removed=package_transaction.packages_removed,
+        removal_policy_version=package_transaction.removal_policy_version,
+        allowed_removal_set=package_transaction.allowed_removal_set,
         construction_artifacts=artifact_rows,
         manifest_sha256=file_sha256(manifest_path),
         validation_policy_id="base-validation-v1",
@@ -138,6 +148,9 @@ def base_directory_is_reusable(target_directory: Path) -> bool:
         packages = lock.get("construction_packages")
         if not isinstance(construction, Mapping) or not isinstance(packages, Mapping):
             return False
+        package_removal = packages.get("package_removal")
+        if not isinstance(package_removal, Mapping):
+            return False
         recipe_digest = str(construction["recipe_digest"])
         expected_base = build_base_digest(
             base_target_projection_digest=projection_digest,
@@ -157,6 +170,16 @@ def base_directory_is_reusable(target_directory: Path) -> bool:
         if receipt.get("construction_recipe_digest") != recipe_digest:
             return False
         if receipt.get("construction_package_set_digest") != json_digest(packages):
+            return False
+        if receipt.get("packages_removed") != package_removal.get("packages_removed"):
+            return False
+        if receipt.get("removal_policy_version") != package_removal.get(
+            "removal_policy_version"
+        ):
+            return False
+        if receipt.get("allowed_removal_set") != package_removal.get(
+            "allowed_removal_set"
+        ):
             return False
         if receipt.get("validation_policy_id") != "base-validation-v1":
             return False
