@@ -16,6 +16,7 @@ from .identity import (
 )
 from .lock import load_target_lock, target_lock_digest
 from .packages import PackageTransactionEvidence
+from .validation import BASE_VALIDATION_POLICY_ID, BASE_VALIDATION_POLICY_VERSION
 
 
 BASE_RECEIPT_SCHEMA_VERSION = 1
@@ -89,8 +90,8 @@ def make_base_receipt(
         allowed_removal_set=package_transaction.allowed_removal_set,
         construction_artifacts=artifact_rows,
         manifest_sha256=file_sha256(manifest_path),
-        validation_policy_id="base-validation-v1",
-        validation_policy_version=1,
+        validation_policy_id=BASE_VALIDATION_POLICY_ID,
+        validation_policy_version=BASE_VALIDATION_POLICY_VERSION,
         validation="passed",
     )
 
@@ -181,9 +182,9 @@ def base_directory_is_reusable(target_directory: Path) -> bool:
             "allowed_removal_set"
         ):
             return False
-        if receipt.get("validation_policy_id") != "base-validation-v1":
+        if receipt.get("validation_policy_id") != BASE_VALIDATION_POLICY_ID:
             return False
-        if receipt.get("validation_policy_version") != 1:
+        if receipt.get("validation_policy_version") != BASE_VALIDATION_POLICY_VERSION:
             return False
         if receipt.get("validation") != "passed":
             return False

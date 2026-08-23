@@ -10,6 +10,7 @@ from orin_stage.catalog.resolver import ResolvedCatalogTarget
 from ._json import file_sha256, json_digest, load_json_object, write_json_atomic
 from .packages import ConstructionPackageSet
 from .recipe import CONSTRUCTION_RECIPE_ID, CONSTRUCTION_RECIPE_VERSION
+from .validation import BASE_VALIDATION_POLICY_ID, BASE_VALIDATION_POLICY_VERSION
 
 
 TARGET_LOCK_SCHEMA_VERSION = 1
@@ -147,8 +148,8 @@ def build_canonical_target_lock(
             "receipt_sha256": file_sha256(receipt_path),
         },
         "validation": {
-            "policy_id": "base-validation-v1",
-            "policy_version": 1,
+            "policy_id": BASE_VALIDATION_POLICY_ID,
+            "policy_version": BASE_VALIDATION_POLICY_VERSION,
         },
         "declared_environment": {
             "nvidia_stack": record["nvidia_stack"],

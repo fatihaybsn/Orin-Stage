@@ -19,6 +19,10 @@ from orin_stage.base.receipt import (
     write_base_receipt,
 )
 from orin_stage.base.recipe import construction_recipe_digest_v1
+from orin_stage.base.validation import (
+    BASE_VALIDATION_POLICY_ID,
+    BASE_VALIDATION_POLICY_VERSION,
+)
 
 
 def _artifact(kind: str, content: bytes) -> VerifiedAcquisitionArtifact:
@@ -105,7 +109,21 @@ def test_published_base_metadata_is_reusable_without_rescanning_rootfs(tmp_path:
     assert receipt.to_dict()["packages_removed"] == []
     assert receipt.to_dict()["removal_policy_version"] == "deny-all-v1"
     assert receipt.to_dict()["allowed_removal_set"] == []
+    assert receipt.to_dict()["validation_policy_id"] == BASE_VALIDATION_POLICY_ID
+    assert (
+        receipt.to_dict()["validation_policy_version"]
+        == BASE_VALIDATION_POLICY_VERSION
+    )
 
+    assert base_directory_is_reusable(target_dir)
+
+    old_policy_receipt = receipt.to_dict()
+    old_policy_receipt["validation_policy_id"] = "base-validation-v1"
+    old_policy_receipt["validation_policy_version"] = 1
+    write_json_atomic(receipt_path, old_policy_receipt)
+    assert not base_directory_is_reusable(target_dir)
+
+    write_base_receipt(receipt_path, receipt)
     assert base_directory_is_reusable(target_dir)
 
     manifest_path.write_text("tampered\n", encoding="utf-8")

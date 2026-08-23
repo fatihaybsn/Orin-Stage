@@ -7,6 +7,10 @@ from orin_stage.base.identity import build_base_target_projection_digest
 from orin_stage.base.lock import build_canonical_target_lock, target_lock_digest
 from orin_stage.base.packages import ConstructionPackageSet, LockedPackage, PackageSeed
 from orin_stage.base.recipe import construction_recipe_digest_v1
+from orin_stage.base.validation import (
+    BASE_VALIDATION_POLICY_ID,
+    BASE_VALIDATION_POLICY_VERSION,
+)
 from orin_stage.catalog.resolver import TargetResolver
 
 
@@ -93,6 +97,10 @@ def test_canonical_lock_keeps_provenance_but_projection_excludes_it(tmp_path: Pa
 
     assert lock["acquisition"]["sdk_manager_version"] == "2.4.1.13536"  # type: ignore[index]
     assert lock["construction"]["qemu"]["version"] == "qemu-aarch64 version 8.2"  # type: ignore[index]
+    assert lock["validation"] == {
+        "policy_id": BASE_VALIDATION_POLICY_ID,
+        "policy_version": BASE_VALIDATION_POLICY_VERSION,
+    }
     assert lock["declared_environment"]["exact_cross_packages"]["status"] == "deferred-to-step6-build-capsule"  # type: ignore[index]
     assert len(target_lock_digest(lock)) == 64
 
