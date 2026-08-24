@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Sequence
 
+from orin_stage.build_identity import JP6_BUILD_IMAGE
+
 
 class BuildCapsuleError(RuntimeError):
     """Base error for transient x86 build capsule execution."""
@@ -46,7 +48,7 @@ class BuildCapsuleRunner:
     lifecycle; target state remains owned by Orin Stage.
     """
 
-    image: str = "docker.io/library/ubuntu:22.04"
+    image: str = JP6_BUILD_IMAGE
     podman_binary: str = "podman"
 
     def run(

@@ -10,6 +10,7 @@ from orin_stage.build_capsule import (
     BuildCapsuleNotFoundError,
     BuildCapsuleRunner,
     BuildCommandError,
+    JP6_BUILD_IMAGE,
 )
 
 
@@ -55,7 +56,7 @@ def test_run_mounts_same_target_read_only_and_repository_read_write(
         f"{repository.resolve()}:/workspace:rw",
         "--workdir",
         "/workspace",
-        "docker.io/library/ubuntu:22.04",
+        JP6_BUILD_IMAGE,
         "/bin/true",
     )
     assert kwargs == {
