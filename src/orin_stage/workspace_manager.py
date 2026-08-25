@@ -11,9 +11,11 @@ import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterator, Mapping
+from typing import Callable, Iterator, Mapping, Sequence
 
+from .build_capsule import BuildCapsuleRunner
 from .materialization_extract import extract_materialization_seed
+from .target_executor import TargetExecutor
 from .workspace_publish import (
     WORKSPACE_FORMAT_VERSION,
     WorkspacePublishError,
@@ -23,6 +25,7 @@ from .workspace_publish import (
 
 AT_FDCWD = -100
 RENAME_EXCHANGE = 2
+OPERATION_FORMAT_VERSION = 1
 _WORKSPACE_STAGING = re.compile(r"[0-9a-f]{32}")
 _REMOVE_STAGING = re.compile(r"\.workspace-remove-[0-9a-f]+-[0-9a-f]{32}")
 
@@ -90,6 +93,29 @@ def _write_json_exclusive(path: Path, value: Mapping[str, object]) -> None:
             os.fsync(handle.fileno())
     except OSError as exc:
         raise WorkspaceManagerError(f"cannot write workspace metadata {path}: {exc}") from exc
+
+
+def _write_json_atomic(path: Path, value: Mapping[str, object]) -> None:
+    path.parent.mkdir(parents=True, mode=0o755, exist_ok=True)
+    temporary = path.parent / f".{path.name}.{uuid.uuid4().hex}.tmp"
+    try:
+        with temporary.open("x", encoding="utf-8") as handle:
+            json.dump(value, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except OSError as exc:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise WorkspaceManagerError(f"cannot atomically write JSON {path}: {exc}") from exc
 
 
 def _rename_exchange(source: Path, destination: Path) -> None:
@@ -168,17 +194,52 @@ class WorkspaceManager:
     def staging_dir(self) -> Path:
         return self.data_root / "staging"
 
+    @property
+    def operations_dir(self) -> Path:
+        return self.data_root / "state" / "operations"
+
     def create(self, target_dir: Path, workspace_name: str) -> WorkspaceRecord:
         with self._lifecycle_lock():
+            target_lock_digest, base_digest = self._target_identity(target_dir)
+            operation_id, receipt = self._start_operation(
+                "create",
+                workspace_name=workspace_name,
+                target_lock_digest=target_lock_digest,
+                base_digest=base_digest,
+                generation_after=0,
+            )
+            published = False
             try:
                 result = publish_materialization_workspace(
                     self.data_root,
                     target_dir,
                     workspace_name,
                 )
-            except WorkspacePublishError as exc:
-                raise WorkspaceManagerError(str(exc)) from exc
-            return self._load_workspace(result.workspace_path)
+                published = True
+                record = self._load_workspace(result.workspace_path)
+                self._update_operation(
+                    operation_id,
+                    receipt,
+                    phase="completed",
+                    workspace_id=record.workspace_id,
+                    final_path=str(record.workspace_path),
+                )
+                return record
+            except Exception as exc:
+                if not published:
+                    self._update_operation(
+                        operation_id,
+                        receipt,
+                        phase="failed",
+                        error=str(exc),
+                    )
+                elif isinstance(exc, WorkspaceManagerError):
+                    raise WorkspaceManagerError(
+                        f"workspace create was published but receipt/metadata finalization failed: {exc}"
+                    ) from exc
+                if isinstance(exc, WorkspacePublishError):
+                    raise WorkspaceManagerError(str(exc)) from exc
+                raise
 
     def open(self, selector: str) -> WorkspaceRecord:
         if not isinstance(selector, str) or not selector.strip():
@@ -211,33 +272,122 @@ class WorkspaceManager:
             raise WorkspaceManagerError(f"workspace name is ambiguous: {selector}")
         return matches[0]
 
+    def run(
+        self,
+        selector: str,
+        command: Sequence[str],
+        *,
+        executor: TargetExecutor | None = None,
+        runner: Runner = subprocess.run,
+    ) -> subprocess.CompletedProcess[str]:
+        """Run one mutable target command while holding the workspace generation lock."""
+        selected = executor or TargetExecutor(podman_binary=self.podman_binary)
+        with self.locked(selector) as current:
+            completed = selected.run(current.root_path, command, runner=runner)
+            self._advance_generation(current)
+            return completed
+
+    def shell(
+        self,
+        selector: str,
+        *,
+        executor: TargetExecutor | None = None,
+        runner: Runner = subprocess.run,
+    ) -> subprocess.CompletedProcess[str]:
+        """Open one mutable target shell and advance generation after a clean exit."""
+        selected = executor or TargetExecutor(podman_binary=self.podman_binary)
+        with self.locked(selector) as current:
+            completed = selected.shell(current.root_path, runner=runner)
+            self._advance_generation(current)
+            return completed
+
+    def build(
+        self,
+        selector: str,
+        repository_root: Path,
+        toolchain_root: Path,
+        command: Sequence[str],
+        *,
+        build_runner: BuildCapsuleRunner | None = None,
+        runner: Runner = subprocess.run,
+    ) -> subprocess.CompletedProcess[str]:
+        """Build against one locked workspace generation without mutating it."""
+        selected = build_runner or BuildCapsuleRunner(podman_binary=self.podman_binary)
+        with self.locked(selector) as current:
+            return selected.run(
+                current.root_path,
+                repository_root,
+                toolchain_root,
+                command,
+                runner=runner,
+            )
+
     def reset(self, selector: str) -> WorkspaceRecord:
         with self._lifecycle_lock():
             with self.locked(selector) as current:
                 target_dir = self.data_root / "targets" / current.target_lock_digest
                 self._validate_target_binding(target_dir, current)
-                report = extract_materialization_seed(
-                    self.data_root,
-                    target_dir,
-                    podman_binary=self.podman_binary,
+                operation_id, receipt = self._start_operation(
+                    "reset",
+                    workspace_id=current.workspace_id,
+                    workspace_name=current.workspace_name,
+                    target_lock_digest=current.target_lock_digest,
+                    base_digest=current.base_digest,
+                    generation_before=current.generation,
+                    generation_after=current.generation + 1,
+                    final_path=str(current.workspace_path),
                 )
-                staging_root = Path(report.staging_path).resolve()
-                staging_parent = staging_root.parent
-                _write_json_exclusive(
-                    staging_parent / "workspace.json",
-                    _workspace_metadata(current, current.generation + 1),
-                )
-                _rename_exchange(staging_parent, current.workspace_path)
+                published = False
                 try:
+                    report = extract_materialization_seed(
+                        self.data_root,
+                        target_dir,
+                        podman_binary=self.podman_binary,
+                    )
+                    staging_root = Path(report.staging_path).resolve()
+                    staging_parent = staging_root.parent
+                    self._update_operation(
+                        operation_id,
+                        receipt,
+                        phase="staged",
+                        staging_path=str(staging_parent),
+                    )
+                    _write_json_exclusive(
+                        staging_parent / "workspace.json",
+                        _workspace_metadata(current, current.generation + 1),
+                    )
+                    _rename_exchange(staging_parent, current.workspace_path)
+                    published = True
+                    self._update_operation(
+                        operation_id,
+                        receipt,
+                        phase="published",
+                        staging_path=str(staging_parent),
+                    )
                     _remove_tree_in_namespace(
                         staging_parent,
                         podman_binary=self.podman_binary,
                     )
-                except WorkspaceManagerError as exc:
-                    raise WorkspaceManagerError(
-                        f"workspace reset was published but old tree cleanup failed: {exc}"
-                    ) from exc
-                return self.open(current.workspace_id)
+                    self._update_operation(
+                        operation_id,
+                        receipt,
+                        phase="completed",
+                        staging_path=str(staging_parent),
+                    )
+                    return self.open(current.workspace_id)
+                except Exception as exc:
+                    if not published:
+                        self._update_operation(
+                            operation_id,
+                            receipt,
+                            phase="failed",
+                            error=str(exc),
+                        )
+                    elif isinstance(exc, WorkspaceManagerError):
+                        raise WorkspaceManagerError(
+                            f"workspace reset was published but cleanup/receipt failed: {exc}"
+                        ) from exc
+                    raise
 
     def remove(self, selector: str) -> WorkspaceRecord:
         with self._lifecycle_lock():
@@ -264,24 +414,24 @@ class WorkspaceManager:
                 return current
 
     def recover_staging(self) -> tuple[Path, ...]:
-        """Delete abandoned workspace staging trees without touching base staging."""
+        """Delete abandoned workspace staging trees and reconcile operation receipts."""
         with self._lifecycle_lock():
             staging = self.staging_dir
-            if not staging.exists():
-                return ()
-            if staging.is_symlink() or not staging.is_dir():
-                raise WorkspaceManagerError(f"staging path is not a real directory: {staging}")
             removed: list[Path] = []
-            for entry in sorted(staging.iterdir()):
-                if not (
-                    _WORKSPACE_STAGING.fullmatch(entry.name)
-                    or _REMOVE_STAGING.fullmatch(entry.name)
-                ):
-                    continue
-                if entry.is_symlink() or not entry.is_dir():
-                    continue
-                _remove_tree_in_namespace(entry, podman_binary=self.podman_binary)
-                removed.append(entry)
+            if staging.exists():
+                if staging.is_symlink() or not staging.is_dir():
+                    raise WorkspaceManagerError(f"staging path is not a real directory: {staging}")
+                for entry in sorted(staging.iterdir()):
+                    if not (
+                        _WORKSPACE_STAGING.fullmatch(entry.name)
+                        or _REMOVE_STAGING.fullmatch(entry.name)
+                    ):
+                        continue
+                    if entry.is_symlink() or not entry.is_dir():
+                        continue
+                    _remove_tree_in_namespace(entry, podman_binary=self.podman_binary)
+                    removed.append(entry)
+            self._recover_operations()
             return tuple(removed)
 
     @contextmanager
@@ -321,17 +471,163 @@ class WorkspaceManager:
             raise WorkspaceManagerError(f"staging path is not a real directory: {staging}")
         staging.mkdir(mode=0o755, exist_ok=True)
 
-    def _validate_target_binding(self, target_dir: Path, record: WorkspaceRecord) -> None:
-        target = Path(target_dir).resolve()
+    def _target_identity(self, target_dir: Path) -> tuple[str, str]:
+        target = Path(target_dir).expanduser().resolve()
         if target.parent != self.data_root / "targets" or not target.is_dir():
             raise WorkspaceManagerError(
                 f"workspace target directory does not exist: {target}"
             )
         seed = _load_json_object(target / "materialization" / "seed.json")
-        if seed.get("target_lock_digest") != record.target_lock_digest:
+        return (
+            _required_digest(seed, "target_lock_digest"),
+            _required_digest(seed, "base_digest"),
+        )
+
+    def _validate_target_binding(self, target_dir: Path, record: WorkspaceRecord) -> None:
+        target_lock_digest, base_digest = self._target_identity(target_dir)
+        if target_lock_digest != record.target_lock_digest:
             raise WorkspaceManagerError("workspace target lock no longer matches materialization seed")
-        if seed.get("base_digest") != record.base_digest:
+        if base_digest != record.base_digest:
             raise WorkspaceManagerError("workspace base no longer matches materialization seed")
+
+    def _advance_generation(self, current: WorkspaceRecord) -> WorkspaceRecord:
+        latest = self.open(current.workspace_id)
+        if latest.generation != current.generation:
+            raise WorkspaceManagerError("workspace generation changed while operation was locked")
+        _write_json_atomic(
+            current.workspace_path / "workspace.json",
+            _workspace_metadata(current, current.generation + 1),
+        )
+        return self.open(current.workspace_id)
+
+    def _start_operation(self, operation: str, **fields: object) -> tuple[str, dict[str, object]]:
+        operation_id = uuid.uuid4().hex
+        receipt: dict[str, object] = {
+            "format_version": OPERATION_FORMAT_VERSION,
+            "operation_id": operation_id,
+            "operation": operation,
+            "phase": "started",
+            **fields,
+        }
+        self._write_operation(operation_id, receipt)
+        return operation_id, receipt
+
+    def _update_operation(
+        self,
+        operation_id: str,
+        receipt: dict[str, object],
+        *,
+        phase: str,
+        **fields: object,
+    ) -> None:
+        receipt.update(fields)
+        receipt["phase"] = phase
+        self._write_operation(operation_id, receipt)
+
+    def _write_operation(self, operation_id: str, receipt: Mapping[str, object]) -> None:
+        operations = self.operations_dir
+        if operations.is_symlink() or (operations.exists() and not operations.is_dir()):
+            raise WorkspaceManagerError(f"operations path is not a real directory: {operations}")
+        _write_json_atomic(operations / f"{operation_id}.json", receipt)
+
+    def _recover_operations(self) -> None:
+        operations = self.operations_dir
+        if not operations.exists():
+            return
+        if operations.is_symlink() or not operations.is_dir():
+            raise WorkspaceManagerError(f"operations path is not a real directory: {operations}")
+
+        for path in sorted(operations.glob("*.json")):
+            receipt = dict(_load_json_object(path))
+            if receipt.get("format_version") != OPERATION_FORMAT_VERSION:
+                raise WorkspaceManagerError(f"unsupported operation receipt: {path}")
+            phase = receipt.get("phase")
+            if phase in {"completed", "failed"}:
+                continue
+            operation = receipt.get("operation")
+            if operation == "create":
+                self._recover_create_receipt(path.stem, receipt)
+            elif operation == "reset":
+                self._recover_reset_receipt(path.stem, receipt)
+
+    def _recover_create_receipt(self, operation_id: str, receipt: dict[str, object]) -> None:
+        name = _required_string(receipt, "workspace_name")
+        target_lock_digest = _required_digest(receipt, "target_lock_digest")
+        base_digest = _required_digest(receipt, "base_digest")
+        matches: list[WorkspaceRecord] = []
+        if self.workspaces_dir.is_dir() and not self.workspaces_dir.is_symlink():
+            for entry in sorted(self.workspaces_dir.iterdir()):
+                if entry.is_symlink() or not entry.is_dir():
+                    continue
+                try:
+                    record = self._load_workspace(entry)
+                except WorkspaceManagerError:
+                    continue
+                if (
+                    record.workspace_name == name
+                    and record.target_lock_digest == target_lock_digest
+                    and record.base_digest == base_digest
+                ):
+                    matches.append(record)
+        if len(matches) > 1:
+            raise WorkspaceManagerError(f"cannot recover ambiguous create operation {operation_id}")
+        if matches:
+            record = matches[0]
+            self._update_operation(
+                operation_id,
+                receipt,
+                phase="completed",
+                recovered=True,
+                workspace_id=record.workspace_id,
+                final_path=str(record.workspace_path),
+            )
+        else:
+            self._update_operation(
+                operation_id,
+                receipt,
+                phase="failed",
+                recovered=True,
+                error="create operation did not publish a workspace",
+            )
+
+    def _recover_reset_receipt(self, operation_id: str, receipt: dict[str, object]) -> None:
+        workspace_id = _required_string(receipt, "workspace_id")
+        before = receipt.get("generation_before")
+        after = receipt.get("generation_after")
+        if (
+            isinstance(before, bool)
+            or not isinstance(before, int)
+            or before < 0
+            or isinstance(after, bool)
+            or not isinstance(after, int)
+            or after != before + 1
+        ):
+            raise WorkspaceManagerError(f"reset operation has invalid generations: {operation_id}")
+        try:
+            record = self.open(workspace_id)
+        except WorkspaceNotFoundError as exc:
+            raise WorkspaceManagerError(
+                f"reset recovery cannot find final workspace {workspace_id}"
+            ) from exc
+        if record.generation == after:
+            self._update_operation(
+                operation_id,
+                receipt,
+                phase="completed",
+                recovered=True,
+            )
+        elif record.generation == before:
+            self._update_operation(
+                operation_id,
+                receipt,
+                phase="failed",
+                recovered=True,
+                error="reset operation did not publish the staged generation",
+            )
+        else:
+            raise WorkspaceManagerError(
+                f"reset recovery found unexpected generation {record.generation} for {workspace_id}"
+            )
 
     def _load_workspace(self, workspace_path: Path) -> WorkspaceRecord:
         path = Path(workspace_path).resolve()

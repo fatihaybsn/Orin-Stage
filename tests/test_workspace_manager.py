@@ -317,3 +317,378 @@ time.sleep(60)
     recovered = WorkspaceManager(data_root).recover_staging()
     assert staging in recovered
     assert not staging.exists()
+
+
+def _operation_receipts(data_root: Path) -> list[dict[str, object]]:
+    operations = data_root / "state" / "operations"
+    if not operations.exists():
+        return []
+    return [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(operations.glob("*.json"))
+    ]
+
+
+def test_create_writes_completed_operation_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import orin_stage.workspace_manager as module
+    from orin_stage.materialization_extract import ExtractionReport
+    from orin_stage.workspace_publish import WorkspacePublishResult
+
+    data_root = _data_root(tmp_path)
+    target = _target(data_root)
+
+    def fake_publish(data: Path, selected_target: Path, name: str) -> WorkspacePublishResult:
+        assert selected_target == target
+        path = _workspace(data, name=name)
+        return WorkspacePublishResult(
+            workspace_path=path,
+            workspace_id=WORKSPACE_ID,
+            extraction_report=ExtractionReport(1, 1, 1, 1, 0, 0, str(path / "root")),
+            reused_staging=False,
+        )
+
+    monkeypatch.setattr(module, "publish_materialization_workspace", fake_publish)
+
+    record = WorkspaceManager(data_root).create(target, "created")
+
+    assert record.workspace_id == WORKSPACE_ID
+    receipts = _operation_receipts(data_root)
+    assert len(receipts) == 1
+    assert receipts[0]["operation"] == "create"
+    assert receipts[0]["phase"] == "completed"
+    assert receipts[0]["workspace_id"] == WORKSPACE_ID
+    assert receipts[0]["generation_after"] == 0
+
+
+def test_mutable_run_holds_workspace_identity_and_advances_generation(tmp_path: Path) -> None:
+    import subprocess
+
+    data_root = _data_root(tmp_path)
+    path = _workspace(data_root, generation=2)
+    observed: list[tuple[Path, tuple[str, ...]]] = []
+
+    class FakeExecutor:
+        def run(self, root: Path, command: object, *, runner: object) -> subprocess.CompletedProcess[str]:
+            observed.append((root, tuple(command)))
+            return subprocess.CompletedProcess(tuple(command), 0, "ok", "")
+
+    completed = WorkspaceManager(data_root).run(
+        "demo",
+        ("/bin/true",),
+        executor=FakeExecutor(),  # type: ignore[arg-type]
+    )
+
+    assert completed.stdout == "ok"
+    assert observed == [(path / "root", ("/bin/true",))]
+    assert WorkspaceManager(data_root).open("demo").generation == 3
+
+
+def test_build_uses_locked_generation_without_advancing_it(tmp_path: Path) -> None:
+    import subprocess
+
+    data_root = _data_root(tmp_path)
+    path = _workspace(data_root, generation=8)
+    repository = tmp_path / "repo"
+    toolchain = tmp_path / "toolchain"
+    repository.mkdir()
+    toolchain.mkdir()
+    observed: list[Path] = []
+
+    class FakeBuildRunner:
+        def run(
+            self,
+            root: Path,
+            repository_root: Path,
+            toolchain_root: Path,
+            command: object,
+            *,
+            runner: object,
+        ) -> subprocess.CompletedProcess[str]:
+            observed.append(root)
+            assert repository_root == repository
+            assert toolchain_root == toolchain
+            return subprocess.CompletedProcess(tuple(command), 0, "built", "")
+
+    completed = WorkspaceManager(data_root).build(
+        "demo",
+        repository,
+        toolchain,
+        ("make",),
+        build_runner=FakeBuildRunner(),  # type: ignore[arg-type]
+    )
+
+    assert completed.stdout == "built"
+    assert observed == [path / "root"]
+    assert WorkspaceManager(data_root).open("demo").generation == 8
+
+
+def test_reset_completed_receipt_records_generation_transition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import orin_stage.workspace_manager as module
+    from orin_stage.materialization_extract import ExtractionReport
+
+    data_root = _data_root(tmp_path)
+    _target(data_root)
+    _workspace(data_root, generation=10)
+
+    def fake_extract(data: Path, target: Path, **kwargs: object) -> ExtractionReport:
+        root = data / "staging" / ("3" * 32) / "root"
+        root.mkdir(parents=True)
+        return ExtractionReport(1, 1, 1, 1, 0, 0, str(root))
+
+    def fake_remove(tree: Path, **kwargs: object) -> None:
+        import shutil
+        shutil.rmtree(tree)
+
+    monkeypatch.setattr(module, "extract_materialization_seed", fake_extract)
+    monkeypatch.setattr(module, "_remove_tree_in_namespace", fake_remove)
+
+    WorkspaceManager(data_root).reset("demo")
+
+    receipts = _operation_receipts(data_root)
+    assert len(receipts) == 1
+    assert receipts[0]["operation"] == "reset"
+    assert receipts[0]["phase"] == "completed"
+    assert receipts[0]["generation_before"] == 10
+    assert receipts[0]["generation_after"] == 11
+
+
+def test_reset_failure_before_publish_marks_receipt_failed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import orin_stage.workspace_manager as module
+    from orin_stage.materialization_extract import ExtractionReport
+
+    data_root = _data_root(tmp_path)
+    _target(data_root)
+    _workspace(data_root, generation=4)
+
+    def fake_extract(data: Path, target: Path, **kwargs: object) -> ExtractionReport:
+        root = data / "staging" / ("4" * 32) / "root"
+        root.mkdir(parents=True)
+        return ExtractionReport(1, 1, 1, 1, 0, 0, str(root))
+
+    def disk_full(path: Path, value: object) -> None:
+        raise WorkspaceManagerError("No space left on device")
+
+    monkeypatch.setattr(module, "extract_materialization_seed", fake_extract)
+    monkeypatch.setattr(module, "_write_json_exclusive", disk_full)
+
+    with pytest.raises(WorkspaceManagerError, match="No space left"):
+        WorkspaceManager(data_root).reset("demo")
+
+    receipt = _operation_receipts(data_root)[0]
+    assert receipt["operation"] == "reset"
+    assert receipt["phase"] == "failed"
+    assert WorkspaceManager(data_root).open("demo").generation == 4
+
+
+def test_recovery_reconciles_reset_receipt_after_publish_crash(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import orin_stage.workspace_manager as module
+
+    data_root = _data_root(tmp_path)
+    _workspace(data_root, generation=7)
+    abandoned_old_tree = data_root / "staging" / ("5" * 32)
+    (abandoned_old_tree / "root").mkdir(parents=True)
+    operation_id = "6" * 32
+    operations = data_root / "state" / "operations"
+    operations.mkdir(parents=True)
+    (operations / f"{operation_id}.json").write_text(
+        json.dumps(
+            {
+                "format_version": 1,
+                "operation_id": operation_id,
+                "operation": "reset",
+                "phase": "staged",
+                "workspace_id": WORKSPACE_ID,
+                "workspace_name": "demo",
+                "target_lock_digest": TARGET_LOCK_DIGEST,
+                "base_digest": BASE_DIGEST,
+                "generation_before": 6,
+                "generation_after": 7,
+                "final_path": str(data_root / "workspaces" / WORKSPACE_ID),
+                "staging_path": str(abandoned_old_tree),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_remove(tree: Path, **kwargs: object) -> None:
+        import shutil
+        shutil.rmtree(tree)
+
+    monkeypatch.setattr(module, "_remove_tree_in_namespace", fake_remove)
+
+    WorkspaceManager(data_root).recover_staging()
+
+    receipt = json.loads((operations / f"{operation_id}.json").read_text(encoding="utf-8"))
+    assert receipt["phase"] == "completed"
+    assert receipt["recovered"] is True
+    assert not abandoned_old_tree.exists()
+
+
+def test_sigkill_after_create_publish_is_reconciled_from_receipt(tmp_path: Path) -> None:
+    import os
+    import signal
+    import subprocess
+    import sys
+    import time
+
+    data_root = _data_root(tmp_path)
+    target = _target(data_root)
+    marker = tmp_path / "create-published"
+
+    code = f"""
+import json, pathlib, time
+import orin_stage.workspace_manager as module
+from orin_stage.workspace_manager import WorkspaceManager
+workspace_id = {WORKSPACE_ID!r}
+target_digest = {TARGET_LOCK_DIGEST!r}
+base_digest = {BASE_DIGEST!r}
+marker = pathlib.Path({str(marker)!r})
+def fake_publish(data_root, target_dir, workspace_name):
+    path = pathlib.Path(data_root) / 'workspaces' / workspace_id
+    (path / 'root').mkdir(parents=True)
+    (path / 'workspace.json').write_text(json.dumps({{
+        'format_version': 1,
+        'workspace_id': workspace_id,
+        'workspace_name': workspace_name,
+        'target_lock_digest': target_digest,
+        'base_digest': base_digest,
+        'generation': 0,
+    }}), encoding='utf-8')
+    marker.write_text('done', encoding='utf-8')
+    time.sleep(60)
+module.publish_materialization_workspace = fake_publish
+WorkspaceManager(pathlib.Path({str(data_root)!r})).create(pathlib.Path({str(target)!r}), 'demo')
+"""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
+    child = subprocess.Popen([sys.executable, "-c", code], env=env)
+    try:
+        deadline = time.time() + 5
+        while not marker.exists() and time.time() < deadline:
+            if child.poll() is not None:
+                raise AssertionError("create child exited before publish marker")
+            time.sleep(0.02)
+        assert marker.exists()
+        child.send_signal(signal.SIGKILL)
+        child.wait(timeout=5)
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=5)
+
+    assert WorkspaceManager(data_root).open("demo").workspace_id == WORKSPACE_ID
+    receipt = _operation_receipts(data_root)[0]
+    assert receipt["phase"] == "started"
+
+    WorkspaceManager(data_root).recover_staging()
+
+    receipt = _operation_receipts(data_root)[0]
+    assert receipt["phase"] == "completed"
+    assert receipt["recovered"] is True
+    assert receipt["workspace_id"] == WORKSPACE_ID
+
+
+def test_sigkill_after_remove_unpublish_is_cleaned_by_recovery(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import os
+    import shutil
+    import signal
+    import subprocess
+    import sys
+    import time
+
+    import orin_stage.workspace_manager as module
+
+    data_root = _data_root(tmp_path)
+    _workspace(data_root)
+    marker = tmp_path / "remove-unpublished"
+
+    code = f"""
+import pathlib, time
+import orin_stage.workspace_manager as module
+from orin_stage.workspace_manager import WorkspaceManager
+marker = pathlib.Path({str(marker)!r})
+def hang_after_unpublish(path, **kwargs):
+    marker.write_text(str(path), encoding='utf-8')
+    time.sleep(60)
+module._remove_tree_in_namespace = hang_after_unpublish
+WorkspaceManager(pathlib.Path({str(data_root)!r})).remove('demo')
+"""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
+    child = subprocess.Popen([sys.executable, "-c", code], env=env)
+    try:
+        deadline = time.time() + 5
+        while not marker.exists() and time.time() < deadline:
+            if child.poll() is not None:
+                raise AssertionError("remove child exited before unpublish marker")
+            time.sleep(0.02)
+        assert marker.exists()
+        child.send_signal(signal.SIGKILL)
+        child.wait(timeout=5)
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=5)
+
+    with pytest.raises(WorkspaceNotFoundError):
+        WorkspaceManager(data_root).open("demo")
+    tombstones = list((data_root / "staging").glob(".workspace-remove-*"))
+    assert len(tombstones) == 1
+
+    def fake_remove(tree: Path, **kwargs: object) -> None:
+        shutil.rmtree(tree)
+
+    monkeypatch.setattr(module, "_remove_tree_in_namespace", fake_remove)
+    WorkspaceManager(data_root).recover_staging()
+    assert not tombstones[0].exists()
+
+
+def test_mutable_shell_advances_generation_after_clean_exit(tmp_path: Path) -> None:
+    import subprocess
+
+    data_root = _data_root(tmp_path)
+    _workspace(data_root, generation=1)
+
+    class FakeExecutor:
+        def shell(self, root: Path, *, runner: object) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess(("/bin/bash",), 0, None, None)
+
+    WorkspaceManager(data_root).shell(
+        "demo",
+        executor=FakeExecutor(),  # type: ignore[arg-type]
+    )
+
+    assert WorkspaceManager(data_root).open("demo").generation == 2
+
+
+def test_failed_mutable_run_does_not_advance_generation(tmp_path: Path) -> None:
+    data_root = _data_root(tmp_path)
+    _workspace(data_root, generation=5)
+
+    class FailingExecutor:
+        def run(self, root: Path, command: object, *, runner: object) -> object:
+            raise RuntimeError("command failed")
+
+    with pytest.raises(RuntimeError, match="command failed"):
+        WorkspaceManager(data_root).run(
+            "demo",
+            ("false",),
+            executor=FailingExecutor(),  # type: ignore[arg-type]
+        )
+
+    assert WorkspaceManager(data_root).open("demo").generation == 5
