@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orin-stage"
+dynamic = ["version"]
+description = "JetPack 6 target software workspace engine for NVIDIA Jetson Orin"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "PyYAML>=6,<7",
+    "jsonschema>=4.23,<5",
+]
+
+[project.scripts]
+ostg = "orin_stage.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "orin_stage.__version__"}
