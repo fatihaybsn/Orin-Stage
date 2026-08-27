@@ -6,7 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from orin_stage.acquisition.sdk_manager import SdkManagerNotFoundError
+from orin_stage.acquisition.sdk_manager import (
+    SdkManagerNotFoundError,
+    SdkManagerTimeoutError,
+)
 from orin_stage.doctor import (
     CheckStatus,
     DoctorCheck,
@@ -17,13 +20,23 @@ from orin_stage.doctor import (
 
 
 class WorkingSdkManager:
-    def version(self) -> str:
+    def version(self, timeout_seconds: float | None = None) -> str:
+        assert timeout_seconds == 5.0
         return "SDK Manager 2.3.0"
 
 
 class MissingSdkManager:
-    def version(self) -> str:
+    def version(self, timeout_seconds: float | None = None) -> str:
         raise SdkManagerNotFoundError("SDK Manager executable not found")
+
+
+class TimedOutSdkManager:
+    def version(self, timeout_seconds: float | None = None) -> str:
+        assert timeout_seconds == 5.0
+        raise SdkManagerTimeoutError(
+            ("sdkmanager", "--ver"),
+            timeout_seconds,
+        )
 
 
 def _completed(
@@ -136,6 +149,18 @@ def test_missing_sdk_manager_is_only_a_warning(tmp_path: Path) -> None:
     checks = run_doctor(**environment)  # type: ignore[arg-type]
 
     assert _checks_by_name(checks)["SDK Manager"].status is CheckStatus.WARN
+    assert doctor_exit_code(checks) == 0
+
+
+def test_sdk_manager_timeout_is_only_a_warning(tmp_path: Path) -> None:
+    environment = _healthy_environment(tmp_path)
+    environment["sdk_manager"] = TimedOutSdkManager()
+
+    checks = run_doctor(**environment)  # type: ignore[arg-type]
+
+    result = _checks_by_name(checks)["SDK Manager"]
+    assert result.status is CheckStatus.WARN
+    assert result.detail == "version probe timed out"
     assert doctor_exit_code(checks) == 0
 
 

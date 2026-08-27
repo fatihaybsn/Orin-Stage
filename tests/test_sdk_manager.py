@@ -8,6 +8,7 @@ from orin_stage.acquisition.sdk_manager import (
     SdkManagerClient,
     SdkManagerCommandError,
     SdkManagerNotFoundError,
+    SdkManagerTimeoutError,
 )
 
 
@@ -39,6 +40,29 @@ def test_version_reports_missing_sdkmanager(monkeypatch: pytest.MonkeyPatch) -> 
 
     with pytest.raises(SdkManagerNotFoundError, match="executable not found"):
         SdkManagerClient().version()
+
+
+def test_version_forwards_timeout_to_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_run(command, **kwargs):
+        assert kwargs["timeout"] == 5.0
+        return subprocess.CompletedProcess(command, 0, stdout="2.4.1\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert SdkManagerClient().version(timeout_seconds=5.0) == "2.4.1"
+
+
+def test_version_converts_subprocess_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_run(command, **kwargs):
+        raise subprocess.TimeoutExpired(command, timeout=kwargs["timeout"])
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(SdkManagerTimeoutError, match="timed out after 2.5 seconds") as caught:
+        SdkManagerClient().version(timeout_seconds=2.5)
+
+    assert caught.value.command == ("sdkmanager", "--ver")
+    assert caught.value.timeout_seconds == 2.5
 
 
 def test_version_preserves_failed_command_evidence(monkeypatch: pytest.MonkeyPatch) -> None:

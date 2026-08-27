@@ -10,7 +10,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Protocol, Sequence
 
-from .acquisition.sdk_manager import SdkManagerClient, SdkManagerError
+from .acquisition.sdk_manager import (
+    SdkManagerClient,
+    SdkManagerError,
+    SdkManagerTimeoutError,
+)
 
 
 class CheckStatus(str, Enum):
@@ -321,7 +325,13 @@ def _qemu_static(path: Path, runner: Runner) -> DoctorCheck:
 
 def _sdk_manager(client: SdkManagerClient) -> DoctorCheck:
     try:
-        version = client.version().strip()
+        version = client.version(timeout_seconds=5.0).strip()
+    except SdkManagerTimeoutError:
+        return DoctorCheck(
+            CheckStatus.WARN,
+            "SDK Manager",
+            "version probe timed out",
+        )
     except (SdkManagerError, OSError) as exc:
         return DoctorCheck(CheckStatus.WARN, "SDK Manager", f"unavailable: {exc}")
     if not version:
