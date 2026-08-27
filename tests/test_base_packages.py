@@ -29,16 +29,16 @@ from orin_stage.base.recipe import (
     JP623_ALLOWED_REMOVAL_SET,
     JP623_REMOVAL_POLICY_VERSION,
 )
-from orin_stage.catalog.resolver import TargetResolver
+from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+CATALOG_PATHS = builtin_catalog_paths()
 
 
 def _target():
     resolver = TargetResolver(
-        REPO_ROOT / "catalog" / "targets",
-        REPO_ROOT / "catalog" / "schema" / "target.schema.json",
+        CATALOG_PATHS.targets_dir,
+        CATALOG_PATHS.schema_path,
     )
     return resolver.resolve("jetson-orin@jp6.2.3")
 

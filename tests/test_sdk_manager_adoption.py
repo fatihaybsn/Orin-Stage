@@ -16,10 +16,10 @@ from orin_stage.acquisition.sdk_manager import SdkManagerClient
 from orin_stage.acquisition.sdk_manager_acquisition import ensure_sdk_manager_acquisition
 from orin_stage.acquisition.sdk_manager_adoption import adopt_sdk_manager_acquisition
 from orin_stage.acquisition.sdk_manager_match import SdkManagerTargetMismatchError
-from orin_stage.catalog.resolver import TargetResolver
+from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 
 
-ROOT = Path(__file__).resolve().parents[1]
+CATALOG_PATHS = builtin_catalog_paths()
 BSP_NAME = "Jetson_Linux_R36.5.2_aarch64.tbz2"
 ROOTFS_NAME = "Tegra_Linux_Sample-Root-Filesystem_R36.5.2_aarch64.tbz2"
 
@@ -38,8 +38,8 @@ sdkmanager --cli --action install --product Jetson --version 6.2.3 --target JETS
 
 def _target_for_bytes(bsp: bytes, rootfs: bytes):
     resolver = TargetResolver(
-        targets_dir=ROOT / "catalog" / "targets",
-        schema_path=ROOT / "catalog" / "schema" / "target.schema.json",
+        targets_dir=CATALOG_PATHS.targets_dir,
+        schema_path=CATALOG_PATHS.schema_path,
     )
     target = resolver.resolve("jetson-orin@jp6.2.3")
     record = copy.deepcopy(target.record)

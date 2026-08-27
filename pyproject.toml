@@ -19,5 +19,12 @@ ostg = "orin_stage.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"orin_stage.catalog" = [
+    "data/schema/*.json",
+    "data/targets/*.yaml",
+    "data/hardware/*.yaml",
+]
+
 [tool.setuptools.dynamic]
 version = {attr = "orin_stage.__version__"}

@@ -13,16 +13,16 @@ from orin_stage.acquisition.sdk_manager_query import (
     SdkManagerJetsonRelease,
     parse_jetson_query_output,
 )
-from orin_stage.catalog.resolver import TargetResolver
+from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 
 
-ROOT = Path(__file__).resolve().parents[1]
+CATALOG_PATHS = builtin_catalog_paths()
 
 
 def _resolver() -> TargetResolver:
     return TargetResolver(
-        targets_dir=ROOT / "catalog" / "targets",
-        schema_path=ROOT / "catalog" / "schema" / "target.schema.json",
+        targets_dir=CATALOG_PATHS.targets_dir,
+        schema_path=CATALOG_PATHS.schema_path,
     )
 
 

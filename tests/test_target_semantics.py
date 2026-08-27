@@ -7,13 +7,17 @@ from pathlib import Path
 import pytest
 import yaml
 
-from orin_stage.catalog import CatalogSemanticValidationError, TargetResolver
+from orin_stage.catalog import (
+    CatalogSemanticValidationError,
+    TargetResolver,
+    builtin_catalog_paths,
+)
 from orin_stage.catalog.semantic import validate_target_semantics
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-TARGETS_DIR = REPO_ROOT / "catalog" / "targets"
-SCHEMA_PATH = REPO_ROOT / "catalog" / "schema" / "target.schema.json"
+CATALOG_PATHS = builtin_catalog_paths()
+TARGETS_DIR = CATALOG_PATHS.targets_dir
+SCHEMA_PATH = CATALOG_PATHS.schema_path
 
 
 def load_yaml(path: Path) -> dict:

@@ -21,7 +21,7 @@ from orin_stage.acquisition.sdk_manager import SdkManagerClient  # noqa: E402
 from orin_stage.acquisition.sdk_manager_acquisition import (  # noqa: E402
     ensure_sdk_manager_acquisition,
 )
-from orin_stage.catalog.resolver import TargetResolver  # noqa: E402
+from orin_stage.catalog import TargetResolver, builtin_catalog_paths  # noqa: E402
 
 
 def main() -> int:
@@ -35,10 +35,8 @@ def main() -> int:
     args = parser.parse_args()
 
     data_root = args.data_root.expanduser().resolve()
-    resolver = TargetResolver(
-        targets_dir=REPO_ROOT / "catalog" / "targets",
-        schema_path=REPO_ROOT / "catalog" / "schema" / "target.schema.json",
-    )
+    catalog_paths = builtin_catalog_paths()
+    resolver = TargetResolver(catalog_paths.targets_dir, catalog_paths.schema_path)
     target = resolver.resolve("jetson-orin@jp6.2.3")
 
     result = ensure_sdk_manager_acquisition(

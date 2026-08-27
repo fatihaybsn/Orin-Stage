@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import urllib.request
+
 import pytest
 
+from orin_stage.acquisition.sdk_manager import SdkManagerClient
 from orin_stage.cli import PROGRAM_VERSION, build_parser, main
 from orin_stage.doctor import CheckStatus, DoctorCheck
 
@@ -18,6 +21,17 @@ def test_cli_help_has_product_name_and_data_root(capsys) -> None:
     assert "--data-root PATH" in output
     assert "~/.local/share/orin-stage" in output
     assert "doctor" in output
+    assert "target" in output
+
+
+def test_target_help_contains_list(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit) as exc_info:
+        parser.parse_args(["target", "--help"])
+
+    assert exc_info.value.code == 0
+    assert "list" in capsys.readouterr().out
 
 
 def test_cli_version(capsys) -> None:
@@ -61,3 +75,65 @@ def test_cli_doctor_returns_one_when_a_check_fails(monkeypatch, capsys) -> None:
 
     assert main(["doctor"]) == 1
     assert "Summary: 0 PASS, 0 WARN, 1 FAIL" in capsys.readouterr().out
+
+
+def test_target_list_shows_six_ga_targets_in_semantic_order(capsys) -> None:
+    assert main(["target", "list"]) == 0
+
+    output = capsys.readouterr().out
+    lines = output.strip().splitlines()
+    assert lines[0].split() == ["TARGET", "JETPACK", "L4T", "STATUS"]
+    rows = [line.split() for line in lines[1:]]
+    assert rows == [
+        ["jetson-orin@jp6.0", "6.0", "36.3", "validation-pending"],
+        ["jetson-orin@jp6.1", "6.1", "36.4", "validation-pending"],
+        ["jetson-orin@jp6.2", "6.2", "36.4.3", "validation-pending"],
+        ["jetson-orin@jp6.2.1", "6.2.1", "36.4.4", "validation-pending"],
+        ["jetson-orin@jp6.2.2", "6.2.2", "36.5.0", "validation-pending"],
+        ["jetson-orin@jp6.2.3", "6.2.3", "36.5.2", "validation-pending"],
+    ]
+    assert "Developer Preview" not in output
+    assert "jp6.0-dp" not in output
+
+
+def test_target_list_does_not_use_network_sdk_manager_doctor_or_data_root(
+    monkeypatch,
+    capsys,
+    tmp_path,
+) -> None:
+    def unexpected_call(*args, **kwargs):
+        raise AssertionError("unexpected external call")
+
+    monkeypatch.setattr(urllib.request, "urlopen", unexpected_call)
+    monkeypatch.setattr(SdkManagerClient, "version", unexpected_call)
+    monkeypatch.setattr(SdkManagerClient, "query_jetson", unexpected_call)
+    monkeypatch.setattr("orin_stage.cli.run_doctor", unexpected_call)
+    data_root = tmp_path / "data-root"
+
+    assert main(["--data-root", str(data_root), "target", "list"]) == 0
+    assert not data_root.exists()
+    assert "jetson-orin@jp6.2.3" in capsys.readouterr().out
+
+
+def test_target_list_reports_catalog_errors_without_traceback(
+    monkeypatch,
+    capsys,
+    tmp_path,
+) -> None:
+    from orin_stage.catalog import BuiltinCatalogPaths
+
+    missing = tmp_path / "missing"
+    monkeypatch.setattr(
+        "orin_stage.cli.builtin_catalog_paths",
+        lambda: BuiltinCatalogPaths(
+            targets_dir=missing / "targets",
+            schema_path=missing / "target.schema.json",
+            hardware_dir=missing / "hardware",
+        ),
+    )
+
+    assert main(["target", "list"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("error: cannot load built-in target catalog:")
+    assert "Traceback" not in captured.err

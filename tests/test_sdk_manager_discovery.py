@@ -12,16 +12,16 @@ from orin_stage.acquisition.sdk_manager_match import (
     SdkManagerTargetMismatchError,
     VerifiedSdkManagerTarget,
 )
-from orin_stage.catalog.resolver import TargetResolver
+from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 
 
-ROOT = Path(__file__).resolve().parents[1]
+CATALOG_PATHS = builtin_catalog_paths()
 
 
 def _resolver() -> TargetResolver:
     return TargetResolver(
-        ROOT / "catalog" / "targets",
-        ROOT / "catalog" / "schema" / "target.schema.json",
+        CATALOG_PATHS.targets_dir,
+        CATALOG_PATHS.schema_path,
     )
 
 

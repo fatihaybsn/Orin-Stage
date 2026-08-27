@@ -1,5 +1,6 @@
 """Exact target catalog loading and resolution."""
 
+from .paths import BuiltinCatalogPaths, builtin_catalog_paths
 from .resolver import (
     CatalogError,
     CatalogSchemaError,
@@ -16,6 +17,7 @@ from .resolver import (
 from .semantic import SemanticIssue, validate_target_semantics
 
 __all__ = [
+    "BuiltinCatalogPaths",
     "CatalogError",
     "CatalogSchemaError",
     "CatalogTargetSummary",
@@ -27,6 +29,7 @@ __all__ = [
     "TargetNotFoundError",
     "TargetNotUsableError",
     "TargetResolver",
+    "builtin_catalog_paths",
     "SemanticIssue",
     "validate_target_semantics",
 ]

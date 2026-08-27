@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from orin_stage.catalog import builtin_catalog_paths
 from orin_stage.catalog.resolver import (
     CatalogTargetValidationError,
     DuplicateSelectorError,
@@ -16,9 +17,9 @@ from orin_stage.catalog.resolver import (
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-TARGETS_DIR = REPO_ROOT / "catalog" / "targets"
-SCHEMA_PATH = REPO_ROOT / "catalog" / "schema" / "target.schema.json"
+CATALOG_PATHS = builtin_catalog_paths()
+TARGETS_DIR = CATALOG_PATHS.targets_dir
+SCHEMA_PATH = CATALOG_PATHS.schema_path
 
 PRODUCTION_ALIASES = {
     "jetson-orin@jp6.0": "nvidia.jetpack-6.0.jetson-linux-36.3",

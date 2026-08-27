@@ -13,10 +13,10 @@ from orin_stage.acquisition import sdk_manager_acquisition as acquisition_module
 from orin_stage.acquisition.artifact_verification import VerifiedAcquisitionArtifact
 from orin_stage.acquisition.sdk_manager import SdkManagerClient
 from orin_stage.acquisition.sdk_manager_acquisition import ensure_sdk_manager_acquisition
-from orin_stage.catalog.resolver import TargetResolver
+from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 
 
-ROOT = Path(__file__).resolve().parents[1]
+CATALOG_PATHS = builtin_catalog_paths()
 
 
 class FakeSdkManagerClient(SdkManagerClient):
@@ -33,8 +33,8 @@ sdkmanager --cli --action install --product Jetson --version 6.2.3 --target JETS
 
 def _target():
     resolver = TargetResolver(
-        targets_dir=ROOT / "catalog" / "targets",
-        schema_path=ROOT / "catalog" / "schema" / "target.schema.json",
+        targets_dir=CATALOG_PATHS.targets_dir,
+        schema_path=CATALOG_PATHS.schema_path,
     )
     return resolver.resolve("jetson-orin@jp6.2.3")
 

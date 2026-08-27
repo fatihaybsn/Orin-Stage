@@ -10,7 +10,7 @@ import pytest
 from orin_stage.acquisition.sdk_manager import SdkManagerClient
 from orin_stage.acquisition.sdk_manager_discovery import SdkManagerDiscovery
 from orin_stage.acquisition.sdk_manager_match import VerifiedSdkManagerTarget
-from orin_stage.catalog.resolver import TargetResolver
+from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 from orin_stage.planning.models import ArtifactIndex, PlanArtifactStatus
 from orin_stage.planning.orchestration import ReleaseEnsureError, ensure_jp623_release
 from orin_stage.planning.planner import (
@@ -22,15 +22,15 @@ from orin_stage.planning.planner import (
 from orin_stage.planning import orchestration as orchestration_module
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+CATALOG_PATHS = builtin_catalog_paths()
 PROFILE = "orin-nx-16gb-p3767-0000-on-p3768-0000"
 SDKM_TARGET = "JETSON_ORIN_NX_TARGETS"
 
 
 def _resolver() -> TargetResolver:
     return TargetResolver(
-        REPO_ROOT / "catalog" / "targets",
-        REPO_ROOT / "catalog" / "schema" / "target.schema.json",
+        CATALOG_PATHS.targets_dir,
+        CATALOG_PATHS.schema_path,
     )
 
 

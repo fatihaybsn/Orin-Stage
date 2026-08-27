@@ -28,7 +28,7 @@ from orin_stage.base.packages import (
 )
 from orin_stage.base.receipt import make_base_receipt, write_base_receipt
 from orin_stage.base.recipe import construction_recipe_digest_v1
-from orin_stage.catalog.resolver import TargetResolver
+from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 from orin_stage.planning import (
     ArtifactIndex,
     BasePlanStatus,
@@ -38,15 +38,15 @@ from orin_stage.planning import (
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+CATALOG_PATHS = builtin_catalog_paths()
 PROFILE_16GB = "orin-nx-16gb-p3767-0000-on-p3768-0000"
 PROFILE_8GB = "orin-nx-8gb-p3767-0001-on-p3768-0000"
 
 
 def _target(*, supported: bool = True):
     resolver = TargetResolver(
-        REPO_ROOT / "catalog" / "targets",
-        REPO_ROOT / "catalog" / "schema" / "target.schema.json",
+        CATALOG_PATHS.targets_dir,
+        CATALOG_PATHS.schema_path,
     )
     target = resolver.resolve("jetson-orin@jp6.2.3")
     return replace(target, support_status="supported") if supported else target

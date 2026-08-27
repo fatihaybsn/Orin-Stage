@@ -10,10 +10,12 @@ import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError, ValidationError
 
+from orin_stage.catalog import builtin_catalog_paths
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_PATH = REPO_ROOT / "catalog" / "schema" / "target.schema.json"
-TARGETS_DIR = REPO_ROOT / "catalog" / "targets"
+
+CATALOG_PATHS = builtin_catalog_paths()
+SCHEMA_PATH = CATALOG_PATHS.schema_path
+TARGETS_DIR = CATALOG_PATHS.targets_dir
 REFERENCE_TARGET = TARGETS_DIR / "jp6.2.3.yaml"
 DP_TARGET = TARGETS_DIR / "jp6.0-dp.reference.yaml"
 
@@ -127,7 +129,7 @@ def test_every_catalog_target_matches_schema(
             f"- {'/'.join(map(str, error.absolute_path)) or '<root>'}: {error.message}"
             for error in errors
         )
-        pytest.fail(f"{target_path.relative_to(REPO_ROOT)} failed schema validation:\n{details}")
+        pytest.fail(f"{target_path.name} failed schema validation:\n{details}")
 
 
 
