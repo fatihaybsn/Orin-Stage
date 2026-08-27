@@ -133,11 +133,11 @@ def ensure_jp623_base_with_sudo(
     root = Path(data_root).expanduser().resolve()
     receipt = Path(acquisition_receipt_path).expanduser().resolve()
     qemu = Path(qemu_binary).expanduser().resolve()
-    python = Path(sys.executable).resolve()
+    python = os.path.abspath(sys.executable)
     command = (
         sudo,
         "--",
-        str(python),
+        python,
         "-m",
         "orin_stage.privileged_base",
         "--selector",

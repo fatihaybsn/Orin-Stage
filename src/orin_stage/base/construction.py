@@ -51,6 +51,9 @@ class BaseConstructionError(RuntimeError):
     """Raised when the JP6.2.3 official base cannot be constructed."""
 
 
+_BASE_METADATA_MODE = 0o644
+
+
 @dataclass(frozen=True, slots=True)
 class BaseBuildResult:
     target_directory: Path
@@ -390,8 +393,8 @@ def ensure_jp623_base(
         lock_path = publish / "lock.json"
         manifest_path = publish / "manifest.json"
         receipt_path = publish / "receipt.json"
-        write_target_lock(lock_path, lock)
-        write_json_atomic(manifest_path, manifest)
+        write_target_lock(lock_path, lock, mode=_BASE_METADATA_MODE)
+        write_json_atomic(manifest_path, manifest, mode=_BASE_METADATA_MODE)
         base_receipt = make_base_receipt(
             base_digest=base_digest,
             target_lock_digest_value=lock_digest,
@@ -402,7 +405,11 @@ def ensure_jp623_base(
             artifacts=artifacts,
             manifest_path=manifest_path,
         )
-        write_base_receipt(receipt_path, base_receipt)
+        write_base_receipt(
+            receipt_path,
+            base_receipt,
+            mode=_BASE_METADATA_MODE,
+        )
 
         os.replace(publish, final_dir)
         return BaseBuildResult(

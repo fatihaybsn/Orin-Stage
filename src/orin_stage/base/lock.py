@@ -176,9 +176,14 @@ def target_lock_digest(lock: Mapping[str, Any]) -> str:
     return json_digest(lock)
 
 
-def write_target_lock(path: Path, lock: Mapping[str, Any]) -> None:
+def write_target_lock(
+    path: Path,
+    lock: Mapping[str, Any],
+    *,
+    mode: int | None = None,
+) -> None:
     target_lock_digest(lock)
-    write_json_atomic(path, lock)
+    write_json_atomic(path, lock, mode=mode)
 
 
 def load_target_lock(path: Path) -> Mapping[str, object]:

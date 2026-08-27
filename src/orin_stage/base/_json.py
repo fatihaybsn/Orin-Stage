@@ -31,7 +31,12 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def write_json_atomic(path: Path, value: object) -> None:
+def write_json_atomic(
+    path: Path,
+    value: object,
+    *,
+    mode: int | None = None,
+) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     body = json.dumps(value, indent=2, sort_keys=True) + "\n"
@@ -45,6 +50,8 @@ def write_json_atomic(path: Path, value: object) -> None:
             handle.write(body)
             handle.flush()
             os.fsync(handle.fileno())
+        if mode is not None:
+            os.chmod(temporary, mode)
         os.replace(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)

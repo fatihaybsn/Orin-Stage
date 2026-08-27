@@ -93,6 +93,40 @@ def test_sudo_builder_uses_narrow_shell_free_command_once(tmp_path: Path) -> Non
     }
 
 
+def test_sudo_builder_preserves_venv_interpreter_symlink(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    result = _result(tmp_path)
+    commands: list[tuple[str, ...]] = []
+    venv_python = tmp_path / ".venv" / "bin" / "python"
+    venv_python.parent.mkdir(parents=True)
+    venv_python.symlink_to("/usr/bin/python3.10")
+    monkeypatch.setattr(
+        "orin_stage.privileged_base.sys.executable",
+        str(venv_python),
+    )
+
+    def runner(command: tuple[str, ...], **kwargs):
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 0, _payload(result), "")
+
+    ensure_jp623_base_with_sudo(
+        _target(),
+        acquisition_receipt_path=tmp_path / "receipt.json",
+        data_root=tmp_path,
+        qemu_binary=Path("/usr/bin/qemu-aarch64-static"),
+        runner=runner,
+        which=lambda name: "/usr/bin/sudo" if name == "sudo" else None,
+    )
+
+    assert len(commands) == 1
+    interpreter = commands[0][2]
+    assert interpreter == str(venv_python)
+    assert Path(interpreter).is_absolute()
+    assert interpreter != str(venv_python.resolve())
+
+
 def test_sudo_missing_is_short_error_without_subprocess(tmp_path: Path) -> None:
     def forbidden(*args, **kwargs):
         raise AssertionError("subprocess must not run")

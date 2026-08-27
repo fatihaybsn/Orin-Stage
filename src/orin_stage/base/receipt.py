@@ -96,8 +96,13 @@ def make_base_receipt(
     )
 
 
-def write_base_receipt(path: Path, receipt: BaseReceipt) -> None:
-    write_json_atomic(path, receipt.to_dict())
+def write_base_receipt(
+    path: Path,
+    receipt: BaseReceipt,
+    *,
+    mode: int | None = None,
+) -> None:
+    write_json_atomic(path, receipt.to_dict(), mode=mode)
 
 
 def load_base_receipt(path: Path) -> Mapping[str, object]:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import stat
 import subprocess
 from dataclasses import replace
 from pathlib import Path
@@ -157,7 +158,9 @@ def test_ensure_jp623_base_publishes_then_reuses_same_base(tmp_path: Path, monke
         rootfs = l4t / "rootfs"
         rootfs.mkdir(parents=True)
         (rootfs / "etc" / "apt" / "sources.list.d").mkdir(parents=True)
-        (rootfs / "final-aarch64-tree").write_text("ok", encoding="utf-8")
+        payload = rootfs / "final-aarch64-tree"
+        payload.write_text("ok", encoding="utf-8")
+        payload.chmod(0o600)
         return l4t, rootfs
 
     class FakeChroot:
@@ -228,7 +231,12 @@ def test_ensure_jp623_base_publishes_then_reuses_same_base(tmp_path: Path, monke
     assert second.cache_hit
     assert first.base_digest == second.base_digest
     assert first.base_path.is_dir()
-    assert (first.base_path / "final-aarch64-tree").is_file()
+    payload = first.base_path / "final-aarch64-tree"
+    assert payload.is_file()
+    assert stat.S_IMODE(payload.stat().st_mode) == 0o600
+    assert stat.S_IMODE(first.lock_path.stat().st_mode) == 0o644
+    assert stat.S_IMODE(first.manifest_path.stat().st_mode) == 0o644
+    assert stat.S_IMODE(first.receipt_path.stat().st_mode) == 0o644
     assert build_count["extract"] == 1
     receipt = json.loads(first.receipt_path.read_text(encoding="utf-8"))
     assert receipt["packages_removed"] == []

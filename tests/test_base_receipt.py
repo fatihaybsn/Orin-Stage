@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 
 from orin_stage.acquisition.artifact_verification import VerifiedAcquisitionArtifact
+from orin_stage.base import receipt as receipt_module
 from orin_stage.base._json import write_json_atomic
 from orin_stage.base.identity import build_base_digest, build_base_target_projection_digest
 from orin_stage.base.lock import target_lock_digest, write_target_lock
@@ -76,7 +77,10 @@ def _lock(artifacts: tuple[VerifiedAcquisitionArtifact, ...], packages: Construc
     }
 
 
-def test_published_base_metadata_is_reusable_without_rescanning_rootfs(tmp_path: Path) -> None:
+def test_published_base_metadata_is_reusable_without_rescanning_rootfs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     artifacts = (_artifact("bsp", b"bsp"), _artifact("sample_rootfs", b"rootfs"))
     packages = _package_set()
     lock = _lock(artifacts, packages)
@@ -127,6 +131,18 @@ def test_published_base_metadata_is_reusable_without_rescanning_rootfs(tmp_path:
     assert base_directory_is_reusable(target_dir)
 
     manifest_path.write_text("tampered\n", encoding="utf-8")
+    assert not base_directory_is_reusable(target_dir)
+
+    write_json_atomic(
+        manifest_path,
+        {"schema_version": 1, "base_digest": base_digest},
+    )
+    assert base_directory_is_reusable(target_dir)
+
+    def unreadable_lock(*args, **kwargs):
+        raise PermissionError("lock metadata is unreadable")
+
+    monkeypatch.setattr(receipt_module, "load_target_lock", unreadable_lock)
     assert not base_directory_is_reusable(target_dir)
 
 
