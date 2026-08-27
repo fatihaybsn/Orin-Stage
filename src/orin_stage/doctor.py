@@ -221,6 +221,17 @@ def _mapping_helpers(which: Which) -> DoctorCheck:
     return DoctorCheck(CheckStatus.PASS, "Rootless helpers", "newuidmap, newgidmap")
 
 
+def _sudo(which: Which) -> DoctorCheck:
+    executable = which("sudo")
+    if executable is None:
+        return DoctorCheck(
+            CheckStatus.WARN,
+            "sudo",
+            "not found; required only for new base construction",
+        )
+    return DoctorCheck(CheckStatus.PASS, "sudo", executable)
+
+
 def _has_subid_mapping(path: Path, username: str) -> bool:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -380,6 +391,7 @@ def run_doctor(
         _free_disk(disk_path, disk_usage),
         podman_check,
         _mapping_helpers(which),
+        _sudo(which),
         _subid_mappings(current_username, subuid_path, subgid_path),
         _podman_unshare(podman_executable, runner),
         _arm64_binfmt(binfmt_root),

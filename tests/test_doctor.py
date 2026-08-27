@@ -72,6 +72,7 @@ def _healthy_environment(tmp_path: Path) -> dict[str, object]:
         "podman": "/usr/bin/podman",
         "newuidmap": "/usr/bin/newuidmap",
         "newgidmap": "/usr/bin/newgidmap",
+        "sudo": "/usr/bin/sudo",
     }
 
     def which(name: str) -> str | None:
@@ -119,7 +120,8 @@ def test_healthy_doctor_exits_zero_and_formats_deterministically(tmp_path: Path)
     assert "INFO  Host distribution" in report
     assert "INFO  Free disk" in report
     assert "128.0 GiB" in report
-    assert report.endswith("Summary: 10 PASS, 0 WARN, 0 FAIL")
+    assert "PASS  sudo" in report
+    assert report.endswith("Summary: 11 PASS, 0 WARN, 0 FAIL")
 
 
 def test_non_linux_host_fails_and_exits_one(tmp_path: Path) -> None:
@@ -149,6 +151,23 @@ def test_missing_sdk_manager_is_only_a_warning(tmp_path: Path) -> None:
     checks = run_doctor(**environment)  # type: ignore[arg-type]
 
     assert _checks_by_name(checks)["SDK Manager"].status is CheckStatus.WARN
+    assert doctor_exit_code(checks) == 0
+
+
+def test_missing_sudo_is_only_a_warning(tmp_path: Path) -> None:
+    environment = _healthy_environment(tmp_path)
+    healthy_which = environment["which"]
+
+    def which(name: str) -> str | None:
+        if name == "sudo":
+            return None
+        return healthy_which(name)  # type: ignore[operator]
+
+    environment["which"] = which
+    checks = run_doctor(**environment)  # type: ignore[arg-type]
+
+    result = _checks_by_name(checks)["sudo"]
+    assert result.status is CheckStatus.WARN
     assert doctor_exit_code(checks) == 0
 
 

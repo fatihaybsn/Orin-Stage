@@ -31,7 +31,9 @@ def test_target_help_contains_list(capsys) -> None:
         parser.parse_args(["target", "--help"])
 
     assert exc_info.value.code == 0
-    assert "list" in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "list" in output
+    assert "ensure" in output
 
 
 def test_cli_version(capsys) -> None:

@@ -149,6 +149,7 @@ def test_exact_verified_acquisition_and_base_skip_sdkm_and_builder(
         hardware_profile=PROFILE,
         required_sdk_manager_target=SDKM_TARGET,
         data_root=tmp_path,
+        base_builder=_forbidden,
     )
 
     assert not result.acquisition_invoked
@@ -184,8 +185,6 @@ def test_acquisition_hit_with_missing_base_calls_builder_once(
         builder_calls.append(kwargs)
         return base_result
 
-    monkeypatch.setattr(orchestration_module, "ensure_jp623_base", builder)
-
     result = ensure_jp623_release(
         _resolver(),
         SdkManagerClient("unused"),
@@ -193,6 +192,7 @@ def test_acquisition_hit_with_missing_base_calls_builder_once(
         hardware_profile=PROFILE,
         required_sdk_manager_target=SDKM_TARGET,
         data_root=tmp_path,
+        base_builder=builder,
     )
 
     assert not result.acquisition_invoked

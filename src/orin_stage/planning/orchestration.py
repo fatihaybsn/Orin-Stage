@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
+from typing import Callable, Mapping
 
 from orin_stage.acquisition.acquisition_receipt import (
     AcquisitionReceiptError,
@@ -29,6 +29,13 @@ from .planner import (
 
 class ReleaseEnsureError(RuntimeError):
     """Raised when verified inputs cannot be established for base construction."""
+
+
+JP623_HARDWARE_PROFILE = "orin-nx-16gb-p3767-0000-on-p3768-0000"
+JP623_SDK_MANAGER_TARGET = "JETSON_ORIN_NX_TARGETS"
+JP623_QEMU_BINARY = Path("/usr/bin/qemu-aarch64-static")
+
+BaseBuilder = Callable[..., BaseBuildResult]
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,8 +200,9 @@ def ensure_jp623_release(
     required_sdk_manager_target: str,
     data_root: Path,
     sdk_manager_manifest: Mapping[str, object] | None = None,
-    qemu_binary: Path = Path("/usr/bin/qemu-aarch64-static"),
+    qemu_binary: Path = JP623_QEMU_BINARY,
     sdk_manager_state_root: Path | None = None,
+    base_builder: BaseBuilder | None = None,
 ) -> ReleaseEnsureResult:
     """Resolve, plan, acquire when needed, replan, then reuse or build JP6.2.3."""
 
@@ -261,7 +269,8 @@ def ensure_jp623_release(
             base_result=None,
         )
 
-    base_result = ensure_jp623_base(
+    builder = ensure_jp623_base if base_builder is None else base_builder
+    base_result = builder(
         target,
         acquisition_receipt_path=receipt_path,
         data_root=root,
