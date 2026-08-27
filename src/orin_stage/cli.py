@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
-from typing import Sequence
+from typing import Mapping, Sequence
 
 from . import __version__
 from .acquisition.sdk_manager import SdkManagerClient
+from .base.lock import load_target_lock
+from .base.receipt import base_directory_is_reusable, load_base_receipt
 from .catalog import CatalogError, TargetResolver, builtin_catalog_paths
 from .catalog.resolver import ResolvedCatalogTarget
 from .doctor import doctor_exit_code, format_report, run_doctor
+from .materialization_seed import SEED_FORMAT, SEED_FORMAT_VERSION
 from .planning.orchestration import (
     JP623_HARDWARE_PROFILE,
     JP623_QEMU_BINARY,
@@ -20,7 +24,13 @@ from .planning.orchestration import (
 )
 from .planning.planner import BasePlanStatus
 from .privileged_base import ensure_jp623_base_with_sudo
+from .privileged_materialization import create_materialization_seed_with_sudo
 from .runtime import resolve_data_root
+from .workspace_manager import (
+    WorkspaceListEntry,
+    WorkspaceManager,
+    WorkspaceRecord,
+)
 
 
 PROGRAM_NAME = "ostg"
@@ -175,6 +185,234 @@ def _run_target_ensure(
     return 0
 
 
+def _validate_workspace_create_status(
+    target: ResolvedCatalogTarget,
+    *,
+    allow_validation_pending: bool,
+) -> None:
+    if target.is_unavailable:
+        raise RuntimeError(
+            f"target {target.selector!r} is unavailable and cannot be used"
+        )
+    version = str(target.record["release"]["jetpack"]["version"])
+    if version != "6.2.3":
+        raise RuntimeError(
+            "workspace create is currently implemented only for JP6.2.3"
+        )
+    if target.is_validation_pending and not allow_validation_pending:
+        raise RuntimeError(
+            f"target {target.selector!r} is validation-pending; "
+            "pass --allow-validation-pending to continue explicitly"
+        )
+    if not target.is_supported and not target.is_validation_pending:
+        raise RuntimeError(
+            f"target {target.selector!r} has unsupported status "
+            f"{target.support_status!r}"
+        )
+
+
+def _find_realized_target(
+    data_root: Path,
+    target: ResolvedCatalogTarget,
+) -> Path | None:
+    targets_dir = data_root / "targets"
+    if not targets_dir.exists():
+        return None
+    if targets_dir.is_symlink() or not targets_dir.is_dir():
+        raise RuntimeError(f"targets path is not a real directory: {targets_dir}")
+
+    for candidate in sorted(targets_dir.iterdir(), key=lambda path: path.name):
+        if candidate.is_symlink() or not candidate.is_dir():
+            continue
+        if not base_directory_is_reusable(candidate):
+            continue
+        lock = load_target_lock(candidate / "lock.json")
+        target_metadata = lock.get("target")
+        if (
+            isinstance(target_metadata, Mapping)
+            and target_metadata.get("canonical_id") == target.canonical_id
+        ):
+            return candidate
+    return None
+
+
+def _materialization_seed_is_complete(target_dir: Path) -> bool:
+    seed_dir = target_dir / "materialization"
+    if seed_dir.is_symlink() or (seed_dir.exists() and not seed_dir.is_dir()):
+        raise RuntimeError(
+            f"materialization path is not a real directory: {seed_dir}"
+        )
+    archive = seed_dir / "seed.tar"
+    metadata = seed_dir / "seed.json"
+    archive_exists = os.path.lexists(archive)
+    metadata_exists = os.path.lexists(metadata)
+    if archive_exists != metadata_exists:
+        raise RuntimeError(
+            f"materialization seed is incomplete under {seed_dir}; "
+            "refusing to overwrite it"
+        )
+    if not archive_exists:
+        return False
+    if (
+        archive.is_symlink()
+        or not archive.is_file()
+        or metadata.is_symlink()
+        or not metadata.is_file()
+    ):
+        raise RuntimeError(f"materialization seed is invalid under {seed_dir}")
+    return True
+
+
+def _validate_materialization_seed_identity(target_dir: Path) -> None:
+    seed_path = target_dir / "materialization" / "seed.json"
+    try:
+        seed = json.loads(seed_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"cannot read materialization seed metadata: {exc}") from exc
+    if not isinstance(seed, dict):
+        raise RuntimeError("materialization seed metadata is not a JSON object")
+    if seed.get("format") != SEED_FORMAT:
+        raise RuntimeError("materialization seed has an unsupported format")
+    if seed.get("format_version") != SEED_FORMAT_VERSION:
+        raise RuntimeError("materialization seed has an unsupported format version")
+    if seed.get("archive") != "seed.tar":
+        raise RuntimeError("materialization seed has an invalid archive name")
+    seed_sha256 = seed.get("seed_sha256")
+    if (
+        not isinstance(seed_sha256, str)
+        or len(seed_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in seed_sha256)
+    ):
+        raise RuntimeError("materialization seed has an invalid SHA-256")
+
+    receipt = load_base_receipt(target_dir / "receipt.json")
+    target_lock_digest = seed.get("target_lock_digest")
+    base_digest = seed.get("base_digest")
+    if (
+        target_lock_digest != target_dir.name
+        or target_lock_digest != receipt.get("target_lock_digest")
+    ):
+        raise RuntimeError("materialization seed target lock does not match the base")
+    if base_digest != receipt.get("base_digest"):
+        raise RuntimeError("materialization seed base digest does not match the base")
+
+
+def _format_workspace_list(entries: Sequence[WorkspaceListEntry]) -> str:
+    rows = [
+        ("NAME", "ID", "JETPACK", "GENERATION"),
+        *(
+            (
+                entry.workspace_name,
+                entry.workspace_id,
+                entry.jetpack_version,
+                str(entry.generation),
+            )
+            for entry in entries
+        ),
+    ]
+    widths = [max(len(row[index]) for row in rows) for index in range(4)]
+    return "\n".join(
+        "  ".join(
+            value.ljust(widths[index]) for index, value in enumerate(row)
+        ).rstrip()
+        for row in rows
+    )
+
+
+def _run_workspace_list(data_root: Path) -> int:
+    try:
+        entries = (
+            WorkspaceManager(data_root).list_workspaces()
+            if data_root.exists()
+            else ()
+        )
+        output = _format_workspace_list(entries)
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+    print(output)
+    return 0
+
+
+def _format_workspace_create_result(
+    record: WorkspaceRecord,
+    *,
+    selector: str,
+    materialization: str,
+) -> str:
+    rows = (
+        ("Workspace:", record.workspace_name),
+        ("Workspace ID:", record.workspace_id),
+        ("Target:", selector),
+        ("Generation:", str(record.generation)),
+        ("Root:", str(record.root_path)),
+        ("Materialization:", materialization),
+    )
+    width = max(len(label) for label, _value in rows)
+    return "\n".join(f"{label:<{width}}  {value}" for label, value in rows)
+
+
+def _run_workspace_create(
+    selector: str,
+    workspace_name: str,
+    *,
+    allow_validation_pending: bool,
+    data_root: Path,
+) -> int:
+    if os.geteuid() == 0:
+        print("error: Run workspace create as your normal user.", file=sys.stderr)
+        print(
+            "Orin Stage requests sudo only when materialization seed creation "
+            "is required.",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        paths = builtin_catalog_paths()
+        resolver = TargetResolver(paths.targets_dir, paths.schema_path)
+        target = resolver.resolve(selector)
+        _validate_workspace_create_status(
+            target,
+            allow_validation_pending=allow_validation_pending,
+        )
+        target_dir = _find_realized_target(data_root, target)
+        if target_dir is None:
+            command = f"ostg target ensure {selector}"
+            if target.is_validation_pending:
+                command = f"{command} --allow-validation-pending"
+            print("error: Target is not ensured. Run:", file=sys.stderr)
+            print(command, file=sys.stderr)
+            return 1
+
+        if _materialization_seed_is_complete(target_dir):
+            materialization = "reused"
+        else:
+            create_materialization_seed_with_sudo(
+                target_dir,
+                data_root=data_root,
+            )
+            materialization = "created"
+
+        if not _materialization_seed_is_complete(target_dir):
+            raise RuntimeError("materialization seed creation returned no complete seed")
+        _validate_materialization_seed_identity(target_dir)
+
+        record = WorkspaceManager(data_root).create(target_dir, workspace_name)
+        output = _format_workspace_create_result(
+            record,
+            selector=target.selector,
+            materialization=materialization,
+        )
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+    print(output)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=PROGRAM_NAME,
@@ -219,6 +457,33 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="explicitly allow a validation-pending target",
     )
+    workspace_parser = subparsers.add_parser(
+        "workspace",
+        help="list or create mutable target workspaces",
+    )
+    workspace_subparsers = workspace_parser.add_subparsers(
+        dest="workspace_command",
+        required=True,
+    )
+    workspace_subparsers.add_parser(
+        "list",
+        help="list published workspaces",
+    )
+    workspace_create_parser = workspace_subparsers.add_parser(
+        "create",
+        help="create a workspace from an ensured target",
+    )
+    workspace_create_parser.add_argument(
+        "--target",
+        required=True,
+        metavar="SELECTOR",
+    )
+    workspace_create_parser.add_argument("--name", required=True)
+    workspace_create_parser.add_argument(
+        "--allow-validation-pending",
+        action="store_true",
+        help="explicitly allow a validation-pending target",
+    )
     return parser
 
 
@@ -241,6 +506,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "target" and args.target_command == "ensure":
         return _run_target_ensure(
             args.selector,
+            allow_validation_pending=args.allow_validation_pending,
+            data_root=data_root,
+        )
+
+    if args.command == "workspace" and args.workspace_command == "list":
+        return _run_workspace_list(data_root)
+
+    if args.command == "workspace" and args.workspace_command == "create":
+        return _run_workspace_create(
+            args.target,
+            args.name,
             allow_validation_pending=args.allow_validation_pending,
             data_root=data_root,
         )

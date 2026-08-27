@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterator, Mapping, Sequence
 
+from .base.lock import load_target_lock, target_lock_digest
+from .base.receipt import load_base_receipt
 from .build_capsule import BuildCapsuleRunner
 from .materialization_extract import extract_materialization_seed
 from .target_executor import TargetExecutor
@@ -47,6 +49,14 @@ class WorkspaceRecord:
     generation: int
     workspace_path: Path
     root_path: Path
+
+
+@dataclass(frozen=True, slots=True)
+class WorkspaceListEntry:
+    workspace_id: str
+    workspace_name: str
+    jetpack_version: str
+    generation: int
 
 
 def _load_json_object(path: Path) -> Mapping[str, object]:
@@ -197,6 +207,70 @@ class WorkspaceManager:
     @property
     def operations_dir(self) -> Path:
         return self.data_root / "state" / "operations"
+
+    def list_workspaces(self) -> tuple[WorkspaceListEntry, ...]:
+        """Return validated published workspaces in deterministic order."""
+        workspaces = self.workspaces_dir
+        if not workspaces.exists():
+            return ()
+        if workspaces.is_symlink() or not workspaces.is_dir():
+            raise WorkspaceManagerError(
+                f"workspaces path is not a real directory: {workspaces}"
+            )
+
+        entries: list[WorkspaceListEntry] = []
+        for workspace_path in sorted(workspaces.iterdir(), key=lambda path: path.name):
+            if workspace_path.is_symlink() or not workspace_path.is_dir():
+                raise WorkspaceManagerError(
+                    f"published workspace path is invalid: {workspace_path}"
+                )
+            record = self._load_workspace(workspace_path)
+            target_dir = self.data_root / "targets" / record.target_lock_digest
+            if target_dir.is_symlink() or not target_dir.is_dir():
+                raise WorkspaceManagerError(
+                    f"workspace target directory is invalid: {target_dir}"
+                )
+            try:
+                lock = load_target_lock(target_dir / "lock.json")
+                receipt = load_base_receipt(target_dir / "receipt.json")
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise WorkspaceManagerError(
+                    f"cannot validate workspace target metadata: {target_dir}"
+                ) from exc
+            if target_lock_digest(lock) != record.target_lock_digest:
+                raise WorkspaceManagerError(
+                    "workspace target lock digest does not match its target directory"
+                )
+            if receipt.get("target_lock_digest") != record.target_lock_digest:
+                raise WorkspaceManagerError(
+                    "workspace target lock does not match base receipt"
+                )
+            if receipt.get("base_digest") != record.base_digest:
+                raise WorkspaceManagerError(
+                    "workspace base digest does not match base receipt"
+                )
+            target = lock.get("target")
+            if not isinstance(target, Mapping):
+                raise WorkspaceManagerError("target lock has invalid target metadata")
+            jetpack_version = target.get("jetpack_version")
+            if not isinstance(jetpack_version, str) or not jetpack_version:
+                raise WorkspaceManagerError(
+                    "target lock has invalid JetPack version"
+                )
+            entries.append(
+                WorkspaceListEntry(
+                    workspace_id=record.workspace_id,
+                    workspace_name=record.workspace_name,
+                    jetpack_version=jetpack_version,
+                    generation=record.generation,
+                )
+            )
+        return tuple(
+            sorted(
+                entries,
+                key=lambda entry: (entry.workspace_name, entry.workspace_id),
+            )
+        )
 
     def create(self, target_dir: Path, workspace_name: str) -> WorkspaceRecord:
         with self._lifecycle_lock():

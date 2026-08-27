@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from orin_stage.base._json import write_json_atomic
+from orin_stage.base.lock import target_lock_digest, write_target_lock
 from orin_stage.workspace_manager import (
     WorkspaceManager,
     WorkspaceManagerError,
@@ -90,6 +92,99 @@ def test_open_rejects_missing_workspace_root(tmp_path: Path) -> None:
 
     with pytest.raises(WorkspaceManagerError, match="workspace root"):
         WorkspaceManager(data_root).open(WORKSPACE_ID)
+
+
+def _listing_target(data_root: Path) -> tuple[str, str]:
+    lock = {
+        "schema_version": 1,
+        "target": {
+            "canonical_id": "nvidia.jetpack-6.2.3.jetson-linux-36.5.2",
+            "jetpack_version": "6.2.3",
+        },
+    }
+    lock_digest = target_lock_digest(lock)
+    base_digest = "d" * 64
+    target = data_root / "targets" / lock_digest
+    target.mkdir(parents=True)
+    write_target_lock(target / "lock.json", lock)
+    write_json_atomic(
+        target / "receipt.json",
+        {
+            "schema_version": 1,
+            "target_lock_digest": lock_digest,
+            "base_digest": base_digest,
+        },
+    )
+    return lock_digest, base_digest
+
+
+def _listed_workspace(
+    data_root: Path,
+    *,
+    workspace_id: str,
+    name: str,
+    generation: int,
+    target_lock_digest_value: str,
+    base_digest: str,
+) -> None:
+    workspace = data_root / "workspaces" / workspace_id
+    (workspace / "root").mkdir(parents=True)
+    (workspace / "workspace.json").write_text(
+        json.dumps(
+            {
+                "format_version": 1,
+                "workspace_id": workspace_id,
+                "workspace_name": name,
+                "target_lock_digest": target_lock_digest_value,
+                "base_digest": base_digest,
+                "generation": generation,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_list_workspaces_is_empty_without_published_directory(tmp_path: Path) -> None:
+    manager = WorkspaceManager(_data_root(tmp_path))
+
+    assert manager.list_workspaces() == ()
+
+
+def test_list_workspaces_validates_and_sorts_by_name_then_id(tmp_path: Path) -> None:
+    data_root = _data_root(tmp_path)
+    lock_digest, base_digest = _listing_target(data_root)
+    _listed_workspace(
+        data_root,
+        workspace_id="b" * 32,
+        name="zeta",
+        generation=4,
+        target_lock_digest_value=lock_digest,
+        base_digest=base_digest,
+    )
+    _listed_workspace(
+        data_root,
+        workspace_id="a" * 32,
+        name="alpha",
+        generation=2,
+        target_lock_digest_value=lock_digest,
+        base_digest=base_digest,
+    )
+
+    entries = WorkspaceManager(data_root).list_workspaces()
+
+    assert [entry.workspace_name for entry in entries] == ["alpha", "zeta"]
+    assert [entry.jetpack_version for entry in entries] == ["6.2.3", "6.2.3"]
+    assert [entry.generation for entry in entries] == [2, 4]
+
+
+def test_list_workspaces_rejects_corrupt_published_metadata(tmp_path: Path) -> None:
+    data_root = _data_root(tmp_path)
+    workspace = data_root / "workspaces" / WORKSPACE_ID
+    (workspace / "root").mkdir(parents=True)
+    (workspace / "workspace.json").write_text("{broken", encoding="utf-8")
+
+    with pytest.raises(WorkspaceManagerError, match="cannot read workspace metadata"):
+        WorkspaceManager(data_root).list_workspaces()
 
 
 def test_locked_reopens_same_workspace_under_kernel_lock(tmp_path: Path) -> None:
@@ -355,6 +450,9 @@ def test_create_writes_completed_operation_receipt(
     record = WorkspaceManager(data_root).create(target, "created")
 
     assert record.workspace_id == WORKSPACE_ID
+    assert record.target_lock_digest == TARGET_LOCK_DIGEST
+    assert record.base_digest == BASE_DIGEST
+    assert record.generation == 0
     receipts = _operation_receipts(data_root)
     assert len(receipts) == 1
     assert receipts[0]["operation"] == "create"

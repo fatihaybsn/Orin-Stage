@@ -237,6 +237,15 @@ def create_materialization_seed(
     except OSError as exc:
         raise MaterializationSeedError(f"cannot write seed metadata: {exc}") from exc
 
+    try:
+        archive_path.chmod(0o644)
+        metadata_path.chmod(0o644)
+        output_dir.chmod(0o755)
+    except OSError as exc:
+        raise MaterializationSeedError(
+            f"cannot set materialization seed permissions: {exc}"
+        ) from exc
+
     return MaterializationSeedResult(
         archive_path=archive_path,
         metadata_path=metadata_path,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import stat
 import tarfile
 from pathlib import Path
 
@@ -66,6 +67,9 @@ def test_seed_and_minimal_metadata_are_created_with_matching_sha256(
         "archive": "seed.tar",
     }
     assert result.seed_sha256 == actual_sha256
+    assert stat.S_IMODE(result.archive_path.stat().st_mode) == 0o644
+    assert stat.S_IMODE(result.metadata_path.stat().st_mode) == 0o644
+    assert stat.S_IMODE(result.archive_path.parent.stat().st_mode) == 0o755
     with tarfile.open(result.archive_path, "r:") as handle:
         names = {member.name.removeprefix("./") for member in handle.getmembers()}
         payload = next(
