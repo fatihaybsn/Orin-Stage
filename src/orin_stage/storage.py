@@ -198,6 +198,7 @@ class StorageManager:
     podman_binary: str = "podman"
     python_binary: str | None = None
     runner: StorageRunner | None = None
+    sudo_binary: str = "sudo"
 
     def __post_init__(self) -> None:
         root = Path(self.data_root).expanduser().resolve()
@@ -264,7 +265,7 @@ class StorageManager:
             kind="base",
             identifier=digest,
             path=target,
-            bytes_used=self._shifted_tree_bytes(target),
+            bytes_used=self._base_tree_bytes(digest),
             blocked_by=dependencies,
         )
 
@@ -340,10 +341,21 @@ class StorageManager:
                     identifier=target.name,
                     label=label,
                     path=target,
-                    bytes_used=self._shifted_tree_bytes(target),
+                    bytes_used=self._base_tree_bytes(target.name),
                 )
             )
         return tuple(entries)
+
+    def _base_tree_bytes(self, target_lock_digest: str) -> int:
+        from .privileged_storage_measure import measure_base_storage_with_sudo
+
+        return measure_base_storage_with_sudo(
+            self.data_root,
+            target_lock_digest,
+            sudo_binary=self.sudo_binary,
+            python_binary=self.python_binary,
+            runner=self.runner,
+        )
 
     def _workspace_entries(self) -> tuple[StorageEntry, ...]:
         workspaces = self.data_root / "workspaces"

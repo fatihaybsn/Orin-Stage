@@ -38,7 +38,13 @@ def _in_process_measurement(
     command: tuple[str, ...],
     **_kwargs: object,
 ) -> subprocess.CompletedProcess[str]:
-    bytes_used = _allocated_tree_bytes(Path(command[-1]))
+    if command[:2] == ("podman", "unshare"):
+        measured_path = Path(command[-1])
+    else:
+        data_root = Path(command[command.index("--data-root") + 1])
+        digest = command[command.index("--target-digest") + 1]
+        measured_path = data_root / "targets" / digest
+    bytes_used = _allocated_tree_bytes(measured_path)
     return subprocess.CompletedProcess(
         command,
         0,
@@ -298,7 +304,9 @@ def test_workspace_measurement_uses_podman_unshare_worker(tmp_path: Path) -> Non
     ]
 
 
-def test_base_measurement_uses_same_podman_unshare_worker(tmp_path: Path) -> None:
+def test_base_plan_uses_privileged_measurement_not_podman_unshare(
+    tmp_path: Path,
+) -> None:
     data = _root(tmp_path)
     target = _target(data)
     commands: list[tuple[str, ...]] = []
@@ -318,8 +326,37 @@ def test_base_measurement_uses_same_podman_unshare_worker(tmp_path: Path) -> Non
     plan = StorageManager(data, runner=runner).plan_base_remove(TARGET)
 
     assert plan.bytes_used == 5678
-    assert commands[0][-1] == str(target)
-    assert commands[0][:2] == ("podman", "unshare")
+    assert commands[0][:2] == ("sudo", "--")
+    assert "podman" not in commands[0]
+    assert str(target) not in commands[0]
+    assert commands[0][commands[0].index("--target-digest") + 1] == TARGET
+
+
+def test_base_status_uses_the_same_privileged_measurement_path(
+    tmp_path: Path,
+) -> None:
+    data = _root(tmp_path)
+    _target(data)
+    commands: list[tuple[str, ...]] = []
+
+    def runner(
+        command: tuple[str, ...],
+        **_kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout='{"bytes_used":9012}',
+            stderr="",
+        )
+
+    status = StorageManager(data, runner=runner).status()
+
+    assert status.base_bytes == 9012
+    assert status.bases[0].bytes_used == 9012
+    assert len(commands) == 1
+    assert commands[0][:2] == ("sudo", "--")
 
 
 def test_shifted_measurement_parses_worker_result(tmp_path: Path) -> None:
