@@ -28,6 +28,7 @@ from .privileged_base import ensure_jp623_base_with_sudo
 from .privileged_materialization import create_materialization_seed_with_sudo
 from .runtime import resolve_data_root
 from .storage import DeletionPlan, StorageManager
+from .target_executor import TargetCommandError
 from .workspace_manager import (
     WorkspaceListEntry,
     WorkspaceManager,
@@ -415,6 +416,65 @@ def _run_workspace_create(
     return 0
 
 
+def _target_exit_code(returncode: int) -> int:
+    if 1 <= returncode <= 255:
+        return returncode
+    if -127 <= returncode < 0:
+        return 128 - returncode
+    return 1
+
+
+def _forward_target_output(error: TargetCommandError) -> None:
+    if error.stdout:
+        sys.stdout.write(error.stdout)
+    if error.stderr:
+        sys.stderr.write(error.stderr)
+
+
+def _run_workspace_shell(selector: str, *, data_root: Path) -> int:
+    if os.geteuid() == 0:
+        print("error: Run ostg shell as your normal user.", file=sys.stderr)
+        return 1
+
+    try:
+        WorkspaceManager(data_root).shell(selector)
+    except TargetCommandError as exc:
+        _forward_target_output(exc)
+        return _target_exit_code(exc.returncode)
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _run_workspace_command(
+    selector: str,
+    command: Sequence[str],
+    *,
+    data_root: Path,
+) -> int:
+    if os.geteuid() == 0:
+        print("error: Run ostg run as your normal user.", file=sys.stderr)
+        return 1
+
+    try:
+        completed = WorkspaceManager(data_root).run(selector, command)
+    except TargetCommandError as exc:
+        _forward_target_output(exc)
+        return _target_exit_code(exc.returncode)
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+
+    if completed.stdout:
+        sys.stdout.write(completed.stdout)
+    if completed.stderr:
+        sys.stderr.write(completed.stderr)
+    return 0
+
+
 def _format_allocated_bytes(bytes_used: int) -> str:
     amount = float(bytes_used)
     units = ("B", "KiB", "MiB", "GiB", "TiB")
@@ -673,6 +733,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     workspace_remove_parser.add_argument("selector", metavar="WORKSPACE")
     workspace_remove_parser.add_argument("--confirm", metavar="WORKSPACE_ID")
+    shell_parser = subparsers.add_parser(
+        "shell",
+        help="open an interactive shell in a workspace",
+    )
+    shell_parser.add_argument("--workspace", required=True, metavar="WORKSPACE")
+    run_parser = subparsers.add_parser(
+        "run",
+        help="run a command in a workspace",
+    )
+    run_parser.add_argument("--workspace", required=True, metavar="WORKSPACE")
+    run_parser.add_argument("target_argv", nargs=argparse.REMAINDER, metavar="COMMAND")
     return parser
 
 
@@ -721,6 +792,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _run_workspace_remove(
             args.selector,
             confirmation=args.confirm,
+            data_root=data_root,
+        )
+
+    if args.command == "shell":
+        return _run_workspace_shell(args.workspace, data_root=data_root)
+
+    if args.command == "run":
+        target_argv = tuple(args.target_argv)
+        if target_argv[:1] == ("--",):
+            target_argv = target_argv[1:]
+        if not target_argv:
+            parser.error("ostg run requires a command after '--'")
+        return _run_workspace_command(
+            args.workspace,
+            target_argv,
             data_root=data_root,
         )
 

@@ -23,6 +23,8 @@ def test_cli_help_has_product_name_and_data_root(capsys) -> None:
     assert "doctor" in output
     assert "target" in output
     assert "workspace" in output
+    assert "shell" in output
+    assert "run" in output
 
 
 def test_target_help_contains_list(capsys) -> None:
