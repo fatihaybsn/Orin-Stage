@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import sys
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -26,6 +27,7 @@ from .planning.planner import BasePlanStatus
 from .privileged_base import ensure_jp623_base_with_sudo
 from .privileged_materialization import create_materialization_seed_with_sudo
 from .runtime import resolve_data_root
+from .storage import DeletionPlan, StorageManager
 from .workspace_manager import (
     WorkspaceListEntry,
     WorkspaceManager,
@@ -413,6 +415,181 @@ def _run_workspace_create(
     return 0
 
 
+def _format_allocated_bytes(bytes_used: int) -> str:
+    amount = float(bytes_used)
+    units = ("B", "KiB", "MiB", "GiB", "TiB")
+    for unit in units:
+        if amount < 1024 or unit == units[-1]:
+            if unit == "B":
+                return f"{int(amount)} B"
+            return f"{amount:.1f} {unit}"
+        amount /= 1024
+    raise AssertionError("unreachable storage unit")
+
+
+def _validate_workspace_plan_binding(
+    record: WorkspaceRecord,
+    plan: DeletionPlan,
+) -> None:
+    if (
+        plan.kind != "workspace"
+        or plan.identifier != record.workspace_id
+        or plan.path != record.workspace_path
+    ):
+        raise RuntimeError("workspace storage plan does not match workspace metadata")
+
+
+def _format_workspace_reset_plan(
+    record: WorkspaceRecord,
+    plan: DeletionPlan,
+) -> str:
+    rows = (
+        ("Workspace:", record.workspace_name),
+        ("Workspace ID:", record.workspace_id),
+        ("Generation:", f"{record.generation} -> {record.generation + 1}"),
+        ("Target lock:", record.target_lock_digest),
+        ("Base digest:", record.base_digest),
+        ("Current size:", _format_allocated_bytes(plan.bytes_used)),
+        ("Action:", "reset to the same immutable base"),
+    )
+    width = max(len(label) for label, _value in rows)
+    details = "\n".join(f"{label:<{width}}  {value}" for label, value in rows)
+    command = (
+        f"ostg workspace reset {shlex.quote(record.workspace_name)} "
+        f"--confirm {record.workspace_id}"
+    )
+    return f"{details}\n\nTo continue:\n{command}"
+
+
+def _format_workspace_reset_result(
+    before: WorkspaceRecord,
+    after: WorkspaceRecord,
+) -> str:
+    rows = (
+        ("Workspace:", after.workspace_name),
+        ("Workspace ID:", after.workspace_id),
+        ("Generation:", f"{before.generation} -> {after.generation}"),
+        ("Target lock:", after.target_lock_digest),
+        ("Base digest:", after.base_digest),
+        ("Action:", "reset completed"),
+    )
+    width = max(len(label) for label, _value in rows)
+    return "\n".join(f"{label:<{width}}  {value}" for label, value in rows)
+
+
+def _run_workspace_reset(
+    selector: str,
+    *,
+    confirmation: str | None,
+    data_root: Path,
+) -> int:
+    try:
+        manager = WorkspaceManager(data_root)
+        record = manager.open(selector)
+        if confirmation is None:
+            plan = StorageManager(data_root).plan_workspace_remove(
+                record.workspace_id
+            )
+            _validate_workspace_plan_binding(record, plan)
+            print(_format_workspace_reset_plan(record, plan))
+            return 0
+        if confirmation != record.workspace_id:
+            print(
+                "error: workspace reset confirmation must exactly match "
+                f"workspace ID {record.workspace_id}",
+                file=sys.stderr,
+            )
+            return 1
+
+        updated = manager.reset(record.workspace_id)
+        if (
+            updated.workspace_id != record.workspace_id
+            or updated.generation != record.generation + 1
+            or updated.target_lock_digest != record.target_lock_digest
+            or updated.base_digest != record.base_digest
+        ):
+            raise RuntimeError("workspace reset returned inconsistent identity evidence")
+        output = _format_workspace_reset_result(record, updated)
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+    print(output)
+    return 0
+
+
+def _format_workspace_remove_plan(
+    record: WorkspaceRecord,
+    plan: DeletionPlan,
+) -> str:
+    rows = (
+        ("Workspace:", record.workspace_name),
+        ("Workspace ID:", plan.identifier),
+        ("Path:", str(plan.path)),
+        ("Current size:", _format_allocated_bytes(plan.bytes_used)),
+        ("Action:", "remove workspace"),
+    )
+    width = max(len(label) for label, _value in rows)
+    details = "\n".join(f"{label:<{width}}  {value}" for label, value in rows)
+    command = (
+        f"ostg workspace remove {shlex.quote(record.workspace_name)} "
+        f"--confirm {plan.identifier}"
+    )
+    return f"{details}\n\nTo continue:\n{command}"
+
+
+def _format_workspace_remove_result(
+    record: WorkspaceRecord,
+    plan: DeletionPlan,
+) -> str:
+    rows = (
+        ("Workspace:", record.workspace_name),
+        ("Workspace ID:", plan.identifier),
+        ("Path:", str(plan.path)),
+        ("Removed size:", _format_allocated_bytes(plan.bytes_used)),
+        ("Action:", "removed"),
+    )
+    width = max(len(label) for label, _value in rows)
+    return "\n".join(f"{label:<{width}}  {value}" for label, value in rows)
+
+
+def _run_workspace_remove(
+    selector: str,
+    *,
+    confirmation: str | None,
+    data_root: Path,
+) -> int:
+    try:
+        manager = WorkspaceManager(data_root)
+        record = manager.open(selector)
+        storage = StorageManager(data_root)
+        plan = storage.plan_workspace_remove(record.workspace_id)
+        _validate_workspace_plan_binding(record, plan)
+        if confirmation is None:
+            print(_format_workspace_remove_plan(record, plan))
+            return 0
+        if confirmation != record.workspace_id:
+            print(
+                "error: workspace remove confirmation must exactly match "
+                f"workspace ID {record.workspace_id}",
+                file=sys.stderr,
+            )
+            return 1
+
+        removed = storage.remove_workspace(
+            record.workspace_id,
+            confirmation=confirmation,
+        )
+        _validate_workspace_plan_binding(record, removed)
+        output = _format_workspace_remove_result(record, removed)
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+    print(output)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=PROGRAM_NAME,
@@ -459,7 +636,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     workspace_parser = subparsers.add_parser(
         "workspace",
-        help="list or create mutable target workspaces",
+        help="manage mutable target workspaces",
     )
     workspace_subparsers = workspace_parser.add_subparsers(
         dest="workspace_command",
@@ -484,6 +661,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="explicitly allow a validation-pending target",
     )
+    workspace_reset_parser = workspace_subparsers.add_parser(
+        "reset",
+        help="plan or confirm reset to the same immutable base",
+    )
+    workspace_reset_parser.add_argument("selector", metavar="WORKSPACE")
+    workspace_reset_parser.add_argument("--confirm", metavar="WORKSPACE_ID")
+    workspace_remove_parser = workspace_subparsers.add_parser(
+        "remove",
+        help="plan or confirm workspace removal",
+    )
+    workspace_remove_parser.add_argument("selector", metavar="WORKSPACE")
+    workspace_remove_parser.add_argument("--confirm", metavar="WORKSPACE_ID")
     return parser
 
 
@@ -518,6 +707,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.target,
             args.name,
             allow_validation_pending=args.allow_validation_pending,
+            data_root=data_root,
+        )
+
+    if args.command == "workspace" and args.workspace_command == "reset":
+        return _run_workspace_reset(
+            args.selector,
+            confirmation=args.confirm,
+            data_root=data_root,
+        )
+
+    if args.command == "workspace" and args.workspace_command == "remove":
+        return _run_workspace_remove(
+            args.selector,
+            confirmation=args.confirm,
             data_root=data_root,
         )
 

@@ -107,7 +107,7 @@ def _fake_manager(monkeypatch, data_root: Path, target: Path, *, error=None):
     return calls
 
 
-def test_workspace_help_contains_only_list_and_create(capsys) -> None:
+def test_workspace_help_contains_list_create_reset_and_remove(capsys) -> None:
     parser = build_parser()
 
     with pytest.raises(SystemExit) as exc_info:
@@ -115,9 +115,9 @@ def test_workspace_help_contains_only_list_and_create(capsys) -> None:
 
     assert exc_info.value.code == 0
     output = capsys.readouterr().out
-    assert "list" in output
-    assert "create" in output
-    for excluded in ("reset", "remove", "shell", "run", "build", "inspect"):
+    for command in ("list", "create", "reset", "remove"):
+        assert command in output
+    for excluded in ("open", "shell", "run", "build", "inspect", "storage"):
         assert excluded not in output
 
 
