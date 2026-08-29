@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import os
+import stat
 import subprocess
 import tarfile
 from concurrent.futures import ThreadPoolExecutor
@@ -131,6 +132,7 @@ def test_valid_toolchain_is_published_under_build_identity_digest(
     )
     assert record.root_path == record.toolchain_path / "root"
     assert record.receipt_path == record.toolchain_path / "receipt.json"
+    assert stat.S_IMODE(record.receipt_path.stat().st_mode) == 0o644
     assert (record.root_path / "bin" / f"{JP6_BOOTLIN_TOOLCHAIN_PREFIX}gcc").is_file()
     assert (record.root_path / "bin" / f"{JP6_BOOTLIN_TOOLCHAIN_PREFIX}ld").is_file()
     receipt = json.loads(record.receipt_path.read_text(encoding="utf-8"))
@@ -141,6 +143,23 @@ def test_valid_toolchain_is_published_under_build_identity_digest(
         "url": JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_URL,
     }
     assert calls == [(JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_URL, 60)]
+
+
+def test_receipt_mode_is_0644_with_permissive_umask(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    archive = _toolchain_archive()
+    _patch_archive_identity(monkeypatch, archive)
+    manager = BuildToolchainManager(tmp_path / "data")
+
+    previous_umask = os.umask(0)
+    try:
+        record = _ensure(manager, archive, [])
+    finally:
+        os.umask(previous_umask)
+
+    assert stat.S_IMODE(record.receipt_path.stat().st_mode) == 0o644
 
 
 def test_valid_receipt_and_root_are_reused_without_download(

@@ -90,6 +90,7 @@ def _write_receipt(path: Path, receipt: Mapping[str, object]) -> None:
             json.dump(receipt, handle, indent=2, sort_keys=True)
             handle.write("\n")
             handle.flush()
+            os.fchmod(handle.fileno(), 0o644)
             os.fsync(handle.fileno())
     except OSError as exc:
         raise BuildToolchainError(f"cannot write managed toolchain receipt: {exc}") from exc
