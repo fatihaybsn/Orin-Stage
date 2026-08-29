@@ -4,10 +4,12 @@ import fcntl
 import json
 import os
 import shutil
+import subprocess
+import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
+from typing import Callable, Iterator
 
 from .workspace_manager import WorkspaceManager, WorkspaceManagerError
 
@@ -22,6 +24,9 @@ class DeletionConfirmationRequired(StorageError):
 
 class DeletionBlockedError(StorageError):
     """Raised when a storage dependency prevents deletion."""
+
+
+StorageRunner = Callable[..., subprocess.CompletedProcess[str]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,6 +108,59 @@ def _allocated_tree_bytes(path: Path) -> int:
     return measure(root)
 
 
+def _allocated_shifted_tree_bytes(
+    path: Path,
+    *,
+    podman_binary: str = "podman",
+    python_binary: str | None = None,
+    runner: StorageRunner | None = None,
+) -> int:
+    """Measure a shifted tree from Podman's rootless user namespace."""
+
+    interpreter = os.path.abspath(
+        sys.executable if python_binary is None else python_binary
+    )
+    measured_path = os.path.abspath(os.fspath(path))
+    command = (
+        podman_binary,
+        "unshare",
+        interpreter,
+        "-m",
+        "orin_stage._storage_measure_worker",
+        measured_path,
+    )
+    try:
+        completed = (subprocess.run if runner is None else runner)(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        raise StorageError(
+            f"cannot start shifted storage measurement: {exc}"
+        ) from exc
+
+    if completed.returncode != 0:
+        detail = (completed.stderr or "").strip().splitlines()
+        suffix = f": {detail[0]}" if detail else ""
+        raise StorageError(
+            "podman unshare storage measurement failed "
+            f"(exit {completed.returncode}){suffix}"
+        )
+
+    try:
+        result = json.loads(completed.stdout)
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise StorageError("shifted storage measurement returned invalid JSON") from exc
+    if not isinstance(result, dict) or set(result) != {"bytes_used"}:
+        raise StorageError("shifted storage measurement returned invalid result")
+    bytes_used = result["bytes_used"]
+    if isinstance(bytes_used, bool) or not isinstance(bytes_used, int) or bytes_used < 0:
+        raise StorageError("shifted storage measurement returned invalid byte count")
+    return bytes_used
+
+
 def _load_json_object(path: Path) -> dict[str, object]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -138,6 +196,8 @@ def _remove_directory_contents(directory: Path) -> None:
 class StorageManager:
     data_root: Path
     podman_binary: str = "podman"
+    python_binary: str | None = None
+    runner: StorageRunner | None = None
 
     def __post_init__(self) -> None:
         root = Path(self.data_root).expanduser().resolve()
@@ -171,7 +231,7 @@ class StorageManager:
             kind="workspace",
             identifier=record.workspace_id,
             path=record.workspace_path,
-            bytes_used=_allocated_tree_bytes(record.workspace_path),
+            bytes_used=self._shifted_tree_bytes(record.workspace_path),
         )
 
     def remove_workspace(
@@ -204,7 +264,7 @@ class StorageManager:
             kind="base",
             identifier=digest,
             path=target,
-            bytes_used=_allocated_tree_bytes(target),
+            bytes_used=self._shifted_tree_bytes(target),
             blocked_by=dependencies,
         )
 
@@ -280,7 +340,7 @@ class StorageManager:
                     identifier=target.name,
                     label=label,
                     path=target,
-                    bytes_used=_allocated_tree_bytes(target),
+                    bytes_used=self._shifted_tree_bytes(target),
                 )
             )
         return tuple(entries)
@@ -306,10 +366,18 @@ class StorageManager:
                     identifier=record.workspace_id,
                     label=record.workspace_name,
                     path=record.workspace_path,
-                    bytes_used=_allocated_tree_bytes(record.workspace_path),
+                    bytes_used=self._shifted_tree_bytes(record.workspace_path),
                 )
             )
         return tuple(entries)
+
+    def _shifted_tree_bytes(self, path: Path) -> int:
+        return _allocated_shifted_tree_bytes(
+            path,
+            podman_binary=self.podman_binary,
+            python_binary=self.python_binary,
+            runner=self.runner,
+        )
 
     def _dependent_workspaces(self, target_lock_digest: str) -> tuple[str, ...]:
         workspaces = self.data_root / "workspaces"

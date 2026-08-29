@@ -10,10 +10,15 @@ from typing import Mapping, Sequence
 
 from . import __version__
 from .acquisition.sdk_manager import SdkManagerClient
-from .base.lock import load_target_lock
+from .base.lock import load_target_lock, target_lock_digest
 from .base.receipt import base_directory_is_reusable, load_base_receipt
 from .build_capsule import BuildCommandError
-from .build_toolchain import BuildToolchainManager
+from .build_identity import JP6_BUILD_IDENTITY
+from .build_toolchain import (
+    BuildToolchainError,
+    BuildToolchainManager,
+    BuildToolchainNotFoundError,
+)
 from .catalog import CatalogError, TargetResolver, builtin_catalog_paths
 from .catalog.resolver import ResolvedCatalogTarget
 from .doctor import doctor_exit_code, format_report, run_doctor
@@ -514,6 +519,141 @@ def _run_workspace_build(
     return 0
 
 
+def _format_inspect_section(
+    title: str,
+    rows: Sequence[tuple[str, str]],
+) -> str:
+    width = max(len(label) for label, _value in rows)
+    details = "\n".join(
+        f"  {label:<{width}}  {value}" for label, value in rows
+    )
+    return f"{title}\n{details}"
+
+
+def _run_workspace_inspect(selector: str, *, data_root: Path) -> int:
+    try:
+        manager = WorkspaceManager(data_root)
+        workspace = manager.open(selector)
+        size_plan = StorageManager(data_root).plan_workspace_remove(
+            workspace.workspace_id
+        )
+        _validate_workspace_plan_binding(workspace, size_plan)
+
+        target_dir = data_root / "targets" / workspace.target_lock_digest
+        if target_dir.is_symlink() or not target_dir.is_dir():
+            raise RuntimeError(
+                f"workspace target metadata not found: {workspace.target_lock_digest}"
+            )
+        lock = load_target_lock(target_dir / "lock.json")
+        if (
+            target_lock_digest(lock) != workspace.target_lock_digest
+            or target_dir.name != workspace.target_lock_digest
+        ):
+            raise RuntimeError("workspace/target identity mismatch")
+
+        lock_target = lock.get("target")
+        if not isinstance(lock_target, Mapping):
+            raise RuntimeError("target lock has invalid target metadata")
+        canonical_id = lock_target.get("canonical_id")
+        if not isinstance(canonical_id, str) or not canonical_id:
+            raise RuntimeError("target lock has invalid canonical target identity")
+
+        paths = builtin_catalog_paths()
+        target = TargetResolver(paths.targets_dir, paths.schema_path).resolve(
+            canonical_id
+        )
+        release = target.record["release"]
+        if (
+            lock_target.get("canonical_id") != target.canonical_id
+            or lock_target.get("jetpack_version")
+            != release["jetpack"]["version"]
+            or lock_target.get("l4t_version") != release["l4t"]["version"]
+            or lock_target.get("jetson_linux_release_revision")
+            != release["jetson_linux"]["release_revision"]
+        ):
+            raise RuntimeError("workspace/target identity mismatch")
+
+        receipt = load_base_receipt(target_dir / "receipt.json")
+        base_path = target_dir / "base"
+        if base_path.is_symlink() or not base_path.is_dir():
+            raise RuntimeError("workspace/base identity mismatch")
+        if (
+            receipt.get("target_lock_digest") != workspace.target_lock_digest
+            or receipt.get("base_digest") != workspace.base_digest
+        ):
+            raise RuntimeError("workspace/base identity mismatch")
+
+        try:
+            BuildToolchainManager(data_root).inspect()
+            managed_toolchain = "ready"
+        except BuildToolchainNotFoundError:
+            managed_toolchain = "not acquired"
+        except BuildToolchainError:
+            managed_toolchain = "invalid"
+
+        primary_selector = (
+            target.aliases[0] if target.aliases else target.canonical_id
+        )
+        sections = (
+            _format_inspect_section(
+                "Workspace",
+                (
+                    ("Name:", workspace.workspace_name),
+                    ("ID:", workspace.workspace_id),
+                    ("Generation:", str(workspace.generation)),
+                    ("Root:", str(workspace.root_path)),
+                    ("Size:", _format_allocated_bytes(size_plan.bytes_used)),
+                ),
+            ),
+            _format_inspect_section(
+                "Target",
+                (
+                    ("Canonical ID:", primary_selector),
+                    ("JetPack:", str(release["jetpack"]["version"])),
+                    (
+                        "Jetson Linux/L4T:",
+                        str(release["jetson_linux"]["release_revision"]),
+                    ),
+                    ("Support status:", target.support_status),
+                    ("Target lock digest:", workspace.target_lock_digest),
+                ),
+            ),
+            _format_inspect_section(
+                "Base",
+                (
+                    ("Digest:", workspace.base_digest),
+                    ("Path:", str(base_path)),
+                ),
+            ),
+            _format_inspect_section(
+                "Build",
+                (
+                    ("GCC:", JP6_BUILD_IDENTITY.gcc_version),
+                    ("Binutils:", JP6_BUILD_IDENTITY.binutils_version),
+                    ("Toolchain identity:", JP6_BUILD_IDENTITY.digest()),
+                    ("Managed toolchain:", managed_toolchain),
+                ),
+            ),
+            _format_inspect_section(
+                "Execution",
+                (
+                    ("ARM64 userspace:", "QEMU linux-user / CPU-only"),
+                    (
+                        "Hardware fidelity:",
+                        "matching physical Orin required",
+                    ),
+                ),
+            ),
+        )
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+
+    print("\n\n".join(sections))
+    return 0
+
+
 def _format_allocated_bytes(bytes_used: int) -> str:
     amount = float(bytes_used)
     units = ("B", "KiB", "MiB", "GiB", "TiB")
@@ -797,6 +937,15 @@ def build_parser() -> argparse.ArgumentParser:
         nargs=argparse.REMAINDER,
         metavar="COMMAND",
     )
+    inspect_parser = subparsers.add_parser(
+        "inspect",
+        help="inspect one workspace and its exact identities",
+    )
+    inspect_parser.add_argument(
+        "--workspace",
+        required=True,
+        metavar="WORKSPACE",
+    )
     return parser
 
 
@@ -874,6 +1023,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             build_argv,
             data_root=data_root,
         )
+
+    if args.command == "inspect":
+        return _run_workspace_inspect(args.workspace, data_root=data_root)
 
     parser.print_help()
     return 0

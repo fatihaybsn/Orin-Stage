@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -11,6 +13,8 @@ from orin_stage.storage import (
     DeletionConfirmationRequired,
     StorageError,
     StorageManager,
+    _allocated_shifted_tree_bytes,
+    _allocated_tree_bytes,
 )
 
 
@@ -28,6 +32,23 @@ def _root(tmp_path: Path) -> Path:
 def _write_bytes(path: Path, size: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"x" * size)
+
+
+def _in_process_measurement(
+    command: tuple[str, ...],
+    **_kwargs: object,
+) -> subprocess.CompletedProcess[str]:
+    bytes_used = _allocated_tree_bytes(Path(command[-1]))
+    return subprocess.CompletedProcess(
+        command,
+        0,
+        stdout=json.dumps({"bytes_used": bytes_used}),
+        stderr="",
+    )
+
+
+def _manager(data: Path, **kwargs: object) -> StorageManager:
+    return StorageManager(data, runner=_in_process_measurement, **kwargs)
 
 
 def _target(data: Path, *, digest: str = TARGET) -> Path:
@@ -69,7 +90,7 @@ def test_status_separates_the_four_mvp_storage_categories(tmp_path: Path) -> Non
     _write_bytes(data / "sdkm" / "downloads" / "artifact.tbz2", 1024)
     _write_bytes(data / "build" / "outputs" / "app", 1536)
 
-    status = StorageManager(data).status()
+    status = _manager(data).status()
 
     assert status.sdkm_cache_bytes > 0
     assert status.base_bytes > 0
@@ -92,7 +113,7 @@ def test_status_counts_materialization_storage_with_published_base(tmp_path: Pat
     data = _root(tmp_path)
     target = _target(data)
 
-    status = StorageManager(data).status()
+    status = _manager(data).status()
 
     assert status.base_bytes == status.bases[0].bytes_used
     assert status.bases[0].path == target
@@ -100,7 +121,7 @@ def test_status_counts_materialization_storage_with_published_base(tmp_path: Pat
 
 
 def test_status_missing_categories_are_zero(tmp_path: Path) -> None:
-    status = StorageManager(_root(tmp_path)).status()
+    status = _manager(_root(tmp_path)).status()
 
     assert status.sdkm_cache_bytes == 0
     assert status.base_bytes == 0
@@ -114,7 +135,7 @@ def test_workspace_remove_requires_explicit_confirmation(tmp_path: Path) -> None
     workspace = _workspace(data)
 
     with pytest.raises(DeletionConfirmationRequired, match="confirmation token"):
-        StorageManager(data).remove_workspace("demo")
+        _manager(data).remove_workspace("demo")
 
     assert workspace.is_dir()
 
@@ -133,7 +154,7 @@ def test_confirmed_workspace_remove_uses_workspace_lifecycle(
 
     monkeypatch.setattr(workspace_module, "_remove_tree_in_namespace", remove_tree)
 
-    plan = StorageManager(data).remove_workspace("demo", confirmation=WORKSPACE_ID)
+    plan = _manager(data).remove_workspace("demo", confirmation=WORKSPACE_ID)
 
     assert plan.kind == "workspace"
     assert plan.identifier == WORKSPACE_ID
@@ -145,7 +166,7 @@ def test_base_plan_reports_dependent_workspace(tmp_path: Path) -> None:
     _target(data)
     _workspace(data, name="project-a")
 
-    plan = StorageManager(data).plan_base_remove(TARGET)
+    plan = _manager(data).plan_base_remove(TARGET)
 
     assert not plan.allowed
     assert plan.blocked_by == ("project-a",)
@@ -157,7 +178,7 @@ def test_base_remove_is_blocked_while_workspace_references_it(tmp_path: Path) ->
     _workspace(data)
 
     with pytest.raises(DeletionBlockedError, match="still referenced"):
-        StorageManager(data).remove_base(TARGET, confirmation=TARGET)
+        _manager(data).remove_base(TARGET, confirmation=TARGET)
 
     assert target.is_dir()
 
@@ -167,7 +188,7 @@ def test_base_remove_requires_confirmation_even_without_workspace(tmp_path: Path
     target = _target(data)
 
     with pytest.raises(DeletionConfirmationRequired, match="confirmation token"):
-        StorageManager(data).remove_base(TARGET)
+        _manager(data).remove_base(TARGET)
 
     assert target.is_dir()
 
@@ -176,7 +197,7 @@ def test_confirmed_unreferenced_base_remove_deletes_target_tree(tmp_path: Path) 
     data = _root(tmp_path)
     target = _target(data)
 
-    plan = StorageManager(data).remove_base(TARGET, confirmation=TARGET)
+    plan = _manager(data).remove_base(TARGET, confirmation=TARGET)
 
     assert plan.allowed
     assert plan.path == target
@@ -189,7 +210,7 @@ def test_sdkm_cache_remove_requires_confirmation_and_keeps_cache(tmp_path: Path)
     _write_bytes(artifact, 1024)
 
     with pytest.raises(DeletionConfirmationRequired, match="confirmation token"):
-        StorageManager(data).remove_sdkm_cache()
+        _manager(data).remove_sdkm_cache()
 
     assert artifact.is_file()
 
@@ -203,7 +224,7 @@ def test_confirmed_sdkm_cache_remove_only_clears_download_bytes(tmp_path: Path) 
     _write_bytes(receipt, 10)
     _write_bytes(response, 10)
 
-    plan = StorageManager(data).remove_sdkm_cache(confirmation="sdkm-downloads")
+    plan = _manager(data).remove_sdkm_cache(confirmation="sdkm-downloads")
 
     assert plan.kind == "sdkm-cache"
     assert plan.bytes_used > 0
@@ -219,6 +240,166 @@ def test_base_remove_fails_closed_when_workspace_metadata_is_missing(tmp_path: P
     (data / "workspaces" / "unknown" / "root").mkdir(parents=True)
 
     with pytest.raises(StorageError, match="cannot prove base is unused"):
-        StorageManager(data).remove_base(TARGET, confirmation=TARGET)
+        _manager(data).remove_base(TARGET, confirmation=TARGET)
 
     assert target.is_dir()
+
+
+def test_allocated_tree_semantics_do_not_follow_symlinks_and_deduplicate_hardlinks(
+    tmp_path: Path,
+) -> None:
+    tree = tmp_path / "tree"
+    tree.mkdir()
+    payload = tree / "payload"
+    payload.write_bytes(b"x" * 8192)
+    os.link(payload, tree / "hardlink")
+    outside = tmp_path / "outside"
+    outside.write_bytes(b"y" * 65536)
+    symlink = tree / "outside-link"
+    symlink.symlink_to(outside)
+
+    def allocated(path: Path) -> int:
+        stat = path.lstat()
+        return stat.st_blocks * 512 if stat.st_blocks else stat.st_size
+
+    expected = allocated(tree) + allocated(payload) + allocated(symlink)
+    assert _allocated_tree_bytes(tree) == expected
+
+
+def test_workspace_measurement_uses_podman_unshare_worker(tmp_path: Path) -> None:
+    data = _root(tmp_path)
+    workspace = _workspace(data)
+    commands: list[tuple[str, ...]] = []
+
+    def runner(
+        command: tuple[str, ...],
+        **_kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout='{"bytes_used":1234}',
+            stderr="",
+        )
+
+    plan = StorageManager(data, runner=runner).plan_workspace_remove("demo")
+
+    assert plan.bytes_used == 1234
+    assert commands == [
+        (
+            "podman",
+            "unshare",
+            os.path.abspath(os.sys.executable),
+            "-m",
+            "orin_stage._storage_measure_worker",
+            str(workspace),
+        )
+    ]
+
+
+def test_base_measurement_uses_same_podman_unshare_worker(tmp_path: Path) -> None:
+    data = _root(tmp_path)
+    target = _target(data)
+    commands: list[tuple[str, ...]] = []
+
+    def runner(
+        command: tuple[str, ...],
+        **_kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout='{"bytes_used":5678}',
+            stderr="",
+        )
+
+    plan = StorageManager(data, runner=runner).plan_base_remove(TARGET)
+
+    assert plan.bytes_used == 5678
+    assert commands[0][-1] == str(target)
+    assert commands[0][:2] == ("podman", "unshare")
+
+
+def test_shifted_measurement_parses_worker_result(tmp_path: Path) -> None:
+    measured = tmp_path / "tree"
+
+    def runner(
+        command: tuple[str, ...],
+        **_kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout='{"bytes_used":4096}',
+            stderr="",
+        )
+
+    assert _allocated_shifted_tree_bytes(measured, runner=runner) == 4096
+
+
+@pytest.mark.parametrize(
+    "output",
+    ["not-json", "[]", '{"bytes_used":true}', '{"bytes_used":-1}', '{"bytes_used":1,"extra":2}'],
+)
+def test_shifted_measurement_rejects_malformed_worker_output(
+    tmp_path: Path,
+    output: str,
+) -> None:
+    def runner(
+        command: tuple[str, ...],
+        **_kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, 0, stdout=output, stderr="")
+
+    with pytest.raises(StorageError, match="shifted storage measurement returned invalid"):
+        _allocated_shifted_tree_bytes(tmp_path, runner=runner)
+
+
+def test_shifted_measurement_reports_podman_unshare_failure(tmp_path: Path) -> None:
+    def runner(
+        command: tuple[str, ...],
+        **_kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            command,
+            125,
+            stdout="",
+            stderr="cannot enter user namespace\n",
+        )
+
+    with pytest.raises(
+        StorageError,
+        match=r"podman unshare storage measurement failed \(exit 125\)",
+    ):
+        _allocated_shifted_tree_bytes(tmp_path, runner=runner)
+
+
+def test_shifted_measurement_keeps_venv_interpreter_symlink_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    actual = tmp_path / "actual-python"
+    actual.write_text("", encoding="utf-8")
+    interpreter = tmp_path / "venv-python"
+    interpreter.symlink_to(actual)
+    commands: list[tuple[str, ...]] = []
+
+    def runner(
+        command: tuple[str, ...],
+        **_kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout='{"bytes_used":0}',
+            stderr="",
+        )
+
+    monkeypatch.setattr("orin_stage.storage.sys.executable", str(interpreter))
+
+    assert _allocated_shifted_tree_bytes(tmp_path, runner=runner) == 0
+    assert commands[0][2] == os.path.abspath(interpreter)
+    assert commands[0][2] != str(interpreter.resolve())

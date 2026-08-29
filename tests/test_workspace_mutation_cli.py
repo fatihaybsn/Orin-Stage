@@ -8,7 +8,7 @@ import pytest
 
 from orin_stage.cli import main
 from orin_stage.materialization_extract import ExtractionReport
-from orin_stage.storage import StorageManager
+from orin_stage.storage import StorageManager, _allocated_tree_bytes
 from orin_stage.workspace_manager import (
     WorkspaceManager,
     WorkspaceNotFoundError,
@@ -18,6 +18,14 @@ from orin_stage.workspace_manager import (
 TARGET_LOCK_DIGEST = "a" * 64
 BASE_DIGEST = "b" * 64
 WORKSPACE_ID = "0123456789abcdef0123456789abcdef"
+
+
+@pytest.fixture(autouse=True)
+def _measure_test_trees_in_process(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "orin_stage.storage._allocated_shifted_tree_bytes",
+        lambda path, **_kwargs: _allocated_tree_bytes(path),
+    )
 
 
 def _published_workspace(
