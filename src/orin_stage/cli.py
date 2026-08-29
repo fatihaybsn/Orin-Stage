@@ -34,7 +34,7 @@ from .planning.planner import BasePlanStatus
 from .privileged_base import ensure_jp623_base_with_sudo
 from .privileged_materialization import create_materialization_seed_with_sudo
 from .runtime import resolve_data_root
-from .storage import DeletionPlan, StorageManager
+from .storage import DeletionPlan, StorageManager, StorageStatus
 from .target_executor import TargetCommandError
 from .workspace_manager import (
     WorkspaceListEntry,
@@ -666,6 +666,78 @@ def _format_allocated_bytes(bytes_used: int) -> str:
     raise AssertionError("unreachable storage unit")
 
 
+def _format_storage_table(
+    headers: Sequence[str],
+    rows: Sequence[Sequence[str]],
+) -> str:
+    if not rows:
+        return "(none)"
+    all_rows = (headers, *rows)
+    widths = [
+        max(len(row[index]) for row in all_rows)
+        for index in range(len(headers))
+    ]
+    return "\n".join(
+        "  ".join(
+            value.ljust(widths[index])
+            for index, value in enumerate(row)
+        ).rstrip()
+        for row in all_rows
+    )
+
+
+def _format_storage_status(status: StorageStatus) -> str:
+    summary_rows = (
+        ("SDK Manager cache", _format_allocated_bytes(status.sdkm_cache_bytes)),
+        ("Bases", _format_allocated_bytes(status.base_bytes)),
+        ("Workspaces", _format_allocated_bytes(status.workspace_bytes)),
+        ("Build outputs", _format_allocated_bytes(status.build_output_bytes)),
+        ("Tracked total", _format_allocated_bytes(status.tracked_bytes)),
+    )
+    summary_width = max(len(label) for label, _value in summary_rows)
+    summary = "\n".join(
+        f"{label:<{summary_width}}  {value}" for label, value in summary_rows
+    )
+    bases = _format_storage_table(
+        ("TARGET", "ID", "SIZE"),
+        tuple(
+            (entry.label, entry.identifier, _format_allocated_bytes(entry.bytes_used))
+            for entry in sorted(
+                status.bases,
+                key=lambda entry: (entry.label, entry.identifier),
+            )
+        ),
+    )
+    workspaces = _format_storage_table(
+        ("NAME", "ID", "SIZE"),
+        tuple(
+            (entry.label, entry.identifier, _format_allocated_bytes(entry.bytes_used))
+            for entry in sorted(
+                status.workspaces,
+                key=lambda entry: (entry.label, entry.identifier),
+            )
+        ),
+    )
+    return (
+        "Orin Stage Storage\n\n"
+        f"{summary}\n\n"
+        f"Bases\n{bases}\n\n"
+        f"Workspaces\n{workspaces}"
+    )
+
+
+def _run_storage_status(data_root: Path) -> int:
+    try:
+        status = StorageManager(data_root).status()
+        output = _format_storage_status(status)
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+    print(output)
+    return 0
+
+
 def _validate_workspace_plan_binding(
     record: WorkspaceRecord,
     plan: DeletionPlan,
@@ -946,6 +1018,18 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         metavar="WORKSPACE",
     )
+    storage_parser = subparsers.add_parser(
+        "storage",
+        help="show tracked Orin Stage storage usage",
+    )
+    storage_subparsers = storage_parser.add_subparsers(
+        dest="storage_command",
+        required=True,
+    )
+    storage_subparsers.add_parser(
+        "status",
+        help="show tracked storage totals and entries",
+    )
     return parser
 
 
@@ -1026,6 +1110,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "inspect":
         return _run_workspace_inspect(args.workspace, data_root=data_root)
+
+    if args.command == "storage" and args.storage_command == "status":
+        return _run_storage_status(data_root)
 
     parser.print_help()
     return 0
