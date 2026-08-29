@@ -12,6 +12,8 @@ from . import __version__
 from .acquisition.sdk_manager import SdkManagerClient
 from .base.lock import load_target_lock
 from .base.receipt import base_directory_is_reusable, load_base_receipt
+from .build_capsule import BuildCommandError
+from .build_toolchain import BuildToolchainManager
 from .catalog import CatalogError, TargetResolver, builtin_catalog_paths
 from .catalog.resolver import ResolvedCatalogTarget
 from .doctor import doctor_exit_code, format_report, run_doctor
@@ -475,6 +477,43 @@ def _run_workspace_command(
     return 0
 
 
+def _run_workspace_build(
+    selector: str,
+    command: Sequence[str],
+    *,
+    data_root: Path,
+) -> int:
+    if os.geteuid() == 0:
+        print("error: Run ostg build as your normal user.", file=sys.stderr)
+        return 1
+
+    try:
+        repository_root = Path.cwd()
+        toolchain = BuildToolchainManager(data_root).ensure()
+        completed = WorkspaceManager(data_root).build(
+            selector,
+            repository_root,
+            toolchain.root_path,
+            command,
+        )
+    except BuildCommandError as exc:
+        if exc.stdout:
+            sys.stdout.write(exc.stdout)
+        if exc.stderr:
+            sys.stderr.write(exc.stderr)
+        return _target_exit_code(exc.returncode)
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+
+    if completed.stdout:
+        sys.stdout.write(completed.stdout)
+    if completed.stderr:
+        sys.stderr.write(completed.stderr)
+    return 0
+
+
 def _format_allocated_bytes(bytes_used: int) -> str:
     amount = float(bytes_used)
     units = ("B", "KiB", "MiB", "GiB", "TiB")
@@ -744,6 +783,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser.add_argument("--workspace", required=True, metavar="WORKSPACE")
     run_parser.add_argument("target_argv", nargs=argparse.REMAINDER, metavar="COMMAND")
+    build_command_parser = subparsers.add_parser(
+        "build",
+        help="run a host-native cross-build against a workspace",
+    )
+    build_command_parser.add_argument(
+        "--workspace",
+        required=True,
+        metavar="WORKSPACE",
+    )
+    build_command_parser.add_argument(
+        "build_argv",
+        nargs=argparse.REMAINDER,
+        metavar="COMMAND",
+    )
     return parser
 
 
@@ -807,6 +860,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _run_workspace_command(
             args.workspace,
             target_argv,
+            data_root=data_root,
+        )
+
+    if args.command == "build":
+        build_argv = tuple(args.build_argv)
+        if build_argv[:1] == ("--",):
+            build_argv = build_argv[1:]
+        if not build_argv:
+            parser.error("ostg build requires a command after '--'")
+        return _run_workspace_build(
+            args.workspace,
+            build_argv,
             data_root=data_root,
         )
 
