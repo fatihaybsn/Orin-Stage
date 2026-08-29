@@ -44,6 +44,16 @@ def _in_process_measurement(
         data_root = Path(command[command.index("--data-root") + 1])
         digest = command[command.index("--target-digest") + 1]
         measured_path = data_root / "targets" / digest
+        if "orin_stage.privileged_storage_delete" in command:
+            shutil.rmtree(measured_path)
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=json.dumps(
+                    {"removed": True, "target_lock_digest": digest}
+                ),
+                stderr="",
+            )
     bytes_used = _allocated_tree_bytes(measured_path)
     return subprocess.CompletedProcess(
         command,
@@ -249,6 +259,126 @@ def test_base_remove_fails_closed_when_workspace_metadata_is_missing(tmp_path: P
         _manager(data).remove_base(TARGET, confirmation=TARGET)
 
     assert target.is_dir()
+
+
+@pytest.mark.parametrize("workspace_state", ("missing", "corrupt", "symlink"))
+def test_base_remove_never_calls_privileged_delete_for_unprovable_workspace_state(
+    tmp_path: Path,
+    workspace_state: str,
+) -> None:
+    data = _root(tmp_path)
+    target = _target(data)
+    workspace = data / "workspaces" / "unknown"
+    if workspace_state == "symlink":
+        outside = tmp_path / "outside-workspace"
+        outside.mkdir()
+        workspace.parent.mkdir()
+        workspace.symlink_to(outside, target_is_directory=True)
+    else:
+        workspace.mkdir(parents=True)
+        if workspace_state == "corrupt":
+            (workspace / "workspace.json").write_text("{broken", encoding="utf-8")
+    commands: list[tuple[str, ...]] = []
+
+    def runner(
+        command: tuple[str, ...],
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        return _in_process_measurement(command, **kwargs)
+
+    with pytest.raises(StorageError):
+        StorageManager(data, runner=runner).remove_base(
+            TARGET,
+            confirmation=TARGET,
+        )
+
+    assert target.is_dir()
+    assert all("orin_stage.privileged_storage_delete" not in call for call in commands)
+
+
+def test_wrong_confirmation_never_calls_privileged_delete(tmp_path: Path) -> None:
+    data = _root(tmp_path)
+    _target(data)
+    commands: list[tuple[str, ...]] = []
+
+    def runner(
+        command: tuple[str, ...],
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        return _in_process_measurement(command, **kwargs)
+
+    with pytest.raises(DeletionConfirmationRequired):
+        StorageManager(data, runner=runner).remove_base(
+            TARGET,
+            confirmation="wrong",
+        )
+
+    assert all("orin_stage.privileged_storage_delete" not in call for call in commands)
+
+
+def test_dependent_workspace_never_calls_privileged_delete(tmp_path: Path) -> None:
+    data = _root(tmp_path)
+    _target(data)
+    _workspace(data)
+    commands: list[tuple[str, ...]] = []
+
+    def runner(
+        command: tuple[str, ...],
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        return _in_process_measurement(command, **kwargs)
+
+    with pytest.raises(DeletionBlockedError):
+        StorageManager(data, runner=runner).remove_base(
+            TARGET,
+            confirmation=TARGET,
+        )
+
+    assert all("orin_stage.privileged_storage_delete" not in call for call in commands)
+
+
+def test_base_replan_and_privileged_delete_stay_under_lifecycle_lock(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from contextlib import contextmanager
+
+    data = _root(tmp_path)
+    _target(data)
+    lock_held = False
+    calls: list[tuple[str, bool]] = []
+
+    @contextmanager
+    def lifecycle_lock(_manager: StorageManager):
+        nonlocal lock_held
+        assert not lock_held
+        lock_held = True
+        try:
+            yield
+        finally:
+            lock_held = False
+
+    def runner(
+        command: tuple[str, ...],
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        operation = (
+            "delete"
+            if "orin_stage.privileged_storage_delete" in command
+            else "measure"
+        )
+        calls.append((operation, lock_held))
+        return _in_process_measurement(command, **kwargs)
+
+    monkeypatch.setattr(StorageManager, "_workspace_lifecycle_lock", lifecycle_lock)
+
+    StorageManager(data, runner=runner).remove_base(TARGET, confirmation=TARGET)
+
+    assert calls == [("measure", False), ("measure", True), ("delete", True)]
+    assert not lock_held
 
 
 def test_allocated_tree_semantics_do_not_follow_symlinks_and_deduplicate_hardlinks(

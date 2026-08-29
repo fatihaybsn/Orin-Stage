@@ -287,10 +287,14 @@ class StorageManager:
                 raise DeletionBlockedError(
                     f"base {plan.identifier} is still referenced by workspace(s): {joined}"
                 )
-            try:
-                shutil.rmtree(plan.path)
-            except OSError as exc:
-                raise StorageError(f"cannot remove base {plan.identifier}: {exc}") from exc
+            from .privileged_storage_delete import remove_base_storage_with_sudo
+
+            remove_base_storage_with_sudo(
+                self.data_root,
+                plan.identifier,
+                sudo_binary=self.sudo_binary,
+                runner=self.runner,
+            )
             return plan
 
     def plan_sdkm_cache_remove(self) -> DeletionPlan:
