@@ -2,7 +2,10 @@ from orin_stage.build_identity import (
     BUILD_IDENTITY_SCHEMA_VERSION,
     JP6_BOOTLIN_BINUTILS_VERSION,
     JP6_BOOTLIN_GCC_VERSION,
+    JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_FILENAME,
     JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_SHA256,
+    JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_URL,
+    JP6_BOOTLIN_TOOLCHAIN_PREFIX,
     JP6_BUILD_IDENTITY,
     JP6_BUILD_IMAGE,
     BuildIdentity,
@@ -18,6 +21,14 @@ def test_jp6_build_identity_records_proven_step6_inputs() -> None:
     assert JP6_BUILD_IDENTITY.gcc_version == JP6_BOOTLIN_GCC_VERSION == "11.3.0"
     assert JP6_BUILD_IDENTITY.binutils_version == JP6_BOOTLIN_BINUTILS_VERSION == "2.38"
     assert JP6_BUILD_IDENTITY.nvidia_cross_packages == ()
+    assert JP6_BOOTLIN_TOOLCHAIN_PREFIX == "aarch64-buildroot-linux-gnu-"
+    assert JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_FILENAME == (
+        "aarch64--glibc--stable-2022.08-1.tar.bz2"
+    )
+    assert JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_URL == (
+        "https://developer.nvidia.com/downloads/embedded/l4t/r36_release_v3.0/"
+        "toolchain/aarch64--glibc--stable-2022.08-1.tar.bz2"
+    )
 
 
 def test_build_identity_digest_is_deterministic_and_order_independent() -> None:

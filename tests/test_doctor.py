@@ -17,6 +17,7 @@ from orin_stage.doctor import (
     format_report,
     run_doctor,
 )
+from orin_stage.build_toolchain import BuildToolchainError
 
 
 class WorkingSdkManager:
@@ -250,14 +251,73 @@ def test_failed_podman_unshare_fails(tmp_path: Path) -> None:
     assert doctor_exit_code(checks) == 1
 
 
-def test_doctor_does_not_create_data_root(tmp_path: Path) -> None:
+def test_doctor_does_not_create_or_acquire_managed_toolchain(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
     environment = _healthy_environment(tmp_path)
     data_root = Path(environment["data_root"])
+
+    def forbidden_ensure(*args: object, **kwargs: object) -> object:
+        raise AssertionError("doctor must not acquire the managed toolchain")
+
+    monkeypatch.setattr(
+        "orin_stage.build_toolchain.BuildToolchainManager.ensure",
+        forbidden_ensure,
+    )
 
     checks = run_doctor(**environment)  # type: ignore[arg-type]
 
     assert _checks_by_name(checks)["Data root"].status is CheckStatus.PASS
+    toolchain = _checks_by_name(checks)["Managed JP6 toolchain"]
+    assert toolchain.status is CheckStatus.INFO
+    assert toolchain.detail == "not acquired"
     assert not data_root.exists()
+
+
+def test_doctor_passes_only_for_present_valid_managed_toolchain(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    environment = _healthy_environment(tmp_path)
+    root = Path(environment["data_root"]) / "build" / "toolchains" / "digest" / "root"
+
+    class PresentManager:
+        def __init__(self, data_root: Path) -> None:
+            pass
+
+        def inspect(self) -> object:
+            return SimpleNamespace(root_path=root)
+
+    monkeypatch.setattr("orin_stage.doctor.BuildToolchainManager", PresentManager)
+
+    checks = run_doctor(**environment)  # type: ignore[arg-type]
+
+    toolchain = _checks_by_name(checks)["Managed JP6 toolchain"]
+    assert toolchain.status is CheckStatus.PASS
+    assert toolchain.detail == str(root)
+
+
+def test_doctor_warns_for_invalid_managed_toolchain(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    environment = _healthy_environment(tmp_path)
+
+    class InvalidManager:
+        def __init__(self, data_root: Path) -> None:
+            pass
+
+        def inspect(self) -> object:
+            raise BuildToolchainError("receipt mismatch")
+
+    monkeypatch.setattr("orin_stage.doctor.BuildToolchainManager", InvalidManager)
+
+    checks = run_doctor(**environment)  # type: ignore[arg-type]
+
+    toolchain = _checks_by_name(checks)["Managed JP6 toolchain"]
+    assert toolchain.status is CheckStatus.WARN
+    assert toolchain.detail == "invalid: receipt mismatch"
 
 
 def test_unusable_existing_data_root_fails(tmp_path: Path) -> None:

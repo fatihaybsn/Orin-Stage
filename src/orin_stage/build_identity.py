@@ -14,8 +14,16 @@ JP6_BUILD_IMAGE = (
 JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_SHA256 = (
     "8af54f268c462b2d0737df8789b5e35db03a2d1ecbec90e20948f66f9244fcdd"
 )
+JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_URL = (
+    "https://developer.nvidia.com/downloads/embedded/l4t/r36_release_v3.0/"
+    "toolchain/aarch64--glibc--stable-2022.08-1.tar.bz2"
+)
+JP6_BOOTLIN_TOOLCHAIN_ARCHIVE_FILENAME = (
+    "aarch64--glibc--stable-2022.08-1.tar.bz2"
+)
 JP6_BOOTLIN_GCC_VERSION = "11.3.0"
 JP6_BOOTLIN_BINUTILS_VERSION = "2.38"
+JP6_BOOTLIN_TOOLCHAIN_PREFIX = "aarch64-buildroot-linux-gnu-"
 
 
 @dataclass(frozen=True, slots=True, order=True)

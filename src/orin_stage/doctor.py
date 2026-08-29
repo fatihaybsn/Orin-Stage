@@ -15,6 +15,11 @@ from .acquisition.sdk_manager import (
     SdkManagerError,
     SdkManagerTimeoutError,
 )
+from .build_toolchain import (
+    BuildToolchainError,
+    BuildToolchainManager,
+    BuildToolchainNotFoundError,
+)
 
 
 class CheckStatus(str, Enum):
@@ -350,6 +355,29 @@ def _sdk_manager(client: SdkManagerClient) -> DoctorCheck:
     return DoctorCheck(CheckStatus.PASS, "SDK Manager", version.splitlines()[0])
 
 
+def _managed_build_toolchain(data_root: Path) -> DoctorCheck:
+    try:
+        record = BuildToolchainManager(data_root).inspect()
+    except BuildToolchainNotFoundError:
+        return DoctorCheck(
+            CheckStatus.INFO,
+            "Managed JP6 toolchain",
+            "not acquired",
+        )
+    except BuildToolchainError as exc:
+        detail = str(exc).splitlines()[0]
+        return DoctorCheck(
+            CheckStatus.WARN,
+            "Managed JP6 toolchain",
+            f"invalid: {detail}",
+        )
+    return DoctorCheck(
+        CheckStatus.PASS,
+        "Managed JP6 toolchain",
+        str(record.root_path),
+    )
+
+
 def _current_username() -> str:
     try:
         import pwd
@@ -396,6 +424,7 @@ def run_doctor(
         _podman_unshare(podman_executable, runner),
         _arm64_binfmt(binfmt_root),
         _qemu_static(qemu_static_path, runner),
+        _managed_build_toolchain(resolved_data_root),
         _sdk_manager(sdk_manager or SdkManagerClient()),
     ]
 
