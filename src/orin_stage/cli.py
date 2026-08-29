@@ -738,6 +738,146 @@ def _run_storage_status(data_root: Path) -> int:
     return 0
 
 
+def _format_storage_base_delete_plan(plan: DeletionPlan) -> str:
+    rows = [
+        ("Type:", "base"),
+        ("Target ID:", plan.identifier),
+        ("Path:", str(plan.path)),
+        ("Current size:", _format_allocated_bytes(plan.bytes_used)),
+        ("Status:", "BLOCKED" if plan.blocked_by else "ready"),
+    ]
+    if plan.blocked_by:
+        dependencies = ", ".join(plan.blocked_by)
+        rows.append(("Blocked by:", dependencies))
+    else:
+        rows.append(("Action:", "remove immutable target"))
+    width = max(len(label) for label, _value in rows)
+    details = "\n".join(f"{label:<{width}}  {value}" for label, value in rows)
+    if plan.blocked_by:
+        return (
+            f"{details}\n\n"
+            f"Deletion blocked by workspace(s): {', '.join(plan.blocked_by)}"
+        )
+    command = (
+        f"ostg storage delete base {plan.identifier} "
+        f"--confirm {plan.identifier}"
+    )
+    return f"{details}\n\nTo continue:\n{command}"
+
+
+def _format_storage_base_delete_result(plan: DeletionPlan) -> str:
+    rows = (
+        ("Type:", "base"),
+        ("Target ID:", plan.identifier),
+        ("Removed size:", _format_allocated_bytes(plan.bytes_used)),
+        ("Action:", "removed"),
+    )
+    width = max(len(label) for label, _value in rows)
+    return "\n".join(f"{label:<{width}}  {value}" for label, value in rows)
+
+
+def _validate_storage_base_plan(plan: DeletionPlan, target_digest: str) -> None:
+    if plan.kind != "base" or plan.identifier != target_digest:
+        raise RuntimeError("base deletion returned inconsistent identity evidence")
+
+
+def _run_storage_base_delete(
+    target_digest: str,
+    *,
+    confirmation: str | None,
+    data_root: Path,
+) -> int:
+    if confirmation is not None and confirmation != target_digest:
+        print(
+            "error: base deletion confirmation must exactly match "
+            f"target ID {target_digest}",
+            file=sys.stderr,
+        )
+        return 1
+    try:
+        storage = StorageManager(data_root)
+        if confirmation is None:
+            plan = storage.plan_base_remove(target_digest)
+            _validate_storage_base_plan(plan, target_digest)
+            output = _format_storage_base_delete_plan(plan)
+        else:
+            plan = storage.remove_base(
+                target_digest,
+                confirmation=confirmation,
+            )
+            _validate_storage_base_plan(plan, target_digest)
+            output = _format_storage_base_delete_result(plan)
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+    print(output)
+    return 0
+
+
+def _format_storage_sdkm_cache_delete_plan(plan: DeletionPlan) -> str:
+    rows = (
+        ("Type:", "sdkm-cache"),
+        ("Confirmation:", plan.identifier),
+        ("Path:", str(plan.path)),
+        ("Current size:", _format_allocated_bytes(plan.bytes_used)),
+        ("Status:", "ready"),
+        ("Action:", "clear SDK Manager download cache"),
+    )
+    width = max(len(label) for label, _value in rows)
+    details = "\n".join(f"{label:<{width}}  {value}" for label, value in rows)
+    command = f"ostg storage delete sdkm-cache --confirm {plan.identifier}"
+    return f"{details}\n\nTo continue:\n{command}"
+
+
+def _format_storage_sdkm_cache_delete_result(plan: DeletionPlan) -> str:
+    rows = (
+        ("Type:", "sdkm-cache"),
+        ("Confirmation:", plan.identifier),
+        ("Removed size:", _format_allocated_bytes(plan.bytes_used)),
+        ("Action:", "removed"),
+    )
+    width = max(len(label) for label, _value in rows)
+    return "\n".join(f"{label:<{width}}  {value}" for label, value in rows)
+
+
+def _validate_storage_sdkm_cache_plan(plan: DeletionPlan) -> None:
+    if plan.kind != "sdkm-cache" or plan.identifier != "sdkm-downloads":
+        raise RuntimeError(
+            "SDK Manager cache deletion returned inconsistent identity evidence"
+        )
+
+
+def _run_storage_sdkm_cache_delete(
+    *,
+    confirmation: str | None,
+    data_root: Path,
+) -> int:
+    if confirmation is not None and confirmation != "sdkm-downloads":
+        print(
+            "error: SDK Manager cache deletion confirmation must exactly match "
+            "sdkm-downloads",
+            file=sys.stderr,
+        )
+        return 1
+    try:
+        storage = StorageManager(data_root)
+        if confirmation is None:
+            plan = storage.plan_sdkm_cache_remove()
+            _validate_storage_sdkm_cache_plan(plan)
+            output = _format_storage_sdkm_cache_delete_plan(plan)
+        else:
+            plan = storage.remove_sdkm_cache(confirmation=confirmation)
+            _validate_storage_sdkm_cache_plan(plan)
+            output = _format_storage_sdkm_cache_delete_result(plan)
+    except (RuntimeError, ValueError, OSError) as exc:
+        detail = str(exc).splitlines()[0]
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+    print(output)
+    return 0
+
+
 def _validate_workspace_plan_binding(
     record: WorkspaceRecord,
     plan: DeletionPlan,
@@ -1030,6 +1170,34 @@ def build_parser() -> argparse.ArgumentParser:
         "status",
         help="show tracked storage totals and entries",
     )
+    storage_delete_parser = storage_subparsers.add_parser(
+        "delete",
+        help="plan or confirm explicit storage deletion",
+    )
+    storage_delete_subparsers = storage_delete_parser.add_subparsers(
+        dest="storage_delete_kind",
+        required=True,
+    )
+    storage_delete_base_parser = storage_delete_subparsers.add_parser(
+        "base",
+        help="plan or confirm immutable target removal",
+    )
+    storage_delete_base_parser.add_argument(
+        "target_digest",
+        metavar="TARGET_DIGEST",
+    )
+    storage_delete_base_parser.add_argument(
+        "--confirm",
+        metavar="TARGET_DIGEST",
+    )
+    storage_delete_sdkm_parser = storage_delete_subparsers.add_parser(
+        "sdkm-cache",
+        help="plan or confirm SDK Manager download cache cleanup",
+    )
+    storage_delete_sdkm_parser.add_argument(
+        "--confirm",
+        metavar="sdkm-downloads",
+    )
     return parser
 
 
@@ -1113,6 +1281,27 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "storage" and args.storage_command == "status":
         return _run_storage_status(data_root)
+
+    if (
+        args.command == "storage"
+        and args.storage_command == "delete"
+        and args.storage_delete_kind == "base"
+    ):
+        return _run_storage_base_delete(
+            args.target_digest,
+            confirmation=args.confirm,
+            data_root=data_root,
+        )
+
+    if (
+        args.command == "storage"
+        and args.storage_command == "delete"
+        and args.storage_delete_kind == "sdkm-cache"
+    ):
+        return _run_storage_sdkm_cache_delete(
+            confirmation=args.confirm,
+            data_root=data_root,
+        )
 
     parser.print_help()
     return 0
