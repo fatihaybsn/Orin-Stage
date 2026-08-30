@@ -138,6 +138,7 @@ def ensure_jp623_base_with_sudo(
         sudo,
         "--",
         python,
+        "-I",
         "-m",
         "orin_stage.privileged_base",
         "--selector",

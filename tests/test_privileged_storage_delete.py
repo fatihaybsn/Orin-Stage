@@ -61,7 +61,11 @@ def test_parent_uses_narrow_shell_free_sudo_command(tmp_path: Path) -> None:
     command, kwargs = calls[0]
     assert command[:2] == ("sudo", "--")
     assert Path(command[2]).is_absolute()
-    assert command[3:5] == ("-m", "orin_stage.privileged_storage_delete")
+    assert command[3:6] == (
+        "-I",
+        "-m",
+        "orin_stage.privileged_storage_delete",
+    )
     assert command[command.index("--data-root") + 1] == str(data_root.resolve())
     assert command[command.index("--target-digest") + 1] == TARGET_DIGEST
     assert str(data_root / "targets" / TARGET_DIGEST) not in command
@@ -100,6 +104,11 @@ def test_parent_preserves_venv_interpreter_symlink(
 
     assert commands[0][2] == os.path.abspath(interpreter)
     assert commands[0][2] != str(interpreter.resolve())
+    assert commands[0][3:6] == (
+        "-I",
+        "-m",
+        "orin_stage.privileged_storage_delete",
+    )
 
 
 @pytest.mark.parametrize("digest", ("short", "A" * 64, "../" + "a" * 61))

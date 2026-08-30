@@ -56,6 +56,7 @@ def measure_base_storage_with_sudo(
         sudo_binary,
         "--",
         interpreter,
+        "-I",
         "-m",
         "orin_stage.privileged_storage_measure",
         "--data-root",

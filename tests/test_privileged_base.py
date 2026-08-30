@@ -78,8 +78,9 @@ def test_sudo_builder_uses_narrow_shell_free_command_once(tmp_path: Path) -> Non
     command, kwargs = calls[0]
     assert command[:2] == ("/usr/bin/sudo", "--")
     assert "-E" not in command
+    assert "PYTHONPATH" not in command
     assert command[2].startswith("/")
-    assert command[3:5] == ("-m", "orin_stage.privileged_base")
+    assert command[3:6] == ("-I", "-m", "orin_stage.privileged_base")
     assert command[command.index("--selector") + 1] == SELECTOR
     assert command[command.index("--data-root") + 1] == str(tmp_path.resolve())
     assert command[command.index("--acquisition-receipt") + 1] == str(
@@ -125,6 +126,7 @@ def test_sudo_builder_preserves_venv_interpreter_symlink(
     assert interpreter == str(venv_python)
     assert Path(interpreter).is_absolute()
     assert interpreter != str(venv_python.resolve())
+    assert commands[0][3:6] == ("-I", "-m", "orin_stage.privileged_base")
 
 
 def test_sudo_missing_is_short_error_without_subprocess(tmp_path: Path) -> None:

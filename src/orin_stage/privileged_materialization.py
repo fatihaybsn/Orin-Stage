@@ -122,6 +122,7 @@ def create_materialization_seed_with_sudo(
         sudo,
         "--",
         python,
+        "-I",
         "-m",
         "orin_stage.privileged_materialization",
         "--data-root",

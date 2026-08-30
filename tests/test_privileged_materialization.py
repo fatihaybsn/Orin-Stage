@@ -71,8 +71,13 @@ def test_sudo_seed_builder_preserves_venv_interpreter_symlink(
     assert command[:2] == ("/usr/bin/sudo", "--")
     assert command[2] == str(venv_python)
     assert command[2] != str(venv_python.resolve())
-    assert command[3:5] == ("-m", "orin_stage.privileged_materialization")
+    assert command[3:6] == (
+        "-I",
+        "-m",
+        "orin_stage.privileged_materialization",
+    )
     assert "-E" not in command
+    assert "PYTHONPATH" not in command
     assert command[command.index("--data-root") + 1] == str(data_root.resolve())
     assert command[command.index("--target-dir") + 1] == str(target.resolve())
     assert kwargs == {
