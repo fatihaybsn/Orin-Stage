@@ -5,15 +5,13 @@ import urllib.request
 import pytest
 
 from orin_stage.acquisition.sdk_manager import SdkManagerClient
-from orin_stage.cli import PROGRAM_VERSION, build_parser, main
+from orin_stage.cli import PROGRAM_VERSION, _target_exit_code, build_parser, main
 from orin_stage.doctor import CheckStatus, DoctorCheck
 
 
 def test_cli_help_has_product_name_and_data_root(capsys) -> None:
-    parser = build_parser()
-
     with pytest.raises(SystemExit) as exc_info:
-        parser.parse_args(["--help"])
+        main(["--help"])
 
     assert exc_info.value.code == 0
     output = capsys.readouterr().out
@@ -43,10 +41,8 @@ def test_target_help_contains_list(capsys) -> None:
 
 
 def test_cli_version(capsys) -> None:
-    parser = build_parser()
-
     with pytest.raises(SystemExit) as exc_info:
-        parser.parse_args(["--version"])
+        main(["--version"])
 
     assert exc_info.value.code == 0
     assert capsys.readouterr().out.strip() == f"ostg {PROGRAM_VERSION}"
@@ -83,6 +79,26 @@ def test_cli_doctor_returns_one_when_a_check_fails(monkeypatch, capsys) -> None:
 
     assert main(["doctor"]) == 1
     assert "Summary: 0 PASS, 0 WARN, 1 FAIL" in capsys.readouterr().out
+
+
+def test_cli_keyboard_interrupt_is_short_error_with_exit_130(
+    monkeypatch,
+    capsys,
+) -> None:
+    def interrupt(_data_root) -> object:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("orin_stage.cli.run_doctor", interrupt)
+
+    assert main(["doctor"]) == 130
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "error: interrupted\n"
+    assert "Traceback" not in captured.err
+
+
+def test_child_signal_exit_code_maps_to_shell_convention() -> None:
+    assert _target_exit_code(-15) == 143
 
 
 def test_target_list_shows_six_ga_targets_in_semantic_order(capsys) -> None:

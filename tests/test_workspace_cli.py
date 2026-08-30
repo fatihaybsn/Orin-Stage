@@ -196,6 +196,30 @@ def test_workspace_create_requires_validation_pending_flag(
     assert "--allow-validation-pending" in error
 
 
+def test_workspace_create_rejects_root_invocation(monkeypatch, capsys) -> None:
+    monkeypatch.setattr("orin_stage.cli.os.geteuid", lambda: 0)
+
+    assert (
+        main(
+            [
+                "workspace",
+                "create",
+                "--target",
+                SELECTOR,
+                "--name",
+                "demo",
+                "--allow-validation-pending",
+            ]
+        )
+        == 1
+    )
+    assert capsys.readouterr().err == (
+        "error: Run ostg workspace create as your normal user.\n"
+        "Orin Stage requests sudo only when materialization seed creation "
+        "is required.\n"
+    )
+
+
 def test_workspace_create_rejects_unavailable_target_even_with_flag(
     monkeypatch,
     capsys,

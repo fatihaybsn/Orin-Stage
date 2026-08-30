@@ -118,10 +118,15 @@ def test_build_forwards_selector_cwd_toolchain_and_argv_exactly(
         reused=True,
     )
     build_calls: list[tuple[str, Path, Path, tuple[str, ...]]] = []
+    open_calls: list[str] = []
 
     class FakeWorkspaceManager:
         def __init__(self, selected_root: Path) -> None:
             assert selected_root == data_root
+
+        def open(self, selector: str) -> object:
+            open_calls.append(selector)
+            return object()
 
         def build(
             self,
@@ -157,6 +162,7 @@ def test_build_forwards_selector_cwd_toolchain_and_argv_exactly(
         )
         == 0
     )
+    assert open_calls == ["jp623-demo"]
     assert ensure_calls == [data_root]
     assert build_calls == [("jp623-demo", Path.cwd(), toolchain, argv)]
     captured = capsys.readouterr()
@@ -185,6 +191,10 @@ def test_missing_managed_toolchain_uses_existing_ensure_acquisition_api(
     class FakeWorkspaceManager:
         def __init__(self, selected_root: Path) -> None:
             pass
+
+        def open(self, selector: str) -> object:
+            assert selector == "demo"
+            return object()
 
         def build(
             self,
@@ -346,9 +356,18 @@ def test_build_unknown_workspace_returns_one_without_traceback(
     _normal_user(monkeypatch)
     data_root = tmp_path / "data"
     data_root.mkdir()
-    toolchain = tmp_path / "managed" / "root"
-    toolchain.mkdir(parents=True)
-    _fake_toolchain_manager(monkeypatch, data_root, toolchain, reused=True)
+
+    class ForbiddenToolchainManager:
+        def __init__(self, selected_root: Path) -> None:
+            assert selected_root == data_root
+
+        def ensure(self) -> object:
+            raise AssertionError("toolchain ensure must not run")
+
+    monkeypatch.setattr(
+        "orin_stage.cli.BuildToolchainManager",
+        ForbiddenToolchainManager,
+    )
 
     assert (
         main(
@@ -364,9 +383,12 @@ def test_build_unknown_workspace_returns_one_without_traceback(
         )
         == 1
     )
-    error = capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    error = captured.err
     assert error == "error: workspace not found: missing\n"
     assert "Traceback" not in error
+    assert not (data_root / "build").exists()
 
 
 def test_toolchain_acquisition_failure_returns_one_without_build(
@@ -375,7 +397,7 @@ def test_toolchain_acquisition_failure_returns_one_without_build(
     tmp_path: Path,
 ) -> None:
     _normal_user(monkeypatch)
-    data_root = tmp_path / "data"
+    data_root = _workspace(tmp_path)
 
     class FailingToolchainManager:
         def __init__(self, selected_root: Path) -> None:
@@ -384,18 +406,14 @@ def test_toolchain_acquisition_failure_returns_one_without_build(
         def ensure(self) -> object:
             raise BuildToolchainError("managed toolchain SHA-256 mismatch")
 
-    class ForbiddenWorkspaceManager:
-        def __init__(self, selected_root: Path) -> None:
-            raise AssertionError("build must not start after toolchain failure")
+    def forbidden_build(*args: object, **kwargs: object) -> object:
+        raise AssertionError("build must not start after toolchain failure")
 
     monkeypatch.setattr(
         "orin_stage.cli.BuildToolchainManager",
         FailingToolchainManager,
     )
-    monkeypatch.setattr(
-        "orin_stage.cli.WorkspaceManager",
-        ForbiddenWorkspaceManager,
-    )
+    monkeypatch.setattr(WorkspaceManager, "build", forbidden_build)
 
     assert (
         main(

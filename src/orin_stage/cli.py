@@ -161,7 +161,7 @@ def _run_target_ensure(
     data_root: Path,
 ) -> int:
     if os.geteuid() == 0:
-        print("error: Run target ensure as your normal user.", file=sys.stderr)
+        print("error: Run ostg target ensure as your normal user.", file=sys.stderr)
         print(
             "Orin Stage requests sudo only when base construction is required.",
             file=sys.stderr,
@@ -371,7 +371,7 @@ def _run_workspace_create(
     data_root: Path,
 ) -> int:
     if os.geteuid() == 0:
-        print("error: Run workspace create as your normal user.", file=sys.stderr)
+        print("error: Run ostg workspace create as your normal user.", file=sys.stderr)
         print(
             "Orin Stage requests sudo only when materialization seed creation "
             "is required.",
@@ -493,6 +493,7 @@ def _run_workspace_build(
         return 1
 
     try:
+        WorkspaceManager(data_root).open(selector)
         repository_root = Path.cwd()
         toolchain = BuildToolchainManager(data_root).ensure()
         completed = WorkspaceManager(data_root).build(
@@ -1201,7 +1202,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def _main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
@@ -1305,3 +1306,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     parser.print_help()
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    try:
+        return _main(argv)
+    except KeyboardInterrupt:
+        print("error: interrupted", file=sys.stderr)
+        return 130

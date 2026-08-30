@@ -193,7 +193,7 @@ def test_top_level_root_invocation_is_rejected(monkeypatch, capsys) -> None:
 
     assert main(["target", "ensure", SELECTOR, "--allow-validation-pending"]) == 1
     error = capsys.readouterr().err
-    assert "Run target ensure as your normal user." in error
+    assert "Run ostg target ensure as your normal user." in error
     assert "requests sudo only when base construction is required" in error
 
 
