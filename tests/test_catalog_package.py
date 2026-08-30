@@ -20,6 +20,7 @@ def built_wheel(tmp_path_factory: pytest.TempPathFactory) -> Path:
     project.mkdir()
     shutil.copy2(REPO_ROOT / "pyproject.toml", project / "pyproject.toml")
     shutil.copy2(REPO_ROOT / "README.md", project / "README.md")
+    shutil.copy2(REPO_ROOT / "LICENSE", project / "LICENSE")
     shutil.copytree(REPO_ROOT / "src", project / "src")
     wheel_dir = root / "wheel"
     wheel_dir.mkdir()
@@ -68,6 +69,24 @@ def test_wheel_contains_builtin_catalog_schema_targets_and_hardware(
         }
     ) == 2
     assert not any(name.startswith("catalog/") for name in names)
+
+
+def test_wheel_declares_mit_and_contains_license(built_wheel: Path) -> None:
+    with zipfile.ZipFile(built_wheel) as archive:
+        metadata_name = next(
+            name for name in archive.namelist() if name.endswith(".dist-info/METADATA")
+        )
+        license_name = next(
+            name
+            for name in archive.namelist()
+            if name.endswith(".dist-info/licenses/LICENSE")
+        )
+        metadata = archive.read(metadata_name).decode("utf-8")
+        license_text = archive.read(license_name).decode("utf-8")
+
+    assert "License-Expression: MIT\n" in metadata
+    assert "License-File: LICENSE\n" in metadata
+    assert license_text == (REPO_ROOT / "LICENSE").read_text(encoding="utf-8")
 
 
 def test_installed_builtin_resolver_works_outside_repository(
