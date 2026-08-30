@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -32,69 +31,3 @@ jobs:
 
       - name: Run tests
         run: pytest -q
-
-  orin-stage-reference:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, Linux, X64, orin-stage-ci]
-
-    env:
-      ORIN_STAGE_CI_DATA_ROOT: ${{ vars.ORIN_STAGE_CI_DATA_ROOT }}
-      ORIN_STAGE_CI_WORKSPACE: ${{ vars.ORIN_STAGE_CI_WORKSPACE }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Validate CI configuration
-        run: |
-          test -n "$ORIN_STAGE_CI_DATA_ROOT"
-          test -n "$ORIN_STAGE_CI_WORKSPACE"
-
-      - name: Install current Orin Stage checkout
-        run: |
-          python3 -m venv "$RUNNER_TEMP/orin-stage-venv"
-          "$RUNNER_TEMP/orin-stage-venv/bin/python" -m pip install .
-          echo "$RUNNER_TEMP/orin-stage-venv/bin" >> "$GITHUB_PATH"
-
-      - name: Inspect existing workspace
-        run: |
-          ostg \
-            --data-root "$ORIN_STAGE_CI_DATA_ROOT" \
-            inspect \
-            --workspace "$ORIN_STAGE_CI_WORKSPACE"
-
-      - name: Run Orin Stage ARM64 reference probe
-        run: |
-          before="$(
-            ostg \
-              --data-root "$ORIN_STAGE_CI_DATA_ROOT" \
-              inspect \
-              --workspace "$ORIN_STAGE_CI_WORKSPACE" |
-            awk '$1 == "Generation:" {print $2; exit}'
-          )"
-
-          ./ci/arm64_reference_probe.sh \
-            orin-stage \
-            "$ORIN_STAGE_CI_DATA_ROOT" \
-            "$ORIN_STAGE_CI_WORKSPACE" |
-            tee "$RUNNER_TEMP/orin-stage-reference.txt"
-
-          after="$(
-            ostg \
-              --data-root "$ORIN_STAGE_CI_DATA_ROOT" \
-              inspect \
-              --workspace "$ORIN_STAGE_CI_WORKSPACE" |
-            awk '$1 == "Generation:" {print $2; exit}'
-          )"
-
-          printf 'generation=%s->%s\n' "$before" "$after"
-
-          test "$before" = "$after"
-
-      - name: Upload Orin Stage reference result
-        uses: actions/upload-artifact@v4
-        with:
-          name: orin-stage-reference
-          path: ${{ runner.temp }}/orin-stage-reference.txt
-          if-no-files-found: error
-          retention-days: 1

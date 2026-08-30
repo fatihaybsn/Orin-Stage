@@ -1,5 +1,8 @@
 # Orin Stage (`ostg`)
 
+[![CI](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/ci.yml/badge.svg)](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/ci.yml)
+[![Orin Stage ARM64 Reference](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/orin-stage-reference.yml/badge.svg)](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/orin-stage-reference.yml)
+
 **Orin Stage** is an open-source development workspace engine for x86_64 Linux workstations that bridges the critical gap between host development machines and physical edge deployments (AGX Orin, Orin NX, Orin Nano).
 
 In mission-critical domains such as robotics, autonomous systems, defense, and physical AI, deploying complex software stacks requires absolute target parity. Orin Stage provisions fully configured, deterministic ARM64 **JetPack 6** userspace environments directly from official NVIDIA BSP, Sample RootFS, and SDK Manager releases into persistent, isolated workspaces. It empowers developers to build repositories, execute interactive ARM64 shell sessions, trial APT/pip package dependencies, audit system libraries and filesystem states, and cross-compile with exact sysroot fidelity — providing a complete local staging ground before deploying to physical edge devices.
