@@ -72,3 +72,50 @@ jobs:
           path: ${{ runner.temp }}/orin-stage-reference.txt
           if-no-files-found: error
           retention-days: 1
+
+  native-arm64-reference:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run native ARM64 reference probe
+        run: |
+          ./ci/arm64_reference_probe.sh native |
+            tee "$RUNNER_TEMP/native-arm64-reference.txt"
+
+      - name: Upload native ARM64 reference result
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-arm64-reference
+          path: ${{ runner.temp }}/native-arm64-reference.txt
+          if-no-files-found: error
+          retention-days: 1
+
+  compare-arm64-reference:
+    runs-on: ubuntu-22.04
+    needs:
+      - orin-stage-reference
+      - native-arm64-reference
+
+    steps:
+      - name: Download Orin Stage reference result
+        uses: actions/download-artifact@v8
+        with:
+          name: orin-stage-reference
+          path: comparison/orin
+
+      - name: Download native ARM64 reference result
+        uses: actions/download-artifact@v8
+        with:
+          name: native-arm64-reference
+          path: comparison/native
+
+      - name: Compare ARM64 reference results
+        run: |
+          diff -u \
+            comparison/orin/orin-stage-reference.txt \
+            comparison/native/native-arm64-reference.txt
+          echo "ARM64 reference comparison: PASS"
