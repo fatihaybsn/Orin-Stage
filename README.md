@@ -93,6 +93,21 @@ size evidence, and publishes a normal acquisition receipt. On the same
 filesystem the managed download entries are hard links, so the large artifacts
 do not consume a second copy of their data.
 
+## ✅ CI & Validation
+
+Orin Stage uses two complementary GitHub Actions workflows:
+
+* **CI:** Runs the full automated test suite on a GitHub-hosted Ubuntu 22.04 x86_64 runner for every push and pull request to `main`.
+* **ARM64 Reference:** A manually triggered validation workflow that runs the same deterministic CPU/userspace probe through:
+
+  1. a real Orin Stage JP6 workspace on a trusted self-hosted x86_64 runner using QEMU, and
+  2. a GitHub-hosted native Ubuntu 22.04 ARM64 runner.
+
+The normalized results are compared automatically.
+
+The native ARM64 runner is a generic ARM64 Linux system, **not a Jetson device**. This workflow validates a small CPU/userspace execution reference only; GPU, DLA, camera, Jetson kernel/firmware behavior, performance, and matching physical Orin validation remain outside this CI layer.
+
+
 ---
 
 ## 📄 License
