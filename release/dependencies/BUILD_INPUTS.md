@@ -18,8 +18,8 @@ python3-wheel
 build-essential
 libyaml-dev
 cython3
-rustc-1.78
-cargo-1.78
+rustc-1.85
+cargo-1.85
 ```
 
 `gcc` is not repeated because `build-essential` provides the compiler and
@@ -41,8 +41,10 @@ provides the distro pip bootstrap wheel used only as a build frontend;
 | `cython3` | 0.29.28-1ubuntu3 | 0.29.28-1ubuntu3 | 3.0.8-1ubuntu3 | 3.0.8-1ubuntu3 | apt, proven below |
 | `rustc` generic | 1.58.1+dfsg1~ubuntu1-0ubuntu2 | 1.75.0+dfsg0ubuntu1~bpo0-0ubuntu0.22.04.1 | 1.75.0+dfsg0ubuntu1-0ubuntu7 | 1.75.0+dfsg0ubuntu1-0ubuntu7.4 | insufficient for rpds lock v4 |
 | `cargo` generic | 0.58.0-0ubuntu1 | 1.75.0+dfsg0ubuntu1~bpo0-0ubuntu0.22.04.1 | 1.75.0+dfsg0ubuntu1-0ubuntu7 | 1.75.0+dfsg0ubuntu1-0ubuntu7.4 | insufficient for rpds lock v4 |
-| `rustc-1.78` | unavailable | 1.78.0+dfsg1ubuntu1~bpo0-0ubuntu0.22.04.1 | unavailable | 1.78.0+dfsg1ubuntu1-0ubuntu0.24.04.2 | apt, selected |
-| `cargo-1.78` | unavailable | 1.78.0+dfsg1ubuntu1~bpo0-0ubuntu0.22.04.1 | unavailable | 1.78.0+dfsg1ubuntu1-0ubuntu0.24.04.2 | apt, selected |
+| `rustc-1.78` | unavailable | 1.78.0+dfsg1ubuntu1~bpo0-0ubuntu0.22.04.1 | unavailable | 1.78.0+dfsg1ubuntu1-0ubuntu0.24.04.2 | insufficient after 6B.4 source proof |
+| `cargo-1.78` | unavailable | 1.78.0+dfsg1ubuntu1~bpo0-0ubuntu0.22.04.1 | unavailable | 1.78.0+dfsg1ubuntu1-0ubuntu0.24.04.2 | insufficient after 6B.4 source proof |
+| `rustc-1.85` | unavailable | 1.85.1+dfsg0ubuntu2~bpo0-0ubuntu1.22.04.1 | unavailable | 1.85.1+dfsg0ubuntu2~bpo0-0ubuntu0.24.04.2 | apt, selected and proven |
+| `cargo-1.85` | unavailable | 1.85.1+dfsg0ubuntu2~bpo0-0ubuntu1.22.04.1 | unavailable | 1.85.1+dfsg0ubuntu2~bpo0-0ubuntu0.24.04.2 | apt, selected and proven |
 | `pkg-config` | 0.29.2-1ubuntu3 | 0.29.2-1ubuntu3 | 1.8.1-2build1 | 1.8.1-2build1 | exclude |
 
 The versioned Rust packages require the Updates/Security pockets. A
@@ -181,12 +183,15 @@ verified sdist `Cargo.lock`; local/workspace packages are excluded.
 The two exact overlaps are `heck 0.5.0` and `shlex 1.3.0`, hence
 `26 + 371 - 2 = 395`. No crate was downloaded in this step.
 
-Cargo lock format 4 was introduced in Cargo 1.78. The selected common archive
-toolchain `rustc-1.78`/`cargo-1.78` therefore satisfies both that parser floor
-and maturin's declared MSRV 1.74. rpds-py declares no MSRV, so no stronger
-claim is possible before the no-network compile proof in Step 6C. There is no
-metadata-level blocker under the selected Updates/Security-pocket contract;
-generic Cargo 1.75 or a Release-only archive would be a blocker.
+Cargo lock format 4 requires Cargo 1.78 or newer, but that parser floor is not
+the complete source-closure floor. Step 6B.4's exact crate materialization
+showed that rpds-py's locked direct dependency `rpds 1.2.0` declares Rust
+edition 2024 and `rust-version = "1.85.0"`. Cargo 1.78 consequently rejects
+the locked crate manifest before compilation. The selected common archive
+toolchain is therefore `rustc-1.85`/`cargo-1.85`; its 1.85.1 binaries passed
+no-network `cargo metadata --locked --offline` for both exact sdists against
+the shared 395-crate vendor tree without changing either lock file. Generic
+Cargo 1.75, Cargo 1.78, and a Release-only archive remain blockers.
 
 ## Scope guard
 
