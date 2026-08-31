@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "crate_count": 395,
+  "file_count": 21269,
+  "uncompressed_content_bytes": 411187002,
+  "tree_sha256": "b720c626294b0585ff8daffce0998dc75fe15e1cfb6ab5eb36b18872de63b820",
+  "config_sha256": "54310eb1557c7bff739e9e3bfcf0a46c241e34ec513a613a6fbcf9376d029ac8",
+  "missing_license_metadata": []
+}

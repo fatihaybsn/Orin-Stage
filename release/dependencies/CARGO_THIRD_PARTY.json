@@ -1,0 +1,4352 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "name": "adler2",
+      "version": "2.0.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "0BSD OR MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/oyvindln/adler2",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "ahash",
+      "version": "0.8.11",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/tkaitchuck/ahash",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "aho-corasick",
+      "version": "1.1.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/aho-corasick",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "allocator-api2",
+      "version": "0.2.18",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/zakarumych/allocator-api2",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "anstream",
+      "version": "0.6.14",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-cli/anstyle.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "anstyle",
+      "version": "1.0.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-cli/anstyle.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "anstyle-parse",
+      "version": "0.2.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-cli/anstyle.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "anstyle-query",
+      "version": "1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-cli/anstyle",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "anstyle-wincon",
+      "version": "3.0.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-cli/anstyle.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "anyhow",
+      "version": "1.0.89",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/anyhow",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "arbitrary",
+      "version": "1.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-fuzz/arbitrary/",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "archery",
+      "version": "1.2.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/orium/archery",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "autocfg",
+      "version": "1.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/cuviper/autocfg",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "autocfg",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/cuviper/autocfg",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "automod",
+      "version": "1.0.14",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/automod",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "base64",
+      "version": "0.21.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/marshallpierce/rust-base64",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "base64",
+      "version": "0.22.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/marshallpierce/rust-base64",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "bitflags",
+      "version": "1.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/bitflags/bitflags",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "bitflags",
+      "version": "2.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/bitflags/bitflags",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "block-buffer",
+      "version": "0.10.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/RustCrypto/utils",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "boxcar",
+      "version": "0.2.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/ibraheemdev/boxcar",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "bstr",
+      "version": "1.10.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/bstr",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "bumpalo",
+      "version": "3.16.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/fitzgen/bumpalo",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "byteorder",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/byteorder",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "bytes",
+      "version": "1.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/tokio-rs/bytes",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "bytesize",
+      "version": "1.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/hyunsik/bytesize/",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "bzip2",
+      "version": "0.5.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/trifectatechfoundation/bzip2-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "bzip2-sys",
+      "version": "0.1.13+1.0.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/alexcrichton/bzip2-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cab",
+      "version": "0.6.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/mdsteele/rust-cab",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "camino",
+      "version": "1.1.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/camino-rs/camino",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cargo-config2",
+      "version": "0.1.26",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/taiki-e/cargo-config2",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cargo-options",
+      "version": "0.7.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/messense/cargo-options",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cargo-platform",
+      "version": "0.1.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/cargo",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cargo-xwin",
+      "version": "0.18.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/rust-cross/cargo-xwin",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cargo-zigbuild",
+      "version": "0.20.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/rust-cross/cargo-zigbuild",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cargo_metadata",
+      "version": "0.19.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/oli-obk/cargo_metadata",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cbindgen",
+      "version": "0.29.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MPL-2.0",
+      "license_file": null,
+      "repository": "https://github.com/mozilla/cbindgen",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cc",
+      "version": "1.2.16",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/cc-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cc",
+      "version": "1.2.48",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/cc-rs",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "cfb",
+      "version": "0.10.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/mdsteele/rust-cfb",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/alexcrichton/cfg-if",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "charset",
+      "version": "0.1.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/hsivonen/charset",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "chumsky",
+      "version": "0.9.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/zesterer/chumsky",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "clap",
+      "version": "4.5.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/clap-rs/clap",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "clap_builder",
+      "version": "4.5.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/clap-rs/clap",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "clap_complete",
+      "version": "4.5.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/clap-rs/clap",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "clap_complete_command",
+      "version": "0.6.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/nihaals/clap-complete-command",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "clap_complete_nushell",
+      "version": "4.5.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/clap-rs/clap",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "clap_derive",
+      "version": "4.5.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/clap-rs/clap",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "clap_lex",
+      "version": "0.7.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/clap-rs/clap",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cli-table",
+      "version": "0.4.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/devashishdxt/cli-table",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "colorchoice",
+      "version": "1.0.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-cli/anstyle",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "configparser",
+      "version": "3.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR LGPL-3.0-or-later",
+      "license_file": null,
+      "repository": "https://github.com/QEDK/configparser-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "console",
+      "version": "0.15.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/console-rs/console",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "content_inspector",
+      "version": "0.2.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/sharkdp/content_inspector",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "core-foundation",
+      "version": "0.9.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/servo/core-foundation-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "core-foundation-sys",
+      "version": "0.8.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/servo/core-foundation-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "cpufeatures",
+      "version": "0.2.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/RustCrypto/utils",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "crc",
+      "version": "3.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/mrhooray/crc-rs.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "crc-catalog",
+      "version": "2.4.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/akhilles/crc-catalog.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "crc32fast",
+      "version": "1.4.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/srijs/rust-crc32fast",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "crossbeam-channel",
+      "version": "0.5.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/crossbeam-rs/crossbeam",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "crossbeam-deque",
+      "version": "0.8.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/crossbeam-rs/crossbeam",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "crossbeam-epoch",
+      "version": "0.9.18",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/crossbeam-rs/crossbeam",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "crossbeam-utils",
+      "version": "0.8.20",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/crossbeam-rs/crossbeam",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "crypto-common",
+      "version": "0.1.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/RustCrypto/traits",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "data-encoding",
+      "version": "2.6.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/ia0/data-encoding",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "deranged",
+      "version": "0.3.11",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/jhpratt/deranged",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "derive_arbitrary",
+      "version": "1.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-fuzz/arbitrary",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "dialoguer",
+      "version": "0.11.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/console-rs/dialoguer",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "diff",
+      "version": "0.1.13",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/utkarshkukreti/diff.rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "digest",
+      "version": "0.10.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/RustCrypto/traits",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "dirs",
+      "version": "5.0.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/soc/dirs-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "dirs-sys",
+      "version": "0.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dirs-dev/dirs-sys-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "displaydoc",
+      "version": "0.2.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/yaahc/displaydoc",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "dissimilar",
+      "version": "1.0.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/dissimilar",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "dunce",
+      "version": "1.0.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "CC0-1.0 OR MIT-0 OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://gitlab.com/kornelski/dunce",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "dyn-clone",
+      "version": "1.0.17",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/dyn-clone",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "either",
+      "version": "1.13.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rayon-rs/either",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "encode_unicode",
+      "version": "0.3.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/tormol/encode_unicode",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "encoding_rs",
+      "version": "0.8.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "(Apache-2.0 OR MIT) AND BSD-3-Clause",
+      "license_file": null,
+      "repository": "https://github.com/hsivonen/encoding_rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "equivalent",
+      "version": "1.0.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/cuviper/equivalent",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "errno",
+      "version": "0.3.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/lambda-fairy/rust-errno",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "expect-test",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-analyzer/expect-test",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "fastrand",
+      "version": "2.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/smol-rs/fastrand",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "fat-macho",
+      "version": "0.4.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/messense/fat-macho-rs.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "filetime",
+      "version": "0.2.23",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/alexcrichton/filetime",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "find-msvc-tools",
+      "version": "0.1.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/cc-rs",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "flate2",
+      "version": "1.0.33",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/flate2-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "fnv",
+      "version": "1.0.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 / MIT",
+      "license_file": null,
+      "repository": "https://github.com/servo/rust-fnv",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "foreign-types",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/sfackler/foreign-types",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "foreign-types-shared",
+      "version": "0.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/sfackler/foreign-types",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "form_urlencoded",
+      "version": "1.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/servo/rust-url",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "fs-err",
+      "version": "3.0.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/andrewhickman/fs-err",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "fs4",
+      "version": "0.12.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/al8n/fs4-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures",
+      "version": "0.3.30",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures-channel",
+      "version": "0.3.31",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures-core",
+      "version": "0.3.31",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures-executor",
+      "version": "0.3.30",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures-io",
+      "version": "0.3.31",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures-macro",
+      "version": "0.3.31",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures-sink",
+      "version": "0.3.31",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures-task",
+      "version": "0.3.31",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures-timer",
+      "version": "3.0.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/async-rs/futures-timer",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "futures-util",
+      "version": "0.3.31",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "generic-array",
+      "version": "0.14.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/fizyk20/generic-array.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "getrandom",
+      "version": "0.2.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-random/getrandom",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "getrandom",
+      "version": "0.3.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-random/getrandom",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "glob",
+      "version": "0.3.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/glob",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "globset",
+      "version": "0.4.16",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/ripgrep/tree/master/crates/globset",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "goblin",
+      "version": "0.9.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/m4b/goblin",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "hashbrown",
+      "version": "0.14.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/hashbrown",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "hashbrown",
+      "version": "0.15.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/hashbrown",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "heck",
+      "version": "0.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/withoutboats/heck",
+      "consumers": [
+        "maturin",
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "home",
+      "version": "0.5.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/cargo",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "humantime",
+      "version": "2.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/tailhook/humantime",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "humantime-serde",
+      "version": "1.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/jean-airoldie/humantime-serde",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_collections",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_locid",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_locid_transform",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_locid_transform_data",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_normalizer",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_normalizer_data",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_properties",
+      "version": "1.5.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_properties_data",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_provider",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "icu_provider_macros",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "idna",
+      "version": "1.0.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/servo/rust-url/",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "idna_adapter",
+      "version": "1.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/hsivonen/idna_adapter",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "ignore",
+      "version": "0.4.23",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "indexmap",
+      "version": "2.6.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/indexmap-rs/indexmap",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "indicatif",
+      "version": "0.17.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/console-rs/indicatif",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "indoc",
+      "version": "2.0.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/indoc",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "indoc",
+      "version": "2.0.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/indoc",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "insta",
+      "version": "1.43.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/mitsuhiko/insta",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "is_terminal_polyfill",
+      "version": "1.70.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/polyfill-rs/is_terminal_polyfill",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "itertools",
+      "version": "0.12.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-itertools/itertools",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "itertools",
+      "version": "0.13.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-itertools/itertools",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "itoa",
+      "version": "1.0.11",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/itoa",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "jobserver",
+      "version": "0.1.33",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/jobserver-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "js-sys",
+      "version": "0.3.73",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rustwasm/wasm-bindgen/tree/master/crates/js-sys",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "keyring",
+      "version": "2.3.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/hwchen/keyring-rs.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "lazy_static",
+      "version": "1.4.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang-nursery/lazy-static.rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "lddtree",
+      "version": "0.3.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/messense/lddtree-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "libc",
+      "version": "0.2.172",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/libc",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "libc",
+      "version": "0.2.177",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/libc",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "libmimalloc-sys",
+      "version": "0.1.39",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/purpleprotocol/mimalloc_rust/tree/master/libmimalloc-sys",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "libredox",
+      "version": "0.1.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://gitlab.redox-os.org/redox-os/libredox.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "linux-keyutils",
+      "version": "0.2.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/landhb/linux-keyutils",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "linux-raw-sys",
+      "version": "0.4.14",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/sunfishcode/linux-raw-sys",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "litemap",
+      "version": "0.7.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "lock_api",
+      "version": "0.4.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Amanieu/parking_lot",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "lockfree-object-pool",
+      "version": "0.1.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "BSL-1.0",
+      "license_file": null,
+      "repository": "https://github.com/EVaillant/lockfree-object-pool",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "log",
+      "version": "0.4.22",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/log",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "lzma-rs",
+      "version": "0.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/gendx/lzma-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "lzma-sys",
+      "version": "0.1.20",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/alexcrichton/xz2-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "lzxd",
+      "version": "0.2.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Lonami/lzxd",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "mailparse",
+      "version": "0.15.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "0BSD",
+      "license_file": null,
+      "repository": "https://github.com/staktrace/mailparse",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "matchers",
+      "version": "0.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/hawkw/matchers",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "memchr",
+      "version": "2.7.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/memchr",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "memoffset",
+      "version": "0.9.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/Gilnaa/memoffset",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "mimalloc",
+      "version": "0.1.43",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/purpleprotocol/mimalloc_rust",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "mime",
+      "version": "0.3.17",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/hyperium/mime",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "mime_guess",
+      "version": "2.0.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/abonander/mime_guess",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "minijinja",
+      "version": "2.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/mitsuhiko/minijinja",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "minimal-lexical",
+      "version": "0.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Alexhuszagh/minimal-lexical",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "miniz_oxide",
+      "version": "0.8.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Zlib OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "msi",
+      "version": "0.8.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/mdsteele/rust-msi",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "multipart",
+      "version": "0.18.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "http://github.com/abonander/multipart",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "native-tls",
+      "version": "0.2.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/sfackler/rust-native-tls",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "nom",
+      "version": "7.1.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/Geal/nom",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "normalize-line-endings",
+      "version": "0.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/derekdreery/normalize-line-endings",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "normpath",
+      "version": "1.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dylni/normpath",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "nu-ansi-term",
+      "version": "0.46.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/nushell/nu-ansi-term",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "num-conv",
+      "version": "0.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/jhpratt/num-conv",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "number_prefix",
+      "version": "0.4.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/ogham/rust-number-prefix",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "once_cell",
+      "version": "1.20.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/matklad/once_cell",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "once_cell",
+      "version": "1.21.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/matklad/once_cell",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "openssl",
+      "version": "0.10.72",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/sfackler/rust-openssl",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "openssl-macros",
+      "version": "0.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": null,
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "openssl-probe",
+      "version": "0.1.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/alexcrichton/openssl-probe",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "openssl-sys",
+      "version": "0.9.107",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/sfackler/rust-openssl",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "option-ext",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MPL-2.0",
+      "license_file": null,
+      "repository": "https://github.com/soc/option-ext.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "os_pipe",
+      "version": "1.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/oconnor663/os_pipe.rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "overload",
+      "version": "0.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/danaugrs/overload",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "parking_lot",
+      "version": "0.12.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Amanieu/parking_lot",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "parking_lot_core",
+      "version": "0.9.10",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Amanieu/parking_lot",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "paste",
+      "version": "1.0.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/paste",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "path-slash",
+      "version": "0.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/rhysd/path-slash",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "pep440_rs",
+      "version": "0.7.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "license_file": null,
+      "repository": "https://github.com/konstin/pep440-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "pep508_rs",
+      "version": "0.9.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "license_file": null,
+      "repository": "https://github.com/konstin/pep508_rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "percent-encoding",
+      "version": "2.3.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/servo/rust-url/",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "pin-project-lite",
+      "version": "0.2.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/taiki-e/pin-project-lite",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "pin-utils",
+      "version": "0.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang-nursery/pin-utils",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "pkg-config",
+      "version": "0.3.30",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/pkg-config-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "plain",
+      "version": "0.2.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/randomites/plain",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "platform-info",
+      "version": "2.0.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/uutils/platform-info",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "portable-atomic",
+      "version": "1.11.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/taiki-e/portable-atomic",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "portable-atomic",
+      "version": "1.6.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/taiki-e/portable-atomic",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "powerfmt",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/jhpratt/powerfmt",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "ppv-lite86",
+      "version": "0.2.17",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/cryptocorrosion/cryptocorrosion",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "pretty_assertions",
+      "version": "1.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-pretty-assertions/rust-pretty-assertions",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "proc-macro-crate",
+      "version": "3.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/bkchr/proc-macro-crate",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.103",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/proc-macro2",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.92",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/proc-macro2",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "psm",
+      "version": "0.1.21",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/stacker/",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "pyo3",
+      "version": "0.27.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/pyo3/pyo3",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "pyo3-build-config",
+      "version": "0.27.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/pyo3/pyo3",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "pyo3-ffi",
+      "version": "0.27.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/pyo3/pyo3",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "pyo3-macros",
+      "version": "0.27.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/pyo3/pyo3",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "pyo3-macros-backend",
+      "version": "0.27.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/pyo3/pyo3",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "pyproject-toml",
+      "version": "0.13.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/PyO3/pyproject-toml-rs.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "python-pkginfo",
+      "version": "0.6.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/PyO3/python-pkginfo-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "python3-dll-a",
+      "version": "0.2.14",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/PyO3/python3-dll-a",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "quote",
+      "version": "1.0.37",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/quote",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "quote",
+      "version": "1.0.42",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/quote",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "quoted_printable",
+      "version": "0.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "0BSD",
+      "license_file": null,
+      "repository": "https://github.com/staktrace/quoted-printable",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "r-efi",
+      "version": "5.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+      "license_file": null,
+      "repository": "https://github.com/r-efi/r-efi",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rand",
+      "version": "0.8.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-random/rand",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rand_chacha",
+      "version": "0.3.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-random/rand",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rand_core",
+      "version": "0.6.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-random/rand",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rayon",
+      "version": "1.10.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rayon-rs/rayon",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rayon-core",
+      "version": "1.12.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rayon-rs/rayon",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "redox_syscall",
+      "version": "0.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://gitlab.redox-os.org/redox-os/syscall",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "redox_syscall",
+      "version": "0.5.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://gitlab.redox-os.org/redox-os/syscall",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "redox_users",
+      "version": "0.4.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://gitlab.redox-os.org/redox-os/users",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "regex",
+      "version": "1.11.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/regex",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "regex-automata",
+      "version": "0.1.10",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense/MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/regex-automata",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "regex-automata",
+      "version": "0.4.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/regex/tree/master/regex-automata",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "regex-syntax",
+      "version": "0.6.29",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/regex",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "regex-syntax",
+      "version": "0.8.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/regex/tree/master/regex-syntax",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "relative-path",
+      "version": "1.9.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/udoprog/relative-path",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rfc2047-decoder",
+      "version": "1.0.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/TornaxO7/rfc2047-decoder",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "ring",
+      "version": "0.17.13",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 AND ISC",
+      "license_file": null,
+      "repository": "https://github.com/briansmith/ring",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rpds",
+      "version": "1.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/orium/rpds",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "rstest",
+      "version": "0.22.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/la10736/rstest",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rstest_macros",
+      "version": "0.22.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/la10736/rstest",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustc-hash",
+      "version": "2.0.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0/MIT",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/rustc-hash",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustc_version",
+      "version": "0.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/djc/rustc-version-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustflags",
+      "version": "0.1.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/rustflags",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustix",
+      "version": "0.38.41",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/bytecodealliance/rustix",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustls",
+      "version": "0.23.19",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR ISC OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/rustls/rustls",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustls-pemfile",
+      "version": "2.1.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR ISC OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/rustls/pemfile",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustls-pki-types",
+      "version": "1.10.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rustls/pki-types",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustls-webpki",
+      "version": "0.102.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "ISC",
+      "license_file": null,
+      "repository": "https://github.com/rustls/webpki",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustversion",
+      "version": "1.0.18",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/rustversion",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "rustversion",
+      "version": "1.0.22",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/rustversion",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "ryu",
+      "version": "1.0.18",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR BSL-1.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/ryu",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "same-file",
+      "version": "1.0.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense/MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/same-file",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "schannel",
+      "version": "0.1.23",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/steffengy/schannel-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "schemars",
+      "version": "0.8.21",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/GREsau/schemars",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "schemars_derive",
+      "version": "0.8.21",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/GREsau/schemars",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "scopeguard",
+      "version": "1.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/bluss/scopeguard",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "scroll",
+      "version": "0.12.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/m4b/scroll",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "scroll_derive",
+      "version": "0.12.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/m4b/scroll",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "security-framework",
+      "version": "2.11.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/kornelski/rust-security-framework",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "security-framework-sys",
+      "version": "2.11.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/kornelski/rust-security-framework",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "semver",
+      "version": "1.0.23",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/semver",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "serde",
+      "version": "1.0.217",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/serde-rs/serde",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "serde_derive",
+      "version": "1.0.217",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/serde-rs/serde",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "serde_derive_internals",
+      "version": "0.29.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/serde-rs/serde",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0.135",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/serde-rs/json",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "serde_spanned",
+      "version": "0.6.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/toml-rs/toml",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "sha2",
+      "version": "0.10.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/RustCrypto/hashes",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "sharded-slab",
+      "version": "0.1.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/hawkw/sharded-slab",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "shell-words",
+      "version": "1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/tmiasko/shell-words",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "shlex",
+      "version": "1.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/comex/rust-shlex",
+      "consumers": [
+        "maturin",
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "simd-adler32",
+      "version": "0.3.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/mcountryman/simd-adler32",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "similar",
+      "version": "2.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/mitsuhiko/similar",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "slab",
+      "version": "0.4.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/tokio-rs/slab",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "smallvec",
+      "version": "1.13.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/servo/rust-smallvec",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "smawk",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/mgeisler/smawk",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "snapbox",
+      "version": "0.6.16",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/assert-rs/trycmd/",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "snapbox-macros",
+      "version": "0.3.10",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/assert-rs/trycmd/",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "socks",
+      "version": "0.3.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/sfackler/rust-socks",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "stable_deref_trait",
+      "version": "1.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/storyyeller/stable_deref_trait",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "stacker",
+      "version": "0.1.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rust-lang/stacker",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "static_assertions",
+      "version": "1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/nvzqz/static-assertions-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "strsim",
+      "version": "0.11.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/rapidfuzz/strsim-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "subtle",
+      "version": "2.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "BSD-3-Clause",
+      "license_file": null,
+      "repository": "https://github.com/dalek-cryptography/subtle",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "syn",
+      "version": "2.0.111",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/syn",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "syn",
+      "version": "2.0.90",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/syn",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "synstructure",
+      "version": "0.13.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/mystor/synstructure",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "tar",
+      "version": "0.4.43",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/alexcrichton/tar-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "target-lexicon",
+      "version": "0.13.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_file": null,
+      "repository": "https://github.com/bytecodealliance/target-lexicon",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "target-lexicon",
+      "version": "0.13.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_file": null,
+      "repository": "https://github.com/bytecodealliance/target-lexicon",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "tempfile",
+      "version": "3.11.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Stebalien/tempfile",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "termcolor",
+      "version": "1.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/termcolor",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "terminal_size",
+      "version": "0.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/eminence/terminal-size",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "textwrap",
+      "version": "0.16.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/mgeisler/textwrap",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "thiserror",
+      "version": "1.0.69",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/thiserror",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "thiserror",
+      "version": "2.0.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/thiserror",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "thiserror-impl",
+      "version": "1.0.69",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/thiserror",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "thiserror-impl",
+      "version": "2.0.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/thiserror",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "thread_local",
+      "version": "1.1.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Amanieu/thread_local-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "time",
+      "version": "0.3.36",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/time-rs/time",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "time-core",
+      "version": "0.1.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/time-rs/time",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "time-macros",
+      "version": "0.2.18",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/time-rs/time",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "tinystr",
+      "version": "0.7.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "toml",
+      "version": "0.8.19",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/toml-rs/toml",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "toml_datetime",
+      "version": "0.6.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/toml-rs/toml",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "toml_edit",
+      "version": "0.21.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/toml-rs/toml",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "toml_edit",
+      "version": "0.22.22",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/toml-rs/toml",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "tracing",
+      "version": "0.1.41",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/tokio-rs/tracing",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "tracing-attributes",
+      "version": "0.1.28",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/tokio-rs/tracing",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "tracing-core",
+      "version": "0.1.33",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/tokio-rs/tracing",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "tracing-log",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/tokio-rs/tracing",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "tracing-serde",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/tokio-rs/tracing",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "tracing-subscriber",
+      "version": "0.3.19",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/tokio-rs/tracing",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "triomphe",
+      "version": "0.1.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Manishearth/triomphe",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "trycmd",
+      "version": "0.15.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/assert-rs/trycmd.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "twox-hash",
+      "version": "1.6.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/shepmaster/twox-hash",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "typenum",
+      "version": "1.17.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/paholg/typenum",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "unicase",
+      "version": "2.7.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/seanmonstar/unicase",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "(MIT OR Apache-2.0) AND Unicode-DFS-2016",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/unicode-ident",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.22",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/unicode-ident",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "unicode-linebreak",
+      "version": "0.1.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/axelf4/unicode-linebreak",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "unicode-width",
+      "version": "0.1.13",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-rs/unicode-width",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "unicode-width",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-rs/unicode-width",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "unicode-xid",
+      "version": "0.2.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-rs/unicode-xid",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "unindent",
+      "version": "0.2.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/dtolnay/indoc",
+      "consumers": [
+        "rpds-py"
+      ]
+    },
+    {
+      "name": "unscanny",
+      "version": "0.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/typst/unscanny",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "untrusted",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "ISC",
+      "license_file": null,
+      "repository": "https://github.com/briansmith/untrusted",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "ureq",
+      "version": "2.11.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/algesten/ureq",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "url",
+      "version": "2.5.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/servo/rust-url",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "urlencoding",
+      "version": "2.1.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/kornelski/rust_urlencoding",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "utf16_iter",
+      "version": "1.0.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/hsivonen/utf16_iter",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "utf8_iter",
+      "version": "1.0.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/hsivonen/utf8_iter",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "utf8parse",
+      "version": "0.2.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/alacritty/vte",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "uuid",
+      "version": "1.8.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/uuid-rs/uuid",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "valuable",
+      "version": "0.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/tokio-rs/valuable",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "vcpkg",
+      "version": "0.2.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/mcgoo/vcpkg-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "version-ranges",
+      "version": "0.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MPL-2.0",
+      "license_file": null,
+      "repository": "https://github.com/pubgrub-rs/pubgrub",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "version_check",
+      "version": "0.9.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/SergioBenitez/version_check",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "versions",
+      "version": "6.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/fosskers/rs-versions",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wait-timeout",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/alexcrichton/wait-timeout",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "walkdir",
+      "version": "2.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense/MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/walkdir",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wasi",
+      "version": "0.11.0+wasi-snapshot-preview1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/bytecodealliance/wasi",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wasi",
+      "version": "0.14.2+wasi-0.2.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/bytecodealliance/wasi-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wasm-bindgen",
+      "version": "0.2.96",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rustwasm/wasm-bindgen",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wasm-bindgen-backend",
+      "version": "0.2.96",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rustwasm/wasm-bindgen/tree/master/crates/backend",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wasm-bindgen-macro",
+      "version": "0.2.96",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rustwasm/wasm-bindgen/tree/master/crates/macro",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wasm-bindgen-macro-support",
+      "version": "0.2.96",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rustwasm/wasm-bindgen/tree/master/crates/macro-support",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wasm-bindgen-shared",
+      "version": "0.2.96",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rustwasm/wasm-bindgen/tree/master/crates/shared",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "web-time",
+      "version": "1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/daxpedda/web-time",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "webpki-roots",
+      "version": "0.26.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MPL-2.0",
+      "license_file": null,
+      "repository": "https://github.com/rustls/webpki-roots",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "which",
+      "version": "7.0.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/harryfei/which-rs.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wild",
+      "version": "2.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://gitlab.com/kornelski/wild",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "winapi",
+      "version": "0.3.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/retep998/winapi-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "winapi-i686-pc-windows-gnu",
+      "version": "0.4.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/retep998/winapi-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "winapi-util",
+      "version": "0.1.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unlicense OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/BurntSushi/winapi-util",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "winapi-x86_64-pc-windows-gnu",
+      "version": "0.4.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/retep998/winapi-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.48.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.52.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows-targets",
+      "version": "0.48.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows-targets",
+      "version": "0.52.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_aarch64_gnullvm",
+      "version": "0.48.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_aarch64_gnullvm",
+      "version": "0.52.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_aarch64_msvc",
+      "version": "0.48.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_aarch64_msvc",
+      "version": "0.52.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_i686_gnu",
+      "version": "0.48.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_i686_gnu",
+      "version": "0.52.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_i686_gnullvm",
+      "version": "0.52.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_i686_msvc",
+      "version": "0.48.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_i686_msvc",
+      "version": "0.52.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_x86_64_gnu",
+      "version": "0.48.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_x86_64_gnu",
+      "version": "0.52.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_x86_64_gnullvm",
+      "version": "0.48.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_x86_64_gnullvm",
+      "version": "0.52.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_x86_64_msvc",
+      "version": "0.48.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "windows_x86_64_msvc",
+      "version": "0.52.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/microsoft/windows-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "winnow",
+      "version": "0.5.40",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/winnow-rs/winnow",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "winnow",
+      "version": "0.6.20",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/winnow-rs/winnow",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "winsafe",
+      "version": "0.0.19",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/rodrigocfd/winsafe",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "wit-bindgen-rt",
+      "version": "0.39.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/bytecodealliance/wit-bindgen",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "write16",
+      "version": "1.0.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/hsivonen/write16",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "writeable",
+      "version": "0.5.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "xattr",
+      "version": "1.3.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/Stebalien/xattr",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "xwin",
+      "version": "0.6.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/Jake-Shadle/xwin",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "xz2",
+      "version": "0.1.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/alexcrichton/xz2-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "yansi",
+      "version": "1.0.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/SergioBenitez/yansi",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "yoke",
+      "version": "0.7.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "yoke-derive",
+      "version": "0.7.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zerocopy",
+      "version": "0.7.35",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/google/zerocopy",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zerocopy-derive",
+      "version": "0.7.35",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/google/zerocopy",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zerofrom",
+      "version": "0.1.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zerofrom-derive",
+      "version": "0.1.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zeroize",
+      "version": "1.8.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "license_file": null,
+      "repository": "https://github.com/RustCrypto/utils/tree/master/zeroize",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zerovec",
+      "version": "0.10.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zerovec-derive",
+      "version": "0.10.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Unicode-3.0",
+      "license_file": null,
+      "repository": "https://github.com/unicode-org/icu4x",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zip",
+      "version": "2.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/zip-rs/zip2.git",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zopfli",
+      "version": "0.8.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/zopfli-rs/zopfli",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zstd",
+      "version": "0.13.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT",
+      "license_file": null,
+      "repository": "https://github.com/gyscos/zstd-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zstd-safe",
+      "version": "7.2.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/gyscos/zstd-rs",
+      "consumers": [
+        "maturin"
+      ]
+    },
+    {
+      "name": "zstd-sys",
+      "version": "2.0.15+zstd.1.5.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT/Apache-2.0",
+      "license_file": null,
+      "repository": "https://github.com/gyscos/zstd-rs",
+      "consumers": [
+        "maturin"
+      ]
+    }
+  ]
+}
