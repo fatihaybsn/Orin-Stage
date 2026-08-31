@@ -125,6 +125,7 @@ flit-core 3.11.0
 
 hatchling 1.27.0
 ├── self-contained hatchling.ouroboros backend-path [src]
+├── wheel metadata imports its runtime closure during bootstrap
 └── runtime: packaging, pathspec, pluggy, tomli (3.10), trove-classifiers
     └── trove-classifiers build: setuptools + calver
         └── calver build: setuptools
@@ -145,7 +146,8 @@ pluggy 1.5.0
 └── build: setuptools + setuptools-scm
 
 setuptools 77.0.3
-└── self-contained backend-path [.] (no external build requirement)
+├── self-contained backend-path [.] (no declared external build requirement)
+└── wheel metadata requires packaging >=24.2 for SPDX license processing
 
 setuptools-rust 1.11.1
 ├── build: setuptools + setuptools-scm
@@ -163,6 +165,12 @@ flit-core, hatchling, and setuptools are finite in-tree `backend-path`
 bootstraps, not source dependencies. Maturin does not require an already-built
 maturin wheel, but its Rust portion cannot be completed until its locked crate
 sources are supplied in Step 6B.4.
+
+Step 6C's real source builds refined the ordering without adding a source:
+`flit-core` builds locked `packaging 24.2` before setuptools, and Hatchling is
+built after `pathspec`, `pluggy`, and `trove-classifiers`. These imports are
+not fully expressed by the corresponding root `[build-system].requires`
+tables, but every input was already present in the exact 6B.3 closure.
 
 `tomli==2.0.2` is intentional: it satisfies hatchling/maturin lower bounds and
 the setuptools-scm sdist's Python 3.10 bootstrap cap `tomli<=2.0.2`.
