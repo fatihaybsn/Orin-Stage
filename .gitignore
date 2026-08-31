@@ -13,6 +13,8 @@ develop-eggs/
 dist/
 downloads/
 release/dependencies/downloads/
+release/dependencies/cargo-downloads/
+release/dependencies/generated/
 eggs/
 .eggs/
 lib/
