@@ -470,7 +470,8 @@ def build_wheelhouse(
     system_python: Path,
     cargo: Path,
     rustc: Path,
-    source_directory: Path,
+    runtime_source_directory: Path,
+    build_source_directory: Path,
     vendor_directory: Path,
     output_directory: Path,
 ) -> None:
@@ -480,8 +481,8 @@ def build_wheelhouse(
     build_lock = read_exact_lock(BUILD_LOCK)
     runtime_sources = load_sources(RUNTIME_SOURCES)
     build_sources = load_sources(BUILD_SOURCES)
-    verify_sources(runtime_lock, runtime_sources, source_directory)
-    verify_sources(build_lock, build_sources, source_directory)
+    verify_sources(runtime_lock, runtime_sources, runtime_source_directory)
+    verify_sources(build_lock, build_sources, build_source_directory)
     if tuple(BUILD_ORDER) != tuple(name for name in BUILD_ORDER if name in build_lock):
         raise WheelhouseError("bootstrap order does not cover the build-tools lock")
     if set(BUILD_ORDER) != set(build_lock):
@@ -553,7 +554,7 @@ def build_wheelhouse(
             wheel = _build_one(
                 python,
                 build_sources[name],
-                source_directory,
+                build_source_directory,
                 build_output,
                 "build",
                 environment,
@@ -564,7 +565,7 @@ def build_wheelhouse(
             _build_one(
                 python,
                 runtime_sources[name],
-                source_directory,
+                runtime_source_directory,
                 runtime_output,
                 "runtime",
                 environment,
@@ -626,7 +627,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--python", type=Path, default=Path("/usr/bin/python3"))
     parser.add_argument("--cargo", type=Path, default=Path("/usr/bin/cargo-1.85"))
     parser.add_argument("--rustc", type=Path, default=Path("/usr/bin/rustc-1.85"))
-    parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCE_DIRECTORY)
+    parser.add_argument(
+        "--sources",
+        type=Path,
+        default=DEFAULT_SOURCE_DIRECTORY,
+        help="legacy common directory containing both verified sdist sets",
+    )
+    parser.add_argument("--runtime-sources", type=Path)
+    parser.add_argument("--build-sources", type=Path)
     parser.add_argument("--vendor", type=Path, default=DEFAULT_VENDOR_DIRECTORY)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--verify-only", action="store_true")
@@ -646,7 +654,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 system_python=args.python.resolve(),
                 cargo=args.cargo.resolve(),
                 rustc=args.rustc.resolve(),
-                source_directory=args.sources.resolve(),
+                runtime_source_directory=(args.runtime_sources or args.sources).resolve(),
+                build_source_directory=(args.build_sources or args.sources).resolve(),
                 vendor_directory=args.vendor.resolve(),
                 output_directory=output,
             )
