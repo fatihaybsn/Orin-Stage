@@ -87,3 +87,28 @@ def test_permission_validation_rejects_world_writable_runtime_tree(tmp_path: Pat
     runtime.chmod(0o777)
     with pytest.raises(stage.RuntimeStageError, match="writable"):
         stage.validate_tree_permissions(tmp_path, owner_uid=owner)
+
+
+def test_relocation_sensitive_activation_scripts_are_not_shipped(tmp_path: Path) -> None:
+    stage = _module()
+    bin_dir = tmp_path / "venv" / "bin"
+    bin_dir.mkdir(parents=True)
+    for name in ("Activate.ps1", "activate", "activate.csh", "activate.fish"):
+        (bin_dir / name).write_text("VIRTUAL_ENV=/build/path\n", encoding="utf-8")
+
+    stage._remove_relocation_sensitive_activation_scripts(bin_dir.parent)
+
+    assert not list(bin_dir.iterdir())
+
+
+def test_staging_execution_residue_is_not_shipped(tmp_path: Path) -> None:
+    stage = _module()
+    cache = tmp_path / "venv" / "lib" / "python3.10" / "site-packages" / "pkg" / "__pycache__"
+    cache.mkdir(parents=True)
+    (cache / "module.cpython-310.pyc").write_bytes(b"bytecode")
+    (tmp_path / "venv" / "include").mkdir()
+
+    stage._remove_runtime_execution_residue(tmp_path / "venv")
+
+    assert not cache.exists()
+    assert not (tmp_path / "venv" / "include").exists()
