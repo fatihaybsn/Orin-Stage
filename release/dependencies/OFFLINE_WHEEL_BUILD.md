@@ -95,15 +95,21 @@ Runtime wheels and first-build SHA256 values are:
 | attrs | `attrs-26.1.0-py3-none-any.whl` / `ed73c232...2b01eb` | same / `ed73c232...2b01eb` |
 | jsonschema | `jsonschema-4.26.0-py3-none-any.whl` / `11484470...916f60` | same / `11484470...916f60` |
 | jsonschema-specifications | `jsonschema_specifications-2025.9.1-py3-none-any.whl` / `98802fee...0cc6fe` | same / `98802fee...0cc6fe` |
-| PyYAML | `PyYAML-6.0.3-cp310-cp310-linux_x86_64.whl` / `51aa82b1...fe41b` | `PyYAML-6.0.3-cp312-cp312-linux_x86_64.whl` / `f47b6f87...12dd4` |
+| PyYAML | `PyYAML-6.0.3-cp310-cp310-linux_x86_64.whl` / `5e143c76...8aef0` | `PyYAML-6.0.3-cp312-cp312-linux_x86_64.whl` / `ca86b737...05d9f` |
 | referencing | `referencing-0.37.0-py3-none-any.whl` / `381329a9...692231` | same / `381329a9...692231` |
-| rpds-py | `rpds_py-0.30.0-cp310-cp310-linux_x86_64.whl` / `5f6d7c4e...7e7683` | `rpds_py-0.30.0-cp312-cp312-linux_x86_64.whl` / `907db629...0b5d83` |
+| rpds-py | `rpds_py-0.30.0-cp310-cp310-linux_x86_64.whl` / `43c3e2cd...4d2f6c` | `rpds_py-0.30.0-cp312-cp312-linux_x86_64.whl` / `0f5168ff...c8c9e3b` |
 | typing-extensions | `typing_extensions-4.16.0-py3-none-any.whl` / `44bee9f6...53fc1` | same / `44bee9f6...53fc1` |
-| Orin Stage | `orin_stage-0.1.0-py3-none-any.whl` / `25e2e60e...264f3` | same filename / `5660d908...4f12e` |
+| Orin Stage | `orin_stage-0.1.0-py3-none-any.whl` / `73800f97...0f4bc` | same filename / `27d089e9...eddea` |
 
 The generated, gitignored `WHEELS.json` files contain every complete SHA256,
 size, role, Python tag, ABI tag, and platform tag. Both manifests re-verified
 all 23 on-disk wheels and their exact lock consistency.
+
+Step 6D added the required `python -m orin_stage.cli` entrypoint.  The two 6C
+wheelhouses above were consequently regenerated from the same locked inputs,
+offline, before the installed-runtime proof; the table records those current
+first-build hashes.  A fresh second build of each regenerated wheelhouse again
+matched all 23 identities/tags and runtime member names.
 
 The Orin Stage wheel contains the package, one catalog schema, seven target
 YAML files, two hardware YAML files, LICENSE, and the `ostg` entry point. Its
@@ -141,7 +147,7 @@ Orin Stage runtime dependencies.
 
 Both clean environments passed `ostg --version`, `ostg --help`,
 `ostg target list`, and imports of yaml, yaml._yaml, jsonschema, rpds, and
-orin_stage. Target listing produced seven catalog rows.
+orin_stage. Target-list output contained seven lines.
 
 ## Test and rebuild results
 

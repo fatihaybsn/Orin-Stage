@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 import urllib.request
 
 import pytest
@@ -46,6 +48,18 @@ def test_cli_version(capsys) -> None:
 
     assert exc_info.value.code == 0
     assert capsys.readouterr().out.strip() == f"ostg {PROGRAM_VERSION}"
+
+
+def test_cli_module_entrypoint_reports_version() -> None:
+    completed = subprocess.run(
+        [sys.executable, "-m", "orin_stage.cli", "--version"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0
+    assert completed.stdout.strip() == f"ostg {PROGRAM_VERSION}"
 
 
 def test_cli_without_subcommand_is_non_destructive_and_shows_help(capsys, tmp_path) -> None:
