@@ -1,0 +1,15 @@
+calver==2025.3.31
+flit-core==3.11.0
+hatch-fancy-pypi-readme==23.2.0
+hatch-vcs==0.5.0
+hatchling==1.27.0
+maturin==1.9.0
+packaging==24.2
+pathspec==0.12.1
+pluggy==1.5.0
+semantic-version==2.10.0
+setuptools==77.0.3
+setuptools-rust==1.11.1
+setuptools-scm==8.2.0
+tomli==2.0.2
+trove-classifiers==2025.5.9.12

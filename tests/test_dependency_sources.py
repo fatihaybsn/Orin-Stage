@@ -13,6 +13,9 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_LOCK = REPO_ROOT / "release" / "dependencies" / "runtime.lock"
 SOURCES_LOCK = REPO_ROOT / "release" / "dependencies" / "sources.lock.json"
+BUILD_SOURCES_LOCK = (
+    REPO_ROOT / "release" / "dependencies" / "build-sources.lock.json"
+)
 FETCHER_PATH = REPO_ROOT / "tools" / "release" / "fetch_dependency_sources.py"
 DIRECT_PACKAGES = {"jsonschema", "pyyaml"}
 
@@ -98,6 +101,17 @@ def test_source_manifest_contains_only_hashed_https_sdists() -> None:
         assert entry["license_files"]
         assert entry["build_backend"]
         assert entry["build_requires"]
+
+
+def test_fetcher_loads_runtime_and_build_source_manifests() -> None:
+    runtime_entries = fetcher.load_manifest(SOURCES_LOCK)
+    build_entries = fetcher.load_manifest(BUILD_SOURCES_LOCK)
+
+    assert len(runtime_entries) == 7
+    assert len(build_entries) == 15
+    assert all(entry.runtime_role is not None for entry in runtime_entries)
+    assert all(entry.runtime_role is None for entry in build_entries)
+    assert all(entry.backend_path is not None for entry in build_entries)
 
 
 def test_manifest_loader_rejects_wheel_filename(tmp_path: Path) -> None:

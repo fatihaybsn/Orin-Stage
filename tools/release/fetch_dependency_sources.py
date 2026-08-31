@@ -17,7 +17,7 @@ from urllib.parse import unquote, urlparse
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MANIFEST = REPO_ROOT / "release" / "dependencies" / "sources.lock.json"
-SOURCE_FIELDS = {
+COMMON_SOURCE_FIELDS = {
     "name",
     "version",
     "filename",
@@ -29,9 +29,16 @@ SOURCE_FIELDS = {
     "license_files",
     "build_backend",
     "build_requires",
-    "runtime_role",
 }
-STRING_FIELDS = SOURCE_FIELDS - {"size", "license_files", "build_requires"}
+RUNTIME_SOURCE_FIELDS = COMMON_SOURCE_FIELDS | {"runtime_role"}
+BUILD_SOURCE_FIELDS = COMMON_SOURCE_FIELDS | {"backend_path"}
+STRING_FIELDS = COMMON_SOURCE_FIELDS - {
+    "size",
+    "requires_python",
+    "license_files",
+    "build_backend",
+    "build_requires",
+}
 SOURCE_SUFFIXES = (".tar.gz", ".tar.bz2", ".tar.xz", ".zip")
 
 
@@ -47,19 +54,23 @@ class SourceEntry:
     url: str
     sha256: str
     size: int
-    requires_python: str
+    requires_python: str | None
     license: str
     license_files: list[str]
-    build_backend: str
+    build_backend: str | None
     build_requires: list[str]
-    runtime_role: str
+    runtime_role: str | None = None
+    backend_path: list[str] | None = None
 
 
 Opener = Callable[..., BinaryIO]
 
 
 def _validate_entry(raw: object) -> SourceEntry:
-    if not isinstance(raw, dict) or set(raw) != SOURCE_FIELDS:
+    if not isinstance(raw, dict) or set(raw) not in (
+        RUNTIME_SOURCE_FIELDS,
+        BUILD_SOURCE_FIELDS,
+    ):
         raise SourceAcquisitionError("source manifest contains malformed entries")
     if any(not isinstance(raw[field], str) for field in STRING_FIELDS):
         raise SourceAcquisitionError("source manifest contains invalid field types")
@@ -73,7 +84,51 @@ def _validate_entry(raw: object) -> SourceEntry:
                 f"source manifest contains an invalid {field} list"
             )
 
-    entry = SourceEntry(**raw)
+    is_runtime = set(raw) == RUNTIME_SOURCE_FIELDS
+    requires_python = raw["requires_python"]
+    build_backend = raw["build_backend"]
+    if requires_python is not None and (
+        not isinstance(requires_python, str) or not requires_python
+    ):
+        raise SourceAcquisitionError(
+            "source manifest contains an invalid Requires-Python value"
+        )
+    if build_backend is not None and (
+        not isinstance(build_backend, str) or not build_backend
+    ):
+        raise SourceAcquisitionError(
+            "source manifest contains an invalid build backend"
+        )
+
+    runtime_role = raw.get("runtime_role")
+    backend_path = raw.get("backend_path")
+    if is_runtime:
+        if requires_python is None or build_backend is None:
+            raise SourceAcquisitionError(
+                "runtime source metadata requires Python and backend values"
+            )
+    elif not isinstance(backend_path, list) or any(
+        not isinstance(item, str) or not item for item in backend_path
+    ):
+        raise SourceAcquisitionError(
+            "source manifest contains an invalid backend path"
+        )
+
+    entry = SourceEntry(
+        name=raw["name"],
+        version=raw["version"],
+        filename=raw["filename"],
+        url=raw["url"],
+        sha256=raw["sha256"],
+        size=raw["size"],
+        requires_python=requires_python,
+        license=raw["license"],
+        license_files=raw["license_files"],
+        build_backend=build_backend,
+        build_requires=raw["build_requires"],
+        runtime_role=runtime_role,
+        backend_path=backend_path,
+    )
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", entry.name):
         raise SourceAcquisitionError(f"source package name is not canonical: {entry.name}")
     if not entry.version:
@@ -100,16 +155,13 @@ def _validate_entry(raw: object) -> SourceEntry:
     if entry.size <= 0:
         raise SourceAcquisitionError(f"source size is invalid: {entry.name}")
     if (
-        not entry.requires_python
-        or not entry.license
+        not entry.license
         or not entry.license_files
-        or not entry.build_backend
-        or not entry.build_requires
     ):
         raise SourceAcquisitionError(
             f"source metadata is incomplete for package: {entry.name}"
         )
-    if entry.runtime_role not in {"direct", "transitive"}:
+    if is_runtime and entry.runtime_role not in {"direct", "transitive"}:
         raise SourceAcquisitionError(f"runtime role is invalid: {entry.name}")
     return entry
 
@@ -128,6 +180,9 @@ def load_manifest(path: Path) -> tuple[SourceEntry, ...]:
         raise SourceAcquisitionError("source manifest has an unsupported structure")
 
     entries = tuple(_validate_entry(raw) for raw in manifest["sources"])
+    entry_kinds = {entry.runtime_role is not None for entry in entries}
+    if len(entry_kinds) > 1:
+        raise SourceAcquisitionError("source manifest mixes runtime and build sources")
     names = [entry.name for entry in entries]
     filenames = [entry.filename for entry in entries]
     if len(names) != len(set(names)) or len(filenames) != len(set(filenames)):
@@ -226,7 +281,7 @@ def fetch_sources(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Fetch and SHA256-verify locked PyPI runtime source archives."
+        description="Fetch and SHA256-verify a locked PyPI release source set."
     )
     parser.add_argument("output_directory", type=Path)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
