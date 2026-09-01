@@ -1,0 +1,11 @@
+Orin Stage uses the Ubuntu distribution Python, but bundles an exact private
+Python application closure under /usr/lib/orin-stage/venv.  This preserves one
+application dependency contract across Jammy and Noble while keeping CPython,
+the compiler toolchain, and system libraries distro-provided.
+
+All Python sdists and the Cargo vendor tree are verified source inputs in the
+separate deps orig component.  The package build is intentionally offline once
+Build-Depends have been installed from Ubuntu.
+
+This is a PPA-oriented MVP packaging model, not a claim of Debian archive
+upstream-policy suitability.

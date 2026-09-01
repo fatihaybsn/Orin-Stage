@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+SERIES := $(shell . /etc/os-release 2>/dev/null && echo $$VERSION_CODENAME)
+
+ifeq ($(filter $(SERIES),jammy noble),)
+$(error Unsupported or undetected Ubuntu series: '$(SERIES)'. Supported series are 'jammy' and 'noble')
+endif
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	python3 tools/release/build_offline_wheelhouse.py --series $(SERIES) --python /usr/bin/python3 --cargo /usr/bin/cargo-1.85 --rustc /usr/bin/rustc-1.85 --runtime-sources deps/runtime-sdists --build-sources deps/build-sdists --vendor deps/cargo-vendor --output-root debian/.wheelhouse
+
+override_dh_auto_install:
+	python3 tools/release/stage_private_runtime.py --series $(SERIES) --system-python /usr/bin/python3 --wheelhouse debian/.wheelhouse/$(SERIES) --output-root debian/orin-stage --without-pip --launcher-runtime-python /usr/lib/orin-stage/venv/bin/python
+
+override_dh_clean:
+	dh_clean -X Cargo.toml.orig
+	rm -rf debian/.wheelhouse debian/orin-stage
+
+override_dh_gencontrol:
+	python3 tools/release/write_debian_substvars.py --output debian/orin-stage.substvars
+	dh_gencontrol
