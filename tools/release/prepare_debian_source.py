@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -22,6 +23,8 @@ DEPENDENCIES = REPO_ROOT / "release" / "dependencies"
 VERSION = "0.1.0"
 PACKAGE = "orin-stage"
 ROOT_NAME = f"{PACKAGE}-{VERSION}"
+SUPPORTED_SERIES = ("jammy", "noble")
+DEFAULT_PPA_REVISION = 1
 DEFAULT_SOURCE_CACHE = DEPENDENCIES / "downloads"
 DEFAULT_VENDOR = DEPENDENCIES / "generated" / "cargo-vendor"
 DEFAULT_CARGO_CONFIG = DEPENDENCIES / "generated" / ".cargo" / "config.toml"
@@ -34,6 +37,59 @@ RELEASE_HELPERS = (
 
 class DebianSourceError(RuntimeError):
     """Raised when the exact source-package input contract is violated."""
+
+
+def ppa_version(base_version: str, series: str, ppa_revision: int) -> str:
+    """Return the series-specific PPA version for a canonical changelog version."""
+    if series not in SUPPORTED_SERIES:
+        raise DebianSourceError(f"unsupported Ubuntu series: {series}")
+    if ppa_revision < 1:
+        raise DebianSourceError("PPA revision must be a positive integer")
+    if re.fullmatch(rf"{re.escape(VERSION)}-[1-9][0-9]*", base_version) is None:
+        raise DebianSourceError(
+            f"canonical changelog version must match {VERSION}-<revision>: {base_version}"
+        )
+    return f"{base_version}~{series}{ppa_revision}"
+
+
+def _parse_changelog_header(text: str) -> tuple[re.Match[str], str, str]:
+    header, separator, remainder = text.partition("\n")
+    match = re.fullmatch(
+        rf"{re.escape(PACKAGE)} \((?P<version>[^)]+)\) "
+        r"(?P<distribution>[^;]+); urgency=(?P<urgency>\S+)",
+        header,
+    )
+    if match is None:
+        raise DebianSourceError("cannot parse canonical debian/changelog header")
+    return match, separator, remainder
+
+
+def changelog_version(path: Path) -> str:
+    """Read the version from the first changelog stanza."""
+    match, _separator, _remainder = _parse_changelog_header(path.read_text(encoding="utf-8"))
+    return match.group("version")
+
+
+def localize_changelog(path: Path, series: str, ppa_revision: int) -> str:
+    """Localize the first canonical changelog stanza in a generated source tree."""
+    text = path.read_text(encoding="utf-8")
+    match, separator, remainder = _parse_changelog_header(text)
+    if match.group("distribution") != "UNRELEASED":
+        raise DebianSourceError("canonical debian/changelog distribution must be UNRELEASED")
+    version = ppa_version(match.group("version"), series, ppa_revision)
+    localized_header = f"{PACKAGE} ({version}) {series}; urgency={match.group('urgency')}"
+    path.write_text(localized_header + separator + remainder, encoding="utf-8")
+    return version
+
+
+def _positive_revision(value: str) -> int:
+    try:
+        revision = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a positive integer") from exc
+    if revision < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return revision
 
 
 def _load(name: str, filename: str):
@@ -185,6 +241,8 @@ def _all_component_members(root: Path) -> tuple[Path, ...]:
 
 def materialize(
     *,
+    series: str,
+    ppa_revision: int,
     source_cache: Path,
     vendor: Path,
     cargo_config: Path,
@@ -200,6 +258,7 @@ def materialize(
         project = stage / ROOT_NAME
         project.mkdir()
         _copy_project(project, include_debian=True)
+        localize_changelog(project / "debian" / "changelog", series, ppa_revision)
         deps = project / "deps"
         for dirname, sources in (("runtime-sdists", runtime_sdists), ("build-sdists", build_sdists)):
             target = deps / dirname
@@ -233,6 +292,10 @@ def materialize(
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--series", choices=SUPPORTED_SERIES, required=True)
+    parser.add_argument(
+        "--ppa-revision", type=_positive_revision, default=DEFAULT_PPA_REVISION
+    )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--source-cache", type=Path, default=DEFAULT_SOURCE_CACHE)
     parser.add_argument("--vendor", type=Path, default=DEFAULT_VENDOR)
@@ -244,6 +307,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     try:
         output = materialize(
+            series=args.series,
+            ppa_revision=args.ppa_revision,
             source_cache=args.source_cache,
             vendor=args.vendor,
             cargo_config=args.cargo_config,
@@ -252,7 +317,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     except DebianSourceError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
-    print(f"COMPLETE source_root={output / ROOT_NAME}")
+    version = changelog_version(output / ROOT_NAME / "debian" / "changelog")
+    print(f"COMPLETE source_root={output / ROOT_NAME} version={version}")
     return 0
 
 

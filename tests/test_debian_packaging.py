@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -109,3 +111,47 @@ def test_source_materializer_keeps_the_only_untracked_release_helpers_explicit()
         Path("tools/release/prepare_debian_source.py"),
         Path("tools/release/write_debian_substvars.py"),
     )
+
+
+@pytest.mark.parametrize(
+    ("series", "expected"),
+    (
+        ("jammy", "0.1.0-2~jammy1"),
+        ("noble", "0.1.0-2~noble1"),
+    ),
+)
+def test_source_materializer_generates_exact_ppa_versions(
+    series: str, expected: str
+) -> None:
+    source = _module("prepare_debian_source.py", f"debian_source_version_{series}_test")
+
+    assert source.ppa_version("0.1.0-2", series, 1) == expected
+
+
+@pytest.mark.parametrize("series", ("jammy", "noble"))
+def test_source_materializer_localizes_only_the_generated_changelog(
+    tmp_path: Path, series: str
+) -> None:
+    source = _module("prepare_debian_source.py", f"debian_source_changelog_{series}_test")
+    changelog = tmp_path / "changelog"
+    canonical = (REPO_ROOT / "debian" / "changelog").read_text(encoding="utf-8")
+    changelog.write_text(canonical, encoding="utf-8")
+
+    version = source.localize_changelog(changelog, series, 1)
+
+    assert version == f"0.1.0-2~{series}1"
+    localized = changelog.read_text(encoding="utf-8")
+    assert localized.startswith(f"orin-stage ({version}) {series}; urgency=medium\n")
+    assert localized.partition("\n")[2] == canonical.partition("\n")[2]
+    assert (REPO_ROOT / "debian" / "changelog").read_text(encoding="utf-8") == canonical
+
+
+def test_source_materializer_rejects_invalid_ppa_version_inputs() -> None:
+    source = _module("prepare_debian_source.py", "debian_source_invalid_version_test")
+
+    with pytest.raises(source.DebianSourceError, match="unsupported Ubuntu series"):
+        source.ppa_version("0.1.0-2", "focal", 1)
+    with pytest.raises(source.DebianSourceError, match="positive integer"):
+        source.ppa_version("0.1.0-2", "jammy", 0)
+    with pytest.raises(source.DebianSourceError, match="canonical changelog version"):
+        source.ppa_version("0.1.0-1~jammy1", "jammy", 1)
