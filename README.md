@@ -41,8 +41,12 @@ Orin Stage eliminates these blind spots by synthesizing an authentic, fully conf
 |---|---|---|
 | **Hardware Family** | Jetson AGX Orin, Jetson Orin NX, Jetson Orin Nano | Jetson Xavier / TX2 / Nano, Non-NVIDIA edge hardware |
 | **Software Family** | JetPack 6.x / Jetson Linux (L4T 36.x) | JetPack 5.x / older, JetPack 7.x / Thor (future) |
-| **Host System** | x86_64 Linux (Ubuntu 22.04 / 24.04 recommended) | macOS / Windows native (requires Linux container/VM) |
+| **Host System** | Ubuntu 22.04 LTS (Jammy) and Ubuntu 24.04 LTS (Noble), x86_64 | macOS / Windows native (requires Linux container/VM) |
 | **Execution** | ARM64 CPU-only userspace (via QEMU), Cross-compilation | Full system hardware emulation, Tegra GPU execution |
+
+Both supported releases have been validated on native Linux hosts and WSL2.
+See the [0.1.0 host acceptance record](release/acceptance/0.1.0-host-acceptance.md)
+for the tested scope and provenance.
 
 ---
 
