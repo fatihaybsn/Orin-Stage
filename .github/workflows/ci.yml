@@ -13,7 +13,15 @@ permissions:
 
 jobs:
   tests:
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            python: "3.10"
+          - os: ubuntu-24.04
+            python: "3.12"
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -22,7 +30,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python }}
 
       - name: Install dependencies
         run: |

@@ -101,7 +101,7 @@ do not consume a second copy of their data.
 
 Orin Stage uses two complementary GitHub Actions workflows:
 
-* **CI:** Runs the full automated test suite on a GitHub-hosted Ubuntu 22.04 x86_64 runner for every push and pull request to `main`.
+* **CI:** Runs the full automated test suite on GitHub-hosted Ubuntu 22.04 / Python 3.10 and Ubuntu 24.04 / Python 3.12 x86_64 runners for every push and pull request to `main`.
 * **ARM64 Reference:** A manually triggered validation workflow that runs the same deterministic CPU/userspace probe through:
 
   1. a real Orin Stage JP6 workspace on a trusted self-hosted x86_64 runner using QEMU, and
