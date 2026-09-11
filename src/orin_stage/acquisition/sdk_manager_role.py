@@ -18,7 +18,7 @@ class SdkManagerComponentRole:
 
     role_id: str
     include_host: bool
-    install_method: str
+    install_method: str | None
     select_groups: tuple[str, ...]
     deselect_groups: tuple[str, ...] = ()
     additional_sdks: tuple[str, ...] = ()
@@ -55,9 +55,23 @@ JP6_DEVELOPER_ROLE_V1 = SdkManagerComponentRole(
     ),
 )
 
+# SDK Manager advertises ``direct_flash`` explicitly for JP6.2.3. Its query
+# commands for earlier JP6 GA releases omit install-method, so those releases
+# use the SDK Manager default rather than receiving an unsupported argument.
+JP6_DEFAULT_INSTALL_METHOD_DEVELOPER_ROLE_V1 = SdkManagerComponentRole(
+    role_id="jp6-default-install-method-developer-v1",
+    include_host=False,
+    install_method=None,
+    select_groups=JP6_DEVELOPER_ROLE_V1.select_groups,
+    deselect_groups=JP6_DEVELOPER_ROLE_V1.deselect_groups,
+)
+
 
 _COMPONENT_ROLES = {
     JP6_DEVELOPER_ROLE_V1.role_id: JP6_DEVELOPER_ROLE_V1,
+    JP6_DEFAULT_INSTALL_METHOD_DEVELOPER_ROLE_V1.role_id: (
+        JP6_DEFAULT_INSTALL_METHOD_DEVELOPER_ROLE_V1
+    ),
 }
 
 

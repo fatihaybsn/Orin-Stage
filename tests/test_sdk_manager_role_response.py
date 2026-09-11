@@ -13,6 +13,7 @@ from orin_stage.acquisition.sdk_manager_response import (
     write_response_file_atomic,
 )
 from orin_stage.acquisition.sdk_manager_role import (
+    JP6_DEFAULT_INSTALL_METHOD_DEVELOPER_ROLE_V1,
     JP6_DEVELOPER_ROLE_V1,
     SdkManagerComponentRole,
 )
@@ -81,6 +82,25 @@ def test_response_file_is_minimal_and_does_not_accept_license_or_flash() -> None
     assert "license =" not in text
     assert "sudo-password" not in text
     assert "additional-sdk" not in text
+
+
+def test_older_jp6_role_omits_install_method_with_stable_identity() -> None:
+    role = JP6_DEFAULT_INSTALL_METHOD_DEVELOPER_ROLE_V1
+
+    first = render_response_file(
+        _discovery(),
+        role,
+        download_folder=Path("/srv/orin-stage/sdkm/downloads"),
+    )
+    second = render_response_file(
+        _discovery(),
+        role,
+        download_folder=Path("/srv/orin-stage/sdkm/downloads"),
+    )
+
+    assert not any(line.startswith("install-method =") for line in first.splitlines())
+    assert first == second
+    assert role.digest() != JP6_DEVELOPER_ROLE_V1.digest()
 
 
 def test_response_file_rejects_relative_download_root() -> None:

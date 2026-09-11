@@ -40,7 +40,7 @@ def render_response_file(
         raise SdkManagerResponseFileError("download folder must be absolute")
     if not role.role_id.strip():
         raise SdkManagerResponseFileError("role id must not be empty")
-    if not role.install_method.strip():
+    if role.install_method is not None and not role.install_method.strip():
         raise SdkManagerResponseFileError("SDK Manager install method must not be empty")
     if not role.select_groups:
         raise SdkManagerResponseFileError("at least one SDK Manager group is required")
@@ -61,8 +61,10 @@ def render_response_file(
         "product = Jetson",
         f"version = {target.jetpack_version}",
         "target-os = Linux",
-        f"install-method = {role.install_method}",
     ]
+
+    if role.install_method is not None:
+        lines.append(f"install-method = {role.install_method}")
 
     if role.include_host:
         lines.append("host = true")
