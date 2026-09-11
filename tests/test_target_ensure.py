@@ -7,15 +7,11 @@ from types import SimpleNamespace
 from orin_stage.acquisition.sdk_manager import SdkManagerNotFoundError
 from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 from orin_stage.cli import main
-from orin_stage.planning.orchestration import (
-    JP623_HARDWARE_PROFILE,
-    JP623_QEMU_BINARY,
-    JP623_SDK_MANAGER_TARGET,
-)
+from orin_stage.planning.orchestration import JP6_QEMU_BINARY
 from orin_stage.planning.planner import BasePlanStatus
 from orin_stage.privileged_base import (
     PrivilegedBaseError,
-    ensure_jp623_base_with_sudo,
+    ensure_jp6_base_with_sudo,
 )
 
 
@@ -32,8 +28,9 @@ def _result(
     *,
     acquisition_cache_hit: bool | None = None,
     base_reuse: bool,
+    selector: str = SELECTOR,
 ) -> SimpleNamespace:
-    target = _resolver().resolve(SELECTOR)
+    target = _resolver().resolve(selector)
     base_directory = tmp_path / "targets" / ("c" * 64)
     acquisition = (
         None
@@ -76,7 +73,7 @@ def test_validation_pending_requires_explicit_flag(
 ) -> None:
     _normal_user(monkeypatch)
     monkeypatch.setattr(
-        "orin_stage.cli.ensure_jp623_release",
+        "orin_stage.cli.ensure_jp6_release",
         lambda *args, **kwargs: (_ for _ in ()).throw(
             AssertionError("orchestration must not run")
         ),
@@ -89,19 +86,37 @@ def test_validation_pending_requires_explicit_flag(
     assert "Traceback" not in error
 
 
+def test_other_jp6_validation_pending_target_still_requires_opt_in(
+    monkeypatch,
+    capsys,
+) -> None:
+    _normal_user(monkeypatch)
+    monkeypatch.setattr(
+        "orin_stage.cli.ensure_jp6_release",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("orchestration must not run")
+        ),
+    )
+
+    assert main(["target", "ensure", "jetson-orin@jp6.1"]) == 1
+    error = capsys.readouterr().err
+    assert "validation-pending" in error
+    assert "--allow-validation-pending" in error
+
+
 def test_validation_pending_flag_accepts_jp623_and_reuses_base(
     monkeypatch,
     capsys,
     tmp_path: Path,
 ) -> None:
     _normal_user(monkeypatch)
-    calls: list[dict[str, object]] = []
+    calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
 
     def ensure(*args, **kwargs):
-        calls.append(kwargs)
+        calls.append((args, kwargs))
         return _result(tmp_path, acquisition_cache_hit=None, base_reuse=True)
 
-    monkeypatch.setattr("orin_stage.cli.ensure_jp623_release", ensure)
+    monkeypatch.setattr("orin_stage.cli.ensure_jp6_release", ensure)
 
     assert (
         main(
@@ -117,10 +132,14 @@ def test_validation_pending_flag_accepts_jp623_and_reuses_base(
         == 0
     )
     assert len(calls) == 1
-    assert calls[0]["hardware_profile"] == JP623_HARDWARE_PROFILE
-    assert calls[0]["required_sdk_manager_target"] == JP623_SDK_MANAGER_TARGET
-    assert calls[0]["qemu_binary"] == JP623_QEMU_BINARY
-    assert calls[0]["base_builder"] is ensure_jp623_base_with_sudo
+    args, kwargs = calls[0]
+    resolved = args[0]
+    assert resolved.selector == SELECTOR
+    assert resolved.hardware_profile == "orin-nx-16gb-p3767-0000-on-p3768-0000"
+    assert resolved.sdk_manager_target == "JETSON_ORIN_NX_TARGETS"
+    assert resolved.sdk_manager_component_role == "jp6-developer-v1"
+    assert kwargs["qemu_binary"] == JP6_QEMU_BINARY
+    assert kwargs["base_builder"] is ensure_jp6_base_with_sudo
     output = capsys.readouterr().out
     assert "validation-pending (explicitly allowed)" in output
     assert "Acquisition:  cache-hit" in output
@@ -149,7 +168,7 @@ def test_supported_jp623_does_not_require_flag(
         result.target = target
         return result
 
-    monkeypatch.setattr("orin_stage.cli.ensure_jp623_release", ensure)
+    monkeypatch.setattr("orin_stage.cli.ensure_jp6_release", ensure)
 
     assert main(["target", "ensure", SELECTOR]) == 0
     assert "Status:       supported" in capsys.readouterr().out
@@ -172,11 +191,36 @@ def test_unavailable_target_is_rejected_even_with_flag(monkeypatch, capsys) -> N
     assert "unavailable" in capsys.readouterr().err
 
 
-def test_other_jp6_release_reports_not_implemented(monkeypatch, capsys) -> None:
+def test_other_pending_jp6_release_enters_generic_orchestration(
+    monkeypatch, capsys, tmp_path: Path
+) -> None:
     _normal_user(monkeypatch)
+    calls: list[object] = []
 
-    assert main(["target", "ensure", "jetson-orin@jp6.2"]) == 1
-    assert "currently implemented only for JP6.2.3" in capsys.readouterr().err
+    def ensure(target, *args, **kwargs):
+        calls.append(target)
+        return _result(
+            tmp_path,
+            acquisition_cache_hit=True,
+            base_reuse=True,
+            selector="jetson-orin@jp6.2",
+        )
+
+    monkeypatch.setattr("orin_stage.cli.ensure_jp6_release", ensure)
+
+    assert (
+        main(
+            [
+                "target",
+                "ensure",
+                "jetson-orin@jp6.2",
+                "--allow-validation-pending",
+            ]
+        )
+        == 0
+    )
+    assert [target.selector for target in calls] == ["jetson-orin@jp6.2"]
+    assert "Target:       jetson-orin@jp6.2" in capsys.readouterr().out
 
 
 def test_unknown_selector_is_short_domain_error(monkeypatch, capsys) -> None:
@@ -200,7 +244,7 @@ def test_top_level_root_invocation_is_rejected(monkeypatch, capsys) -> None:
 def test_sdk_manager_not_found_is_short_domain_error(monkeypatch, capsys) -> None:
     _normal_user(monkeypatch)
     monkeypatch.setattr(
-        "orin_stage.cli.ensure_jp623_release",
+        "orin_stage.cli.ensure_jp6_release",
         lambda *args, **kwargs: (_ for _ in ()).throw(
             SdkManagerNotFoundError("SDK Manager executable not found")
         ),
@@ -215,7 +259,7 @@ def test_sdk_manager_not_found_is_short_domain_error(monkeypatch, capsys) -> Non
 def test_sudo_failure_is_short_domain_error(monkeypatch, capsys) -> None:
     _normal_user(monkeypatch)
     monkeypatch.setattr(
-        "orin_stage.cli.ensure_jp623_release",
+        "orin_stage.cli.ensure_jp6_release",
         lambda *args, **kwargs: (_ for _ in ()).throw(
             PrivilegedBaseError("sudo is not installed")
         ),
@@ -230,7 +274,7 @@ def test_sudo_failure_is_short_domain_error(monkeypatch, capsys) -> None:
 def test_download_and_construction_output(monkeypatch, capsys, tmp_path: Path) -> None:
     _normal_user(monkeypatch)
     monkeypatch.setattr(
-        "orin_stage.cli.ensure_jp623_release",
+        "orin_stage.cli.ensure_jp6_release",
         lambda *args, **kwargs: _result(
             tmp_path,
             acquisition_cache_hit=False,

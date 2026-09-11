@@ -3,12 +3,16 @@ from __future__ import annotations
 import copy
 from typing import Mapping
 
+from orin_stage.catalog.resolver import ResolvedCatalogTarget
+
 from ._json import json_digest
+from .packages import PackageRemovalPolicy
 
 
 CONSTRUCTION_RECIPE_ID = "jp6-official-base-v1"
 CONSTRUCTION_RECIPE_VERSION = 1
 HOST_BUILDER_IMAGE = "docker.io/library/ubuntu:jammy-20260627"
+JP623_CANONICAL_ID = "nvidia.jetpack-6.2.3.jetson-linux-36.5.2"
 JP623_REMOVAL_POLICY_VERSION = "jp6.2.3-opencv-replacement-v1"
 JP623_ALLOWED_REMOVAL_SET = (
     "libopencv-core-dev",
@@ -97,3 +101,51 @@ def construction_recipe_v1() -> Mapping[str, object]:
 
 def construction_recipe_digest_v1() -> str:
     return json_digest(_CONSTRUCTION_RECIPE_V1)
+
+
+def package_removal_policy_for_target(
+    target: ResolvedCatalogTarget,
+) -> PackageRemovalPolicy | None:
+    """Return only exact-release removal exceptions proven for this target.
+
+    All other JP6 releases retain the family default: package removal is denied.
+    The JP6.2.3 exception remains deliberately narrow and auditable rather than
+    becoming an implicit JP6-wide workaround.
+    """
+
+    if (
+        target.canonical_id != JP623_CANONICAL_ID
+        or target.jetpack_version != "6.2.3"
+        or target.l4t_version != "36.5.2"
+    ):
+        return None
+    return PackageRemovalPolicy(
+        version=JP623_REMOVAL_POLICY_VERSION,
+        jetpack_version=target.jetpack_version,
+        l4t_version=target.l4t_version,
+        allowed_removal_set=JP623_ALLOWED_REMOVAL_SET,
+    )
+
+
+def construction_recipe_for_target(
+    target: ResolvedCatalogTarget,
+) -> Mapping[str, object]:
+    """Build the JP6 family recipe with the target's narrow release policy."""
+
+    recipe = copy.deepcopy(_CONSTRUCTION_RECIPE_V1)
+    if package_removal_policy_for_target(target) is None:
+        package_configuration = recipe["package_configuration"]
+        assert isinstance(package_configuration, dict)
+        package_configuration["removal_policy"] = {
+            "version": "deny-all-v1",
+            "scope": {"jetpack_family": "6.x"},
+            "decision": "reject-any-removal",
+            "allowed_removal_set": [],
+            "pre_install_gate": "apt-simulation-exact-package-set",
+            "post_install_audit": "dpkg-installed-set-exact-difference",
+        }
+    return recipe
+
+
+def construction_recipe_digest_for_target(target: ResolvedCatalogTarget) -> str:
+    return json_digest(construction_recipe_for_target(target))

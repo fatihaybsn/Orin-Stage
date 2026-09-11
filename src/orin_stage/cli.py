@@ -24,14 +24,12 @@ from .catalog.resolver import ResolvedCatalogTarget
 from .doctor import doctor_exit_code, format_report, run_doctor
 from .materialization_seed import SEED_FORMAT, SEED_FORMAT_VERSION
 from .planning.orchestration import (
-    JP623_HARDWARE_PROFILE,
-    JP623_QEMU_BINARY,
-    JP623_SDK_MANAGER_TARGET,
+    JP6_QEMU_BINARY,
     ReleaseEnsureResult,
-    ensure_jp623_release,
+    ensure_jp6_release,
 )
 from .planning.planner import BasePlanStatus
-from .privileged_base import ensure_jp623_base_with_sudo
+from .privileged_base import ensure_jp6_base_with_sudo
 from .privileged_materialization import create_materialization_seed_with_sudo
 from .runtime import resolve_data_root
 from .storage import DeletionPlan, StorageManager, StorageStatus
@@ -99,9 +97,6 @@ def _validate_target_ensure_status(
         raise RuntimeError(
             f"target {target.selector!r} is unavailable and cannot be ensured"
         )
-    version = str(target.record["release"]["jetpack"]["version"])
-    if version != "6.2.3":
-        raise RuntimeError("target ensure is currently implemented only for JP6.2.3")
     if target.is_validation_pending and not allow_validation_pending:
         raise RuntimeError(
             f"target {target.selector!r} is validation-pending; "
@@ -176,15 +171,12 @@ def _run_target_ensure(
             target,
             allow_validation_pending=allow_validation_pending,
         )
-        result = ensure_jp623_release(
-            resolver,
+        result = ensure_jp6_release(
+            target,
             SdkManagerClient(),
-            selector=selector,
-            hardware_profile=JP623_HARDWARE_PROFILE,
-            required_sdk_manager_target=JP623_SDK_MANAGER_TARGET,
             data_root=data_root,
-            qemu_binary=JP623_QEMU_BINARY,
-            base_builder=ensure_jp623_base_with_sudo,
+            qemu_binary=JP6_QEMU_BINARY,
+            base_builder=ensure_jp6_base_with_sudo,
         )
         output = _format_target_ensure_result(result)
     except (RuntimeError, ValueError, OSError) as exc:
@@ -203,11 +195,6 @@ def _validate_workspace_create_status(
     if target.is_unavailable:
         raise RuntimeError(
             f"target {target.selector!r} is unavailable and cannot be used"
-        )
-    version = str(target.record["release"]["jetpack"]["version"])
-    if version != "6.2.3":
-        raise RuntimeError(
-            "workspace create is currently implemented only for JP6.2.3"
         )
     if target.is_validation_pending and not allow_validation_pending:
         raise RuntimeError(

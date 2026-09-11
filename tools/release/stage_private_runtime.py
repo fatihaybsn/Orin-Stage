@@ -350,7 +350,7 @@ import sys
 from pathlib import Path
 from orin_stage.base.construction import BaseBuildResult
 from orin_stage.catalog import TargetResolver, builtin_catalog_paths
-from orin_stage.privileged_base import ensure_jp623_base_with_sudo
+from orin_stage.privileged_base import ensure_jp6_base_with_sudo
 from orin_stage.privileged_materialization import create_materialization_seed_with_sudo
 from orin_stage.privileged_storage_delete import remove_base_storage_with_sudo
 from orin_stage.privileged_storage_measure import measure_base_storage_with_sudo
@@ -375,7 +375,7 @@ def runner(command, **kwargs):
 create_materialization_seed_with_sudo(target, data_root=root, runner=runner, which=lambda _: '/usr/bin/sudo')
 catalog = builtin_catalog_paths()
 target_record = TargetResolver(catalog.targets_dir, catalog.schema_path).resolve('jetson-orin@jp6.2.3')
-ensure_jp623_base_with_sudo(target_record, acquisition_receipt_path=root / 'receipt.json', data_root=root, qemu_binary=Path('/usr/bin/qemu-aarch64-static'), runner=runner, which=lambda _: '/usr/bin/sudo')
+ensure_jp6_base_with_sudo(target_record, acquisition_receipt_path=root / 'receipt.json', data_root=root, qemu_binary=Path('/usr/bin/qemu-aarch64-static'), runner=runner, which=lambda _: '/usr/bin/sudo')
 remove_base_storage_with_sudo(root, 'a' * 64, runner=runner)
 measure_base_storage_with_sudo(root, 'a' * 64, runner=runner)
 print(json.dumps({'executable': sys.executable, 'commands': commands}))

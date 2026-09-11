@@ -31,23 +31,11 @@ from .sdk_manager_acquisition import (
 from .sdk_manager_discovery import discover_catalog_target
 from .sdk_manager_manifest import copy_sdk_manager_reference_files
 from .sdk_manager_response import render_response_file, write_response_file_atomic
-from .sdk_manager_role import JP6_DEVELOPER_ROLE_V1, SdkManagerComponentRole
+from .sdk_manager_role import sdk_manager_component_role
 
 
 class SdkManagerAdoptionError(RuntimeError):
     """Raised when an existing SDK Manager download cannot be adopted safely."""
-
-
-def _require_exact_jp623(target: ResolvedCatalogTarget) -> None:
-    release = target.record["release"]
-    if (
-        target.selector != "jetson-orin@jp6.2.3"
-        or str(release["jetpack"]["version"]) != "6.2.3"
-        or str(release["l4t"]["version"]) != "36.5.2"
-    ):
-        raise SdkManagerAdoptionError(
-            "adoption requires the exact jetson-orin@jp6.2.3 / L4T 36.5.2 target"
-        )
 
 
 def _link_or_copy(source: Path, destination: Path) -> str:
@@ -86,21 +74,20 @@ def adopt_sdk_manager_acquisition(
     client: SdkManagerClient,
     target: ResolvedCatalogTarget,
     *,
-    required_sdk_manager_target: str,
     data_root: Path,
     existing_download_folder: Path,
-    role: SdkManagerComponentRole = JP6_DEVELOPER_ROLE_V1,
     now: Callable[[], datetime] | None = None,
     sdk_manager_state_root: Path | None = None,
 ) -> AcquisitionResult:
-    """Adopt already-downloaded JP6.2.3 artifacts without invoking downloadonly.
+    """Adopt already-downloaded exact JP6 artifacts without invoking downloadonly.
 
     The exact catalog SHA-1 values are checked at the source and again in the
     atomically staged managed location. Same-filesystem files are hard-linked;
     an actual copy is used only when the source is on another filesystem.
     """
 
-    _require_exact_jp623(target)
+    required_sdk_manager_target = target.sdk_manager_target
+    role = sdk_manager_component_role(target.sdk_manager_component_role)
     root = Path(data_root)
     source_root = Path(existing_download_folder)
     if not root.is_absolute():

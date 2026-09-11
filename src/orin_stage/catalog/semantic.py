@@ -124,6 +124,16 @@ def validate_target_semantics(record: Mapping[str, Any]) -> tuple[SemanticIssue,
             )
         )
 
+    execution_profile = record["execution"]["hardware_profile"]
+    if execution_profile not in record["target"]["hardware_profiles"]:
+        issues.append(
+            SemanticIssue(
+                "execution.hardware_profile",
+                "must name one of target.hardware_profiles; "
+                f"got {execution_profile!r}",
+            )
+        )
+
     target_arch = record["userspace"]["architecture"]["debian_architecture"]
     package_arch = record["packages"]["meta_package"]["architecture"]
     if package_arch != target_arch:

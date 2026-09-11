@@ -8,7 +8,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from orin_stage.base import construction as construction_module
-from orin_stage.base.construction import _extract_official_rootfs, ensure_jp623_base
+from orin_stage.base.construction import _extract_official_rootfs, ensure_jp6_base
 from orin_stage.base.packages import (
     ConstructionPackageSet,
     LockedPackage,
@@ -76,7 +76,9 @@ def test_official_rootfs_commands_follow_nvidia_order(tmp_path: Path) -> None:
     ]
 
 
-def test_ensure_jp623_base_publishes_then_reuses_same_base(tmp_path: Path, monkeypatch) -> None:
+def test_ensure_jp6_base_preserves_jp623_policy_and_reuse(
+    tmp_path: Path, monkeypatch
+) -> None:
     data_root = tmp_path / "data"
     downloads = data_root / "sdkm" / "downloads"
     downloads.mkdir(parents=True)
@@ -213,14 +215,14 @@ def test_ensure_jp623_base_publishes_then_reuses_same_base(tmp_path: Path, monke
         },
     )
 
-    first = ensure_jp623_base(
+    first = ensure_jp6_base(
         _target(),
         acquisition_receipt_path=acquisition_receipt_path,
         data_root=data_root,
         qemu_binary=tmp_path / "unused-qemu",
     )
     monkeypatch.setattr(construction_module.os, "geteuid", lambda: 1000)
-    second = ensure_jp623_base(
+    second = ensure_jp6_base(
         _target(),
         acquisition_receipt_path=acquisition_receipt_path,
         data_root=data_root,
@@ -261,7 +263,7 @@ def test_ensure_rejects_acquisition_receipt_outside_data_root(tmp_path: Path) ->
     )
 
     try:
-        ensure_jp623_base(
+        ensure_jp6_base(
             _target(),
             acquisition_receipt_path=outside,
             data_root=data_root,
@@ -293,7 +295,7 @@ def test_ensure_requires_valid_published_step2_receipt(tmp_path: Path, monkeypat
     monkeypatch.setattr(construction_module, "receipt_is_cache_hit", lambda *a, **k: False)
 
     try:
-        ensure_jp623_base(
+        ensure_jp6_base(
             _target(),
             acquisition_receipt_path=receipt,
             data_root=data_root,

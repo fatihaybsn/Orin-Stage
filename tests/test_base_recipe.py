@@ -1,12 +1,22 @@
 from __future__ import annotations
 
+import pytest
+
 from orin_stage.base._json import json_digest
 from orin_stage.base.recipe import (
     JP623_ALLOWED_REMOVAL_SET,
     JP623_REMOVAL_POLICY_VERSION,
+    construction_recipe_digest_for_target,
+    construction_recipe_for_target,
     construction_recipe_digest_v1,
     construction_recipe_v1,
 )
+from orin_stage.catalog import TargetResolver, builtin_catalog_paths
+
+
+def _target(selector: str):
+    paths = builtin_catalog_paths()
+    return TargetResolver(paths.targets_dir, paths.schema_path).resolve(selector)
 
 
 def test_construction_recipe_v1_is_stable_and_copy_safe() -> None:
@@ -52,3 +62,29 @@ def test_recipe_digest_changes_when_removal_policy_changes() -> None:
     policy["allowed_removal_set"].append("systemd")  # type: ignore[index,union-attr]
 
     assert json_digest(changed) != construction_recipe_digest_v1()
+
+
+def test_jp623_target_recipe_preserves_existing_digest() -> None:
+    assert (
+        construction_recipe_digest_for_target(_target("jetson-orin@jp6.2.3"))
+        == construction_recipe_digest_v1()
+    )
+
+
+@pytest.mark.parametrize(
+    "selector",
+    [
+        "jetson-orin@jp6.0",
+        "jetson-orin@jp6.1",
+        "jetson-orin@jp6.2",
+        "jetson-orin@jp6.2.1",
+        "jetson-orin@jp6.2.2",
+    ],
+)
+def test_other_jp6_targets_keep_deny_all_removal_policy(selector: str) -> None:
+    recipe = construction_recipe_for_target(_target(selector))
+    policy = recipe["package_configuration"]["removal_policy"]  # type: ignore[index]
+
+    assert policy["version"] == "deny-all-v1"  # type: ignore[index]
+    assert policy["decision"] == "reject-any-removal"  # type: ignore[index]
+    assert policy["allowed_removal_set"] == []  # type: ignore[index]

@@ -39,16 +39,15 @@ from .receipt import (
     write_base_receipt,
 )
 from .recipe import (
-    JP623_ALLOWED_REMOVAL_SET,
-    JP623_REMOVAL_POLICY_VERSION,
-    construction_recipe_digest_v1,
+    construction_recipe_digest_for_target,
+    package_removal_policy_for_target,
 )
 from .sandbox import HostConstructionSandbox
 from .validation import build_final_manifest, validate_runtime_state
 
 
 class BaseConstructionError(RuntimeError):
-    """Raised when the JP6.2.3 official base cannot be constructed."""
+    """Raised when an official JP6 base cannot be constructed."""
 
 
 _BASE_METADATA_MODE = 0o644
@@ -88,12 +87,15 @@ def _run_host(
     return completed
 
 
-def _require_jp623(target: ResolvedCatalogTarget) -> None:
-    jetpack = str(target.record["release"]["jetpack"]["version"])
-    l4t = str(target.record["release"]["l4t"]["version"])
-    if jetpack != "6.2.3" or l4t != "36.5.2":
+def _require_jp6_target(target: ResolvedCatalogTarget) -> None:
+    jetpack = target.record["release"]["jetpack"]
+    if (
+        target.is_unavailable
+        or jetpack["availability"] != "ga"
+        or jetpack["lifecycle"] != "production"
+    ):
         raise BaseConstructionError(
-            "Step 3 production builder currently supports only JetPack 6.2.3 / L4T 36.5.2"
+            "JP6 base construction requires a usable GA production catalog target"
         )
 
 
@@ -229,7 +231,7 @@ def _extract_official_rootfs(
     return l4t_root, rootfs
 
 
-def ensure_jp623_base(
+def ensure_jp6_base(
     target: ResolvedCatalogTarget,
     *,
     acquisition_receipt_path: Path,
@@ -237,9 +239,9 @@ def ensure_jp623_base(
     qemu_binary: Path = Path("/usr/bin/qemu-aarch64-static"),
     runner=subprocess.run,
 ) -> BaseBuildResult:
-    """Build or reuse the first official JP6.2.3 immutable ARM64 base."""
+    """Build or reuse an official exact-target JP6 immutable ARM64 base."""
 
-    _require_jp623(target)
+    _require_jp6_target(target)
     root = Path(data_root).expanduser().resolve()
     if not root.is_absolute():
         raise BaseConstructionError("Orin Stage data root must be absolute")
@@ -272,12 +274,9 @@ def ensure_jp623_base(
         raise BaseConstructionError("acquisition receipt does not belong to requested target")
     artifact_paths = _verified_artifact_paths(acquisition_receipt)
     artifacts = acquisition_artifacts_from_receipt(acquisition_receipt)
-    recipe_digest = construction_recipe_digest_v1()
-    removal_policy = PackageRemovalPolicy(
-        version=JP623_REMOVAL_POLICY_VERSION,
-        jetpack_version="6.2.3",
-        l4t_version="36.5.2",
-        allowed_removal_set=JP623_ALLOWED_REMOVAL_SET,
+    recipe_digest = construction_recipe_digest_for_target(target)
+    removal_policy: PackageRemovalPolicy | None = package_removal_policy_for_target(
+        target
     )
     sandbox = HostConstructionSandbox()
 
@@ -297,7 +296,7 @@ def ensure_jp623_base(
     targets_root = root / "targets"
     staging_root.mkdir(parents=True, exist_ok=True)
     targets_root.mkdir(parents=True, exist_ok=True)
-    staging = staging_root / f".base-jp623-{uuid.uuid4().hex}"
+    staging = staging_root / f".base-jp6-{uuid.uuid4().hex}"
     staging.mkdir(exist_ok=False)
 
     try:

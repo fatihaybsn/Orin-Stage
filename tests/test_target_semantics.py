@@ -131,6 +131,16 @@ def test_repository_suites_must_match_release_channel(tmp_path: Path) -> None:
     )
 
 
+def test_execution_profile_must_be_declared_by_target(tmp_path: Path) -> None:
+    assert_semantic_error(
+        tmp_path,
+        lambda r: r["execution"].__setitem__(
+            "hardware_profile", "orin-nx-not-declared"
+        ),
+        "execution.hardware_profile",
+    )
+
+
 def test_checksum_must_still_identify_same_artifact(tmp_path: Path) -> None:
     assert_semantic_error(
         tmp_path,

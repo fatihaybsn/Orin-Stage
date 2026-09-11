@@ -51,6 +51,37 @@ def test_target_list_exposes_only_ga_product_targets_without_promoting_any_relea
     assert sum(t.is_supported for t in targets) == 0
 
 
+@pytest.mark.parametrize(
+    "selector,jetpack,l4t,repository_channel",
+    [
+        ("jetson-orin@jp6.0", "6.0", "36.3", "r36.3"),
+        ("jetson-orin@jp6.1", "6.1", "36.4", "r36.4"),
+        ("jetson-orin@jp6.2", "6.2", "36.4.3", "r36.4"),
+        ("jetson-orin@jp6.2.1", "6.2.1", "36.4.4", "r36.4"),
+        ("jetson-orin@jp6.2.2", "6.2.2", "36.5.0", "r36.5"),
+        ("jetson-orin@jp6.2.3", "6.2.3", "36.5.2", "r36.5"),
+    ],
+)
+def test_every_ga_jp6_target_resolves_with_exact_execution_metadata(
+    selector: str,
+    jetpack: str,
+    l4t: str,
+    repository_channel: str,
+) -> None:
+    target = TargetResolver(TARGETS_DIR, SCHEMA_PATH).resolve(selector)
+
+    assert target.jetpack_version == jetpack
+    assert target.jetson_linux_version == l4t
+    assert target.l4t_version == l4t
+    assert target.hardware_profile == "orin-nx-16gb-p3767-0000-on-p3768-0000"
+    assert target.sdk_manager_target == "JETSON_ORIN_NX_TARGETS"
+    assert target.sdk_manager_component_role == "jp6-developer-v1"
+    assert target.record["packages"]["repository"]["suites"] == [
+        f"common {repository_channel} main",
+        f"t234 {repository_channel} main",
+    ]
+
+
 def test_target_list_contains_expected_production_vertical_slice() -> None:
     resolver = TargetResolver(TARGETS_DIR, SCHEMA_PATH)
 

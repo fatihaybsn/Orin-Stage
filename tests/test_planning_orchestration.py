@@ -12,7 +12,7 @@ from orin_stage.acquisition.sdk_manager_discovery import SdkManagerDiscovery
 from orin_stage.acquisition.sdk_manager_match import VerifiedSdkManagerTarget
 from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 from orin_stage.planning.models import ArtifactIndex, PlanArtifactStatus
-from orin_stage.planning.orchestration import ReleaseEnsureError, ensure_jp623_release
+from orin_stage.planning.orchestration import ReleaseEnsureError, ensure_jp6_release
 from orin_stage.planning.planner import (
     BasePlanStatus,
     PlannedArtifact,
@@ -140,14 +140,11 @@ def test_exact_verified_acquisition_and_base_skip_sdkm_and_builder(
         lambda *a, **k: receipt,
     )
     monkeypatch.setattr(orchestration_module, "ensure_sdk_manager_acquisition", _forbidden)
-    monkeypatch.setattr(orchestration_module, "ensure_jp623_base", _forbidden)
+    monkeypatch.setattr(orchestration_module, "ensure_jp6_base", _forbidden)
 
-    result = ensure_jp623_release(
-        _resolver(),
+    result = ensure_jp6_release(
+        _target(),
         SdkManagerClient("unused"),
-        selector="jetson-orin@jp6.2.3",
-        hardware_profile=PROFILE,
-        required_sdk_manager_target=SDKM_TARGET,
         data_root=tmp_path,
         base_builder=_forbidden,
     )
@@ -165,7 +162,7 @@ def test_acquisition_hit_with_missing_base_calls_builder_once(
         base_status=BasePlanStatus.CONSTRUCTION_REQUIRED,
     )
     receipt = tmp_path / "receipt.json"
-    builder_calls: list[dict[str, object]] = []
+    builder_calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
     base_result = object()
 
     monkeypatch.setattr(
@@ -182,15 +179,12 @@ def test_acquisition_hit_with_missing_base_calls_builder_once(
     monkeypatch.setattr(orchestration_module, "ensure_sdk_manager_acquisition", _forbidden)
 
     def builder(*args, **kwargs):
-        builder_calls.append(kwargs)
+        builder_calls.append((args, kwargs))
         return base_result
 
-    result = ensure_jp623_release(
-        _resolver(),
+    result = ensure_jp6_release(
+        _target(),
         SdkManagerClient("unused"),
-        selector="jetson-orin@jp6.2.3",
-        hardware_profile=PROFILE,
-        required_sdk_manager_target=SDKM_TARGET,
         data_root=tmp_path,
         base_builder=builder,
     )
@@ -198,7 +192,9 @@ def test_acquisition_hit_with_missing_base_calls_builder_once(
     assert not result.acquisition_invoked
     assert result.base_result is base_result
     assert len(builder_calls) == 1
-    assert builder_calls[0]["acquisition_receipt_path"] == receipt
+    builder_args, builder_kwargs = builder_calls[0]
+    assert builder_args[0].canonical_id == _target().canonical_id
+    assert builder_kwargs["acquisition_receipt_path"] == receipt
 
 
 def test_missing_artifact_uses_sdkm_once_rebuilds_replans_and_builds(
@@ -214,7 +210,7 @@ def test_missing_artifact_uses_sdkm_once_rebuilds_replans_and_builds(
     )
     plans = iter((initial, verified))
     receipts = iter((None, tmp_path / "published" / "receipt.json"))
-    acquisition_calls: list[dict[str, object]] = []
+    acquisition_calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
     rebuild_calls: list[Path] = []
     builder_calls: list[dict[str, object]] = []
 
@@ -231,7 +227,7 @@ def test_missing_artifact_uses_sdkm_once_rebuilds_replans_and_builds(
     )
 
     def acquire(*args, **kwargs):
-        acquisition_calls.append(kwargs)
+        acquisition_calls.append((args, kwargs))
         return _acquisition_result(tmp_path / "published" / "receipt.json")
 
     def rebuild(root):
@@ -244,20 +240,20 @@ def test_missing_artifact_uses_sdkm_once_rebuilds_replans_and_builds(
 
     monkeypatch.setattr(orchestration_module, "ensure_sdk_manager_acquisition", acquire)
     monkeypatch.setattr(orchestration_module, "rebuild_artifact_index", rebuild)
-    monkeypatch.setattr(orchestration_module, "ensure_jp623_base", builder)
+    monkeypatch.setattr(orchestration_module, "ensure_jp6_base", builder)
 
-    result = ensure_jp623_release(
-        _resolver(),
+    result = ensure_jp6_release(
+        _target(),
         SdkManagerClient("sdkmanager"),
-        selector="jetson-orin@jp6.2.3",
-        hardware_profile=PROFILE,
-        required_sdk_manager_target=SDKM_TARGET,
         data_root=tmp_path,
     )
 
     assert result.acquisition_invoked
     assert len(acquisition_calls) == 1
-    assert acquisition_calls[0]["required_sdk_manager_target"] == SDKM_TARGET
+    acquisition_args, acquisition_kwargs = acquisition_calls[0]
+    assert acquisition_args[1].canonical_id == _target().canonical_id
+    assert acquisition_kwargs["required_sdk_manager_target"] == SDKM_TARGET
+    assert acquisition_kwargs["role"].role_id == "jp6-developer-v1"
     assert rebuild_calls == [tmp_path.resolve()]
     assert len(builder_calls) == 1
 
@@ -297,15 +293,12 @@ def test_unverified_hash_after_acquisition_blocks_builder(
         "ensure_sdk_manager_acquisition",
         lambda *a, **k: _acquisition_result(tmp_path / "receipt.json"),
     )
-    monkeypatch.setattr(orchestration_module, "ensure_jp623_base", _forbidden)
+    monkeypatch.setattr(orchestration_module, "ensure_jp6_base", _forbidden)
 
     with pytest.raises(ReleaseEnsureError, match="fully verified"):
-        ensure_jp623_release(
-            _resolver(),
+        ensure_jp6_release(
+            _target(),
             SdkManagerClient("sdkmanager"),
-            selector="jetson-orin@jp6.2.3",
-            hardware_profile=PROFILE,
-            required_sdk_manager_target=SDKM_TARGET,
             data_root=tmp_path,
         )
 
@@ -349,14 +342,11 @@ def test_unknown_manifest_uses_existing_sdkm_adapter_without_custom_downloader(
         return _acquisition_result(tmp_path / "receipt.json")
 
     monkeypatch.setattr(orchestration_module, "ensure_sdk_manager_acquisition", acquire)
-    monkeypatch.setattr(orchestration_module, "ensure_jp623_base", _forbidden)
+    monkeypatch.setattr(orchestration_module, "ensure_jp6_base", _forbidden)
 
-    result = ensure_jp623_release(
-        _resolver(),
+    result = ensure_jp6_release(
+        _target(),
         SdkManagerClient("sdkmanager"),
-        selector="jetson-orin@jp6.2.3",
-        hardware_profile=PROFILE,
-        required_sdk_manager_target=SDKM_TARGET,
         data_root=tmp_path,
         sdk_manager_manifest={"schema_version": 999},
     )
@@ -402,33 +392,51 @@ def test_same_filename_with_different_sha_does_not_take_fast_hit(
         return _acquisition_result(tmp_path / "receipt.json")
 
     monkeypatch.setattr(orchestration_module, "ensure_sdk_manager_acquisition", acquire)
-    monkeypatch.setattr(orchestration_module, "ensure_jp623_base", _forbidden)
+    monkeypatch.setattr(orchestration_module, "ensure_jp6_base", _forbidden)
 
-    ensure_jp623_release(
-        _resolver(),
+    ensure_jp6_release(
+        _target(),
         SdkManagerClient("sdkmanager"),
-        selector="jetson-orin@jp6.2.3",
-        hardware_profile=PROFILE,
-        required_sdk_manager_target=SDKM_TARGET,
         data_root=tmp_path,
     )
 
     assert calls["acquisition"] == 1
 
 
-def test_non_jp623_target_is_rejected_before_external_work(
+def test_other_jp6_target_uses_same_orchestration_path(
     tmp_path: Path, monkeypatch
 ) -> None:
-    monkeypatch.setattr(orchestration_module, "build_artifact_index", _forbidden)
-    monkeypatch.setattr(orchestration_module, "ensure_sdk_manager_acquisition", _forbidden)
-    monkeypatch.setattr(orchestration_module, "ensure_jp623_base", _forbidden)
+    target = _resolver().resolve("jetson-orin@jp6.2")
+    plan = _plan(
+        (PlanArtifactStatus.VERIFIED_CACHED, PlanArtifactStatus.VERIFIED_CACHED),
+        base_status=BasePlanStatus.BASE_REUSE,
+    )
+    receipt = tmp_path / "receipt.json"
+    observed: list[object] = []
+    monkeypatch.setattr(
+        orchestration_module,
+        "build_artifact_index",
+        lambda root: ArtifactIndex(1, ()),
+    )
 
-    with pytest.raises(ReleaseEnsureError, match="only JetPack 6.2.3"):
-        ensure_jp623_release(
-            _resolver(),
-            SdkManagerClient("sdkmanager"),
-            selector="jetson-orin@jp6.2",
-            hardware_profile=PROFILE,
-            required_sdk_manager_target=SDKM_TARGET,
-            data_root=tmp_path,
-        )
+    def plan_release(selected, **kwargs):
+        observed.append((selected, kwargs["hardware_profile"]))
+        return plan
+
+    monkeypatch.setattr(orchestration_module, "plan_release", plan_release)
+    monkeypatch.setattr(
+        orchestration_module,
+        "_find_verified_acquisition_receipt",
+        lambda *args, **kwargs: receipt,
+    )
+    monkeypatch.setattr(orchestration_module, "ensure_sdk_manager_acquisition", _forbidden)
+    monkeypatch.setattr(orchestration_module, "ensure_jp6_base", _forbidden)
+
+    result = ensure_jp6_release(
+        target,
+        SdkManagerClient("sdkmanager"),
+        data_root=tmp_path,
+    )
+
+    assert result.target is target
+    assert observed == [(target, target.hardware_profile)]

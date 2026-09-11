@@ -12,7 +12,7 @@ from typing import Callable, Sequence
 
 from .base.construction import (
     BaseBuildResult,
-    ensure_jp623_base,
+    ensure_jp6_base,
 )
 from .catalog import TargetResolver, builtin_catalog_paths
 from .catalog.resolver import ResolvedCatalogTarget
@@ -115,7 +115,7 @@ def parse_base_build_result(payload: str, *, data_root: Path) -> BaseBuildResult
     )
 
 
-def ensure_jp623_base_with_sudo(
+def ensure_jp6_base_with_sudo(
     target: ResolvedCatalogTarget,
     *,
     acquisition_receipt_path: Path,
@@ -124,7 +124,7 @@ def ensure_jp623_base_with_sudo(
     runner: Runner = subprocess.run,
     which: Which = shutil.which,
 ) -> BaseBuildResult:
-    """Run only JP6.2.3 base construction in the narrow root child."""
+    """Run exact-target JP6 base construction in the narrow root child."""
     sudo = which("sudo")
     if sudo is None:
         raise PrivilegedBaseError(
@@ -190,7 +190,7 @@ def main(
 ) -> int:
     args = build_parser().parse_args(argv)
     effective_geteuid = os.geteuid if geteuid is None else geteuid
-    effective_builder = ensure_jp623_base if base_builder is None else base_builder
+    effective_builder = ensure_jp6_base if base_builder is None else base_builder
     if effective_geteuid() != 0:
         print("error: privileged base builder must run as root", file=sys.stderr)
         return 1

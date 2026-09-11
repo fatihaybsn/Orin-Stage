@@ -243,15 +243,19 @@ def test_workspace_create_rejects_unavailable_target_even_with_flag(
     assert "unavailable" in capsys.readouterr().err
 
 
-def test_workspace_create_rejects_other_implemented_release(
+def test_workspace_create_uses_generic_target_and_requires_its_exact_base(
     monkeypatch,
     capsys,
+    tmp_path: Path,
 ) -> None:
     _normal_user(monkeypatch)
+    data_root = tmp_path / "data"
 
     assert (
         main(
             [
+                "--data-root",
+                str(data_root),
                 "workspace",
                 "create",
                 "--target",
@@ -263,7 +267,68 @@ def test_workspace_create_rejects_other_implemented_release(
         )
         == 1
     )
-    assert "currently implemented only for JP6.2.3" in capsys.readouterr().err
+    error = capsys.readouterr().err
+    assert "Target is not ensured. Run:" in error
+    assert (
+        "ostg target ensure jetson-orin@jp6.2 --allow-validation-pending"
+        in error
+    )
+
+
+def test_workspace_create_for_other_jp6_uses_resolved_exact_target(
+    monkeypatch,
+    capsys,
+    tmp_path: Path,
+) -> None:
+    _normal_user(monkeypatch)
+    data_root, target_dir = _target(tmp_path, with_seed=True)
+    resolved_targets: list[object] = []
+    manager_calls: list[tuple[Path, str]] = []
+
+    def find_target(root: Path, resolved):
+        assert root == data_root
+        resolved_targets.append(resolved)
+        return target_dir
+
+    class FakeManager:
+        def __init__(self, selected_root: Path) -> None:
+            assert selected_root == data_root
+
+        def create(self, selected_target: Path, name: str) -> WorkspaceRecord:
+            manager_calls.append((selected_target, name))
+            return _record(data_root, name)
+
+    monkeypatch.setattr("orin_stage.cli._find_realized_target", find_target)
+    monkeypatch.setattr("orin_stage.cli.WorkspaceManager", FakeManager)
+    monkeypatch.setattr(
+        "orin_stage.cli.create_materialization_seed_with_sudo",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("existing seed must be reused")
+        ),
+    )
+
+    assert (
+        main(
+            [
+                "--data-root",
+                str(data_root),
+                "workspace",
+                "create",
+                "--target",
+                "jetson-orin@jp6.1",
+                "--name",
+                "demo",
+                "--allow-validation-pending",
+            ]
+        )
+        == 0
+    )
+    assert len(resolved_targets) == 1
+    resolved = resolved_targets[0]
+    assert resolved.selector == "jetson-orin@jp6.1"
+    assert resolved.l4t_version == "36.4"
+    assert manager_calls == [(target_dir, "demo")]
+    assert "Target:           jetson-orin@jp6.1" in capsys.readouterr().out
 
 
 def test_workspace_create_without_ensured_base_is_explicit_and_offline(
@@ -278,7 +343,7 @@ def test_workspace_create_without_ensured_base_is_explicit_and_offline(
 
     monkeypatch.setattr(SdkManagerClient, "version", forbidden)
     monkeypatch.setattr(SdkManagerClient, "query_jetson", forbidden)
-    monkeypatch.setattr("orin_stage.cli.ensure_jp623_release", forbidden)
+    monkeypatch.setattr("orin_stage.cli.ensure_jp6_release", forbidden)
     data_root = tmp_path / "missing"
 
     assert (

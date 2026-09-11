@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect or remove only stale/incomplete JP6.2.3 Step 3 attempts."""
+"""Inspect or remove stale/incomplete JP6 family base attempts."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from orin_stage.base.cleanup import (  # noqa: E402
-    inspect_jp623_base_attempts,
-    remove_jp623_base_attempts,
+    inspect_jp6_base_attempts,
+    remove_jp6_base_attempts,
 )
 
 
@@ -27,7 +27,7 @@ def main() -> int:
     args = parser.parse_args()
     root = args.data_root.expanduser().resolve()
 
-    inspection = inspect_jp623_base_attempts(root)
+    inspection = inspect_jp6_base_attempts(root)
     for entry in inspection.protected:
         print(f"KEEP   {entry.kind:7} {entry.path} ({entry.reason})")
     for entry in inspection.removable:
@@ -35,10 +35,10 @@ def main() -> int:
         print(f"{action:12} {entry.kind:7} {entry.path} ({entry.reason})")
 
     if args.apply:
-        removed = remove_jp623_base_attempts(root)
+        removed = remove_jp6_base_attempts(root)
         for entry in removed:
             print(f"REMOVED {entry.kind:7} {entry.path}")
-        print(f"cleanup: removed {len(removed)} JP6.2.3 Step-3 attempt(s)")
+        print(f"cleanup: removed {len(removed)} JP6 base attempt(s)")
     else:
         print(f"cleanup dry-run: {len(inspection.removable)} removable attempt(s)")
     return 0

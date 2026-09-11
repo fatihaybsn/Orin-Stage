@@ -130,6 +130,30 @@ class ResolvedCatalogTarget:
     def is_unavailable(self) -> bool:
         return self.support_status == "unavailable"
 
+    @property
+    def jetpack_version(self) -> str:
+        return str(self.record["release"]["jetpack"]["version"])
+
+    @property
+    def jetson_linux_version(self) -> str:
+        return str(self.record["release"]["jetson_linux"]["release_revision"])
+
+    @property
+    def l4t_version(self) -> str:
+        return str(self.record["release"]["l4t"]["version"])
+
+    @property
+    def hardware_profile(self) -> str:
+        return str(self.record["execution"]["hardware_profile"])
+
+    @property
+    def sdk_manager_target(self) -> str:
+        return str(self.record["execution"]["sdk_manager"]["target"])
+
+    @property
+    def sdk_manager_component_role(self) -> str:
+        return str(self.record["execution"]["sdk_manager"]["component_role"])
+
 
 class TargetResolver:
     """Load, validate and resolve exact JP6 target catalog records.

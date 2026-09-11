@@ -303,7 +303,7 @@ def test_inspect_is_read_only_and_uses_only_toolchain_inspect(
         "orin_stage.cli.BuildToolchainManager",
         ReadOnlyToolchainManager,
     )
-    monkeypatch.setattr("orin_stage.cli.ensure_jp623_release", forbidden)
+    monkeypatch.setattr("orin_stage.cli.ensure_jp6_release", forbidden)
     monkeypatch.setattr("orin_stage.cli.SdkManagerClient", forbidden)
 
     def snapshot() -> tuple[tuple[str, int, int, int], ...]:

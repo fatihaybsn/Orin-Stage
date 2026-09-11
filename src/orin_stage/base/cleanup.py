@@ -10,9 +10,12 @@ from pathlib import Path
 from .receipt import base_directory_is_reusable
 
 
-JP623_CANONICAL_ID = "nvidia.jetpack-6.2.3.jetson-linux-36.5.2"
 CONSTRUCTION_LEASE = ".orin-stage-construction.json"
-_STAGING_NAME = re.compile(r"^\.base-jp623-[A-Za-z0-9_-]+$")
+_STAGING_NAME = re.compile(r"^\.base-(?:jp6|jp623)-[A-Za-z0-9_-]+$")
+_JP6_CANONICAL_ID = re.compile(
+    r"^nvidia\.jetpack-6\.\d+(?:\.\d+)?\.jetson-linux-36\.\d+(?:\.\d+)?$"
+)
+_JP6_BUILDER_SCRIPT = re.compile(rb"(?:^|/)build_jp6[0-9._-]*_base\.py$")
 
 
 class BaseAttemptCleanupError(RuntimeError):
@@ -111,7 +114,11 @@ def _has_active_builder_for_data_root(data_root: Path) -> bool:
             arguments = (process / "cmdline").read_bytes().split(b"\0")
         except OSError:
             continue
-        if not any(argument.endswith(b"build_jp623_base.py") for argument in arguments):
+        if not any(
+            argument == b"orin_stage.privileged_base"
+            or _JP6_BUILDER_SCRIPT.search(argument)
+            for argument in arguments
+        ):
             continue
         if expected_root in arguments:
             return True
@@ -140,8 +147,9 @@ def _target_canonical_id(directory: Path) -> str | None:
             return canonical_id
     except json.JSONDecodeError:
         pass
-    if re.search(rf'"canonical_id"\s*:\s*"{re.escape(JP623_CANONICAL_ID)}"', raw):
-        return JP623_CANONICAL_ID
+    match = re.search(r'"canonical_id"\s*:\s*"([^"]+)"', raw)
+    if match is not None and _JP6_CANONICAL_ID.fullmatch(match.group(1)):
+        return match.group(1)
     return None
 
 
@@ -160,7 +168,7 @@ def _publication_problems(directory: Path) -> tuple[str, ...]:
     return tuple(problems)
 
 
-def inspect_jp623_base_attempts(data_root: Path) -> CleanupInspection:
+def inspect_jp6_base_attempts(data_root: Path) -> CleanupInspection:
     root = Path(data_root).expanduser().resolve()
     if not root.is_absolute() or root == Path(root.anchor):
         raise BaseAttemptCleanupError("data root must be a specific absolute directory")
@@ -182,7 +190,7 @@ def inspect_jp623_base_attempts(data_root: Path) -> CleanupInspection:
             ):
                 protected.append(CleanupEntry("staging", directory, "active construction process"))
             else:
-                removable.append(CleanupEntry("staging", directory, "stale JP6.2.3 construction staging"))
+                removable.append(CleanupEntry("staging", directory, "stale JP6 construction staging"))
 
     targets_root = root / "targets"
     if targets_root.is_dir() and not targets_root.is_symlink():
@@ -193,7 +201,7 @@ def inspect_jp623_base_attempts(data_root: Path) -> CleanupInspection:
                 protected.append(CleanupEntry("target", directory, "valid reusable published base"))
                 continue
             canonical_id = _target_canonical_id(directory)
-            if canonical_id != JP623_CANONICAL_ID:
+            if canonical_id is None or not _JP6_CANONICAL_ID.fullmatch(canonical_id):
                 continue
             removable.append(
                 CleanupEntry("target", directory, "; ".join(_publication_problems(directory)))
@@ -202,12 +210,12 @@ def inspect_jp623_base_attempts(data_root: Path) -> CleanupInspection:
     return CleanupInspection(tuple(removable), tuple(protected))
 
 
-def remove_jp623_base_attempts(data_root: Path) -> tuple[CleanupEntry, ...]:
+def remove_jp6_base_attempts(data_root: Path) -> tuple[CleanupEntry, ...]:
     root = Path(data_root).expanduser().resolve()
-    inspection = inspect_jp623_base_attempts(root)
+    inspection = inspect_jp6_base_attempts(root)
     removed: list[CleanupEntry] = []
     for entry in inspection.removable:
-        current = inspect_jp623_base_attempts(root)
+        current = inspect_jp6_base_attempts(root)
         current_by_path = {item.path: item for item in current.removable}
         fresh = current_by_path.get(entry.path)
         if fresh is None:

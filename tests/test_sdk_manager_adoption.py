@@ -94,7 +94,6 @@ def test_adopts_with_hardlinks_and_existing_ensure_becomes_cache_hit(
     adopted = adopt_sdk_manager_acquisition(
         FakeSdkManagerClient(),
         target,
-        required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
         data_root=data_root,
         existing_download_folder=source,
         sdk_manager_state_root=tmp_path / "missing-state",
@@ -137,7 +136,6 @@ def test_adoption_includes_matching_nvsdkm_reference_metadata(tmp_path: Path) ->
     result = adopt_sdk_manager_acquisition(
         FakeSdkManagerClient(),
         _target_for_bytes(bsp, rootfs),
-        required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
         data_root=(tmp_path / "data").resolve(),
         existing_download_folder=source,
         sdk_manager_state_root=state,
@@ -159,7 +157,6 @@ def test_corrupt_existing_artifact_is_rejected_without_publish(tmp_path: Path) -
         adopt_sdk_manager_acquisition(
             FakeSdkManagerClient(),
             _target_for_bytes(bsp, rootfs),
-            required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
             data_root=data_root,
             existing_download_folder=source,
         )
@@ -183,7 +180,6 @@ def test_cross_filesystem_fallback_copies_into_atomic_managed_directory(
     result = adopt_sdk_manager_acquisition(
         FakeSdkManagerClient(),
         _target_for_bytes(bsp, rootfs),
-        required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
         data_root=(tmp_path / "data").resolve(),
         existing_download_folder=source,
         sdk_manager_state_root=tmp_path / "missing-state",
@@ -215,7 +211,6 @@ sdkmanager --cli --action install --product Jetson --version 6.2.3 --target JETS
         adopt_sdk_manager_acquisition(
             WrongTargetClient(),
             _target_for_bytes(bsp, rootfs),
-            required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
             data_root=data_root,
             existing_download_folder=source,
         )
@@ -248,7 +243,6 @@ def test_failed_staging_leaves_no_partial_artifacts_or_receipt(
         adopt_sdk_manager_acquisition(
             FakeSdkManagerClient(),
             _target_for_bytes(bsp, rootfs),
-            required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
             data_root=data_root,
             existing_download_folder=source,
             sdk_manager_state_root=tmp_path / "missing-state",

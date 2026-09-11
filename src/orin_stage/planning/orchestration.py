@@ -14,8 +14,12 @@ from orin_stage.acquisition.sdk_manager_acquisition import (
     AcquisitionResult,
     ensure_sdk_manager_acquisition,
 )
-from orin_stage.base.construction import BaseBuildResult, ensure_jp623_base
-from orin_stage.catalog.resolver import ResolvedCatalogTarget, TargetResolver
+from orin_stage.acquisition.sdk_manager_role import (
+    SdkManagerComponentRole,
+    sdk_manager_component_role,
+)
+from orin_stage.base.construction import BaseBuildResult, ensure_jp6_base
+from orin_stage.catalog.resolver import ResolvedCatalogTarget
 
 from .artifact_index import build_artifact_index, rebuild_artifact_index
 from .models import ArtifactIndex, PlanArtifactStatus
@@ -31,9 +35,7 @@ class ReleaseEnsureError(RuntimeError):
     """Raised when verified inputs cannot be established for base construction."""
 
 
-JP623_HARDWARE_PROFILE = "orin-nx-16gb-p3767-0000-on-p3768-0000"
-JP623_SDK_MANAGER_TARGET = "JETSON_ORIN_NX_TARGETS"
-JP623_QEMU_BINARY = Path("/usr/bin/qemu-aarch64-static")
+JP6_QEMU_BINARY = Path("/usr/bin/qemu-aarch64-static")
 
 BaseBuilder = Callable[..., BaseBuildResult]
 
@@ -68,14 +70,15 @@ def _base_directories(data_root: Path) -> tuple[Path, ...]:
     )
 
 
-def _require_jp623_target(target: ResolvedCatalogTarget) -> None:
-    release = target.record["release"]
+def _require_jp6_target(target: ResolvedCatalogTarget) -> None:
+    jetpack = target.record["release"]["jetpack"]
     if (
-        str(release["jetpack"]["version"]) != "6.2.3"
-        or str(release["l4t"]["version"]) != "36.5.2"
+        target.is_unavailable
+        or jetpack["availability"] != "ga"
+        or jetpack["lifecycle"] != "production"
     ):
         raise ReleaseEnsureError(
-            "release orchestration currently supports only JetPack 6.2.3 / L4T 36.5.2"
+            "JP6 release orchestration requires a usable GA production catalog target"
         )
 
 
@@ -92,6 +95,7 @@ def _receipt_matches_plan(
     data_root: Path,
     target: ResolvedCatalogTarget,
     required_sdk_manager_target: str,
+    component_role: SdkManagerComponentRole,
     plan: ReleasePlan,
 ) -> bool:
     receipt_path = Path(path).resolve()
@@ -110,6 +114,8 @@ def _receipt_matches_plan(
         or receipt_path.parent.name != digest
         or receipt.get("canonical_id") != target.canonical_id
         or receipt.get("sdk_manager_target") != required_sdk_manager_target
+        or receipt.get("role_id") != component_role.role_id
+        or receipt.get("role_digest") != component_role.digest()
         or receipt.get("download_root") != str(download_root)
         or not receipt_is_cache_hit(
             receipt_path,
@@ -148,6 +154,7 @@ def _find_verified_acquisition_receipt(
     target: ResolvedCatalogTarget,
     *,
     required_sdk_manager_target: str,
+    component_role: SdkManagerComponentRole,
     plan: ReleasePlan,
     preferred: Path | None = None,
 ) -> Path | None:
@@ -169,6 +176,7 @@ def _find_verified_acquisition_receipt(
             data_root=data_root,
             target=target,
             required_sdk_manager_target=required_sdk_manager_target,
+            component_role=component_role,
             plan=plan,
         ):
             return resolved
@@ -191,24 +199,23 @@ def _manifest_after_acquisition(
     return manifest
 
 
-def ensure_jp623_release(
-    resolver: TargetResolver,
+def ensure_jp6_release(
+    target: ResolvedCatalogTarget,
     client: SdkManagerClient,
     *,
-    selector: str,
-    hardware_profile: str,
-    required_sdk_manager_target: str,
     data_root: Path,
     sdk_manager_manifest: Mapping[str, object] | None = None,
-    qemu_binary: Path = JP623_QEMU_BINARY,
+    qemu_binary: Path = JP6_QEMU_BINARY,
     sdk_manager_state_root: Path | None = None,
     base_builder: BaseBuilder | None = None,
 ) -> ReleaseEnsureResult:
-    """Resolve, plan, acquire when needed, replan, then reuse or build JP6.2.3."""
+    """Plan, acquire, then reuse or build one resolved exact JP6 target."""
 
     root = Path(data_root).expanduser().resolve()
-    target = resolver.resolve(selector)
-    _require_jp623_target(target)
+    _require_jp6_target(target)
+    hardware_profile = target.hardware_profile
+    required_sdk_manager_target = target.sdk_manager_target
+    component_role = sdk_manager_component_role(target.sdk_manager_component_role)
     index: ArtifactIndex = build_artifact_index(root)
     initial_plan = plan_release(
         target,
@@ -222,6 +229,7 @@ def ensure_jp623_release(
         root,
         target,
         required_sdk_manager_target=required_sdk_manager_target,
+        component_role=component_role,
         plan=initial_plan,
     )
 
@@ -233,6 +241,7 @@ def ensure_jp623_release(
             target,
             required_sdk_manager_target=required_sdk_manager_target,
             data_root=root,
+            role=component_role,
             sdk_manager_state_root=sdk_manager_state_root,
         )
         index = rebuild_artifact_index(root)
@@ -249,6 +258,7 @@ def ensure_jp623_release(
             root,
             target,
             required_sdk_manager_target=required_sdk_manager_target,
+            component_role=component_role,
             plan=final_plan,
             preferred=acquisition_result.receipt_path,
         )
@@ -269,7 +279,7 @@ def ensure_jp623_release(
             base_result=None,
         )
 
-    builder = ensure_jp623_base if base_builder is None else base_builder
+    builder = ensure_jp6_base if base_builder is None else base_builder
     base_result = builder(
         target,
         acquisition_receipt_path=receipt_path,

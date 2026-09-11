@@ -11,6 +11,7 @@
     "support",
     "release",
     "target",
+    "execution",
     "userspace",
     "nvidia_stack",
     "construction_inputs",
@@ -52,6 +53,9 @@
     },
     "target": {
       "$ref": "#/$defs/target"
+    },
+    "execution": {
+      "$ref": "#/$defs/execution"
     },
     "userspace": {
       "$ref": "#/$defs/userspace"
@@ -232,6 +236,26 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/slug"}
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hardware_profile", "sdk_manager"],
+      "properties": {
+        "hardware_profile": {"$ref": "#/$defs/slug"},
+        "sdk_manager": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target", "component_role"],
+          "properties": {
+            "target": {
+              "type": "string",
+              "pattern": "^JETSON_[A-Z0-9_]+_TARGETS$"
+            },
+            "component_role": {"const": "jp6-developer-v1"}
+          }
         }
       }
     },

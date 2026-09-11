@@ -37,6 +37,12 @@ target:
     - orin-nx-16gb-p3767-0000-on-p3768-0000
     - orin-nx-8gb-p3767-0001-on-p3768-0000
 
+execution:
+  hardware_profile: orin-nx-16gb-p3767-0000-on-p3768-0000
+  sdk_manager:
+    target: JETSON_ORIN_NX_TARGETS
+    component_role: jp6-developer-v1
+
 userspace:
   ubuntu:
     version: "22.04"

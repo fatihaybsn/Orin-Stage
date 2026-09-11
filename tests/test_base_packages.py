@@ -35,12 +35,12 @@ from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 CATALOG_PATHS = builtin_catalog_paths()
 
 
-def _target():
+def _target(selector: str = "jetson-orin@jp6.2.3"):
     resolver = TargetResolver(
         CATALOG_PATHS.targets_dir,
         CATALOG_PATHS.schema_path,
     )
-    return resolver.resolve("jetson-orin@jp6.2.3")
+    return resolver.resolve(selector)
 
 
 def _removal_policy(
@@ -519,11 +519,25 @@ def test_post_install_unexpected_removal_fails_validation(monkeypatch, tmp_path:
         install_locked_package_set(Chroot(), package_set)  # type: ignore[arg-type]
 
 
-def test_jp623_temporary_sources_are_common_and_t234_r365() -> None:
-    rendered = render_temporary_nvidia_sources(_target())
+@pytest.mark.parametrize(
+    "selector,channel",
+    [
+        ("jetson-orin@jp6.0", "r36.3"),
+        ("jetson-orin@jp6.1", "r36.4"),
+        ("jetson-orin@jp6.2", "r36.4"),
+        ("jetson-orin@jp6.2.2", "r36.5"),
+        ("jetson-orin@jp6.2.3", "r36.5"),
+    ],
+)
+def test_temporary_sources_use_exact_catalog_repository_channel(
+    selector: str, channel: str
+) -> None:
+    rendered = render_temporary_nvidia_sources(_target(selector))
 
-    assert "https://repo.download.nvidia.com/jetson/common r36.5 main" in rendered
-    assert "https://repo.download.nvidia.com/jetson/t234 r36.5 main" in rendered
+    assert rendered == (
+        f"deb https://repo.download.nvidia.com/jetson/common {channel} main\n"
+        f"deb https://repo.download.nvidia.com/jetson/t234 {channel} main\n"
+    )
 
 
 def test_vendor_placeholder_and_duplicate_sources_are_disabled_during_construction(

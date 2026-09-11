@@ -10,7 +10,7 @@ from orin_stage.base.construction import BaseBuildResult
 from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 from orin_stage.privileged_base import (
     PrivilegedBaseError,
-    ensure_jp623_base_with_sudo,
+    ensure_jp6_base_with_sudo,
     main,
     parse_base_build_result,
 )
@@ -64,7 +64,7 @@ def test_sudo_builder_uses_narrow_shell_free_command_once(tmp_path: Path) -> Non
         return subprocess.CompletedProcess(command, 0, _payload(result), "")
 
     receipt = tmp_path / "sdkm" / "receipts" / "receipt.json"
-    parsed = ensure_jp623_base_with_sudo(
+    parsed = ensure_jp6_base_with_sudo(
         _target(),
         acquisition_receipt_path=receipt,
         data_root=tmp_path,
@@ -112,7 +112,7 @@ def test_sudo_builder_preserves_venv_interpreter_symlink(
         commands.append(command)
         return subprocess.CompletedProcess(command, 0, _payload(result), "")
 
-    ensure_jp623_base_with_sudo(
+    ensure_jp6_base_with_sudo(
         _target(),
         acquisition_receipt_path=tmp_path / "receipt.json",
         data_root=tmp_path,
@@ -134,7 +134,7 @@ def test_sudo_missing_is_short_error_without_subprocess(tmp_path: Path) -> None:
         raise AssertionError("subprocess must not run")
 
     with pytest.raises(PrivilegedBaseError, match="sudo is not installed"):
-        ensure_jp623_base_with_sudo(
+        ensure_jp6_base_with_sudo(
             _target(),
             acquisition_receipt_path=tmp_path / "receipt.json",
             data_root=tmp_path,
@@ -157,7 +157,7 @@ def test_sudo_child_failure_is_short_domain_error(tmp_path: Path) -> None:
         PrivilegedBaseError,
         match="privileged base builder failed: base validation failed",
     ):
-        ensure_jp623_base_with_sudo(
+        ensure_jp6_base_with_sudo(
             _target(),
             acquisition_receipt_path=tmp_path / "receipt.json",
             data_root=tmp_path,

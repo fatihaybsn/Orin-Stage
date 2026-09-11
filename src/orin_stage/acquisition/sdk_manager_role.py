@@ -54,3 +54,17 @@ JP6_DEVELOPER_ROLE_V1 = SdkManagerComponentRole(
         "Jetson Platform Services",
     ),
 )
+
+
+_COMPONENT_ROLES = {
+    JP6_DEVELOPER_ROLE_V1.role_id: JP6_DEVELOPER_ROLE_V1,
+}
+
+
+def sdk_manager_component_role(role_id: str) -> SdkManagerComponentRole:
+    """Resolve the exact component-selection contract named by a target record."""
+
+    try:
+        return _COMPONENT_ROLES[role_id]
+    except KeyError as exc:
+        raise ValueError(f"unknown SDK Manager component role: {role_id!r}") from exc
