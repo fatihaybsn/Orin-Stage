@@ -440,3 +440,19 @@ def test_other_jp6_target_uses_same_orchestration_path(
 
     assert result.target is target
     assert observed == [(target, target.hardware_profile)]
+
+
+def test_developer_preview_is_rejected_before_external_work(
+    tmp_path: Path, monkeypatch
+) -> None:
+    target = _resolver().resolve("jetson-orin@jp6.0-dp")
+    monkeypatch.setattr(orchestration_module, "build_artifact_index", _forbidden)
+    monkeypatch.setattr(orchestration_module, "ensure_sdk_manager_acquisition", _forbidden)
+    monkeypatch.setattr(orchestration_module, "ensure_jp6_base", _forbidden)
+
+    with pytest.raises(ReleaseEnsureError, match="GA production"):
+        ensure_jp6_release(
+            target,
+            SdkManagerClient("unused"),
+            data_root=tmp_path,
+        )

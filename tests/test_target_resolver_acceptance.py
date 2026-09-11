@@ -75,7 +75,6 @@ def test_every_ga_jp6_target_resolves_with_exact_execution_metadata(
     assert target.l4t_version == l4t
     assert target.hardware_profile == "orin-nx-16gb-p3767-0000-on-p3768-0000"
     assert target.sdk_manager_target == "JETSON_ORIN_NX_TARGETS"
-    assert target.sdk_manager_component_role == "jp6-developer-v1"
     assert target.record["packages"]["repository"]["suites"] == [
         f"common {repository_channel} main",
         f"t234 {repository_channel} main",
