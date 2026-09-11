@@ -163,7 +163,7 @@ def package_seed_from_target(target: ResolvedCatalogTarget) -> PackageSeed:
     version = metadata["version_build"]
     if not isinstance(version, str) or not version:
         raise PackageResolutionError(
-            "JP6.2.3 construction requires an exact meta-package version in the catalog"
+            "JP6 construction requires an exact meta-package version in the catalog"
         )
     return PackageSeed(
         name=str(metadata["name"]),

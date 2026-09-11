@@ -36,7 +36,6 @@ def main() -> int:
     result = adopt_sdk_manager_acquisition(
         SdkManagerClient(),
         target,
-        required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
         data_root=args.data_root.expanduser().resolve(),
         existing_download_folder=args.existing_download_folder.expanduser().resolve(),
         sdk_manager_state_root=(

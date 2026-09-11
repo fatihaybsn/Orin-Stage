@@ -10,7 +10,7 @@ from orin_stage.acquisition.artifact_verification import CONSTRUCTION_ARTIFACT_K
 from orin_stage.acquisition.sdk_manager_discovery import SdkManagerDiscovery
 from orin_stage.base.lock import load_target_lock
 from orin_stage.base.receipt import base_directory_is_reusable, load_base_receipt
-from orin_stage.base.recipe import construction_recipe_digest_v1
+from orin_stage.base.recipe import construction_recipe_digest_for_target
 from orin_stage.catalog.resolver import ResolvedCatalogTarget
 
 from .artifact_index import artifact_status
@@ -380,7 +380,7 @@ def _find_reusable_base(
         for artifact in artifacts
         if artifact.expected_sha256 is not None
     }
-    recipe_digest = construction_recipe_digest_v1()
+    recipe_digest = construction_recipe_digest_for_target(target)
     for directory in sorted((Path(path).resolve() for path in base_directories), key=str):
         if not base_directory_is_reusable(directory):
             continue

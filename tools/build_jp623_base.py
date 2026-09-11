@@ -17,7 +17,7 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from orin_stage.base import ensure_jp623_base  # noqa: E402
+from orin_stage.base import ensure_jp6_base  # noqa: E402
 from orin_stage.catalog import (  # noqa: E402
     TargetResolver,
     builtin_catalog_paths,
@@ -49,7 +49,7 @@ def main() -> int:
     catalog_paths = builtin_catalog_paths()
     resolver = TargetResolver(catalog_paths.targets_dir, catalog_paths.schema_path)
     target = resolver.resolve("jetson-orin@jp6.2.3")
-    result = ensure_jp623_base(
+    result = ensure_jp6_base(
         target,
         acquisition_receipt_path=args.acquisition_receipt.expanduser().resolve(),
         data_root=args.data_root.expanduser().resolve(),
