@@ -254,7 +254,12 @@
               "type": "string",
               "pattern": "^JETSON_[A-Z0-9_]+_TARGETS$"
             },
-            "component_role": {"const": "jp6-developer-v1"}
+            "component_role": {
+              "enum": [
+                "jp6-developer-v1",
+                "jp6-default-install-method-developer-v1"
+              ]
+            }
           }
         }
       }

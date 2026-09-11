@@ -41,7 +41,7 @@ execution:
   hardware_profile: orin-nx-16gb-p3767-0000-on-p3768-0000
   sdk_manager:
     target: JETSON_ORIN_NX_TARGETS
-    component_role: jp6-developer-v1
+    component_role: jp6-default-install-method-developer-v1
 
 userspace:
   ubuntu:
