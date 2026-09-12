@@ -12,6 +12,29 @@ from .packages import PackageRemovalPolicy
 CONSTRUCTION_RECIPE_ID = "jp6-official-base-v1"
 CONSTRUCTION_RECIPE_VERSION = 1
 HOST_BUILDER_IMAGE = "docker.io/library/ubuntu:jammy-20260627"
+JP60_CANONICAL_ID = "nvidia.jetpack-6.0.jetson-linux-36.3"
+JP60_REMOVAL_POLICY_VERSION = "jp6.0-opencv-replacement-v1"
+JP60_ALLOWED_REMOVAL_SET = (
+    "libopencv-calib3d-dev",
+    "libopencv-contrib-dev",
+    "libopencv-core-dev",
+    "libopencv-dnn-dev",
+    "libopencv-features2d-dev",
+    "libopencv-flann-dev",
+    "libopencv-highgui-dev",
+    "libopencv-imgcodecs-dev",
+    "libopencv-imgproc-dev",
+    "libopencv-ml-dev",
+    "libopencv-objdetect-dev",
+    "libopencv-photo-dev",
+    "libopencv-shape-dev",
+    "libopencv-stitching-dev",
+    "libopencv-superres-dev",
+    "libopencv-video-dev",
+    "libopencv-videoio-dev",
+    "libopencv-videostab-dev",
+    "libopencv-viz-dev",
+)
 JP623_CANONICAL_ID = "nvidia.jetpack-6.2.3.jetson-linux-36.5.2"
 JP623_REMOVAL_POLICY_VERSION = "jp6.2.3-opencv-replacement-v1"
 JP623_ALLOWED_REMOVAL_SET = (
@@ -109,21 +132,31 @@ def package_removal_policy_for_target(
     """Return only exact-release removal exceptions proven for this target.
 
     All other JP6 releases retain the family default: package removal is denied.
-    The JP6.2.3 exception remains deliberately narrow and auditable rather than
+    Each exception remains deliberately narrow and auditable rather than
     becoming an implicit JP6-wide workaround.
     """
 
-    if (
-        target.canonical_id != JP623_CANONICAL_ID
-        or target.jetpack_version != "6.2.3"
-        or target.l4t_version != "36.5.2"
-    ):
+    policies = {
+        (JP60_CANONICAL_ID, "6.0", "36.3"): (
+            JP60_REMOVAL_POLICY_VERSION,
+            JP60_ALLOWED_REMOVAL_SET,
+        ),
+        (JP623_CANONICAL_ID, "6.2.3", "36.5.2"): (
+            JP623_REMOVAL_POLICY_VERSION,
+            JP623_ALLOWED_REMOVAL_SET,
+        ),
+    }
+    selected = policies.get(
+        (target.canonical_id, target.jetpack_version, target.l4t_version)
+    )
+    if selected is None:
         return None
+    version, allowed_removal_set = selected
     return PackageRemovalPolicy(
-        version=JP623_REMOVAL_POLICY_VERSION,
+        version=version,
         jetpack_version=target.jetpack_version,
         l4t_version=target.l4t_version,
-        allowed_removal_set=JP623_ALLOWED_REMOVAL_SET,
+        allowed_removal_set=allowed_removal_set,
     )
 
 
@@ -133,9 +166,10 @@ def construction_recipe_for_target(
     """Build the JP6 family recipe with the target's narrow release policy."""
 
     recipe = copy.deepcopy(_CONSTRUCTION_RECIPE_V1)
-    if package_removal_policy_for_target(target) is None:
-        package_configuration = recipe["package_configuration"]
-        assert isinstance(package_configuration, dict)
+    package_configuration = recipe["package_configuration"]
+    assert isinstance(package_configuration, dict)
+    policy = package_removal_policy_for_target(target)
+    if policy is None:
         package_configuration["removal_policy"] = {
             "version": "deny-all-v1",
             "scope": {"jetpack_family": "6.x"},
@@ -143,6 +177,30 @@ def construction_recipe_for_target(
             "allowed_removal_set": [],
             "pre_install_gate": "apt-simulation-exact-package-set",
             "post_install_audit": "dpkg-installed-set-exact-difference",
+        }
+    else:
+        package_configuration["removal_policy"] = {
+            "version": policy.version,
+            "scope": {
+                "jetpack_version": policy.jetpack_version,
+                "l4t_version": policy.l4t_version,
+            },
+            "decision": "allow-subset-of-exact-set",
+            "allowed_removal_set": list(policy.allowed_removal_set),
+            "pre_install_gate": "apt-simulation-exact-package-set",
+            "post_install_audit": "dpkg-installed-set-exact-difference",
+        }
+    if target.canonical_id == JP60_CANONICAL_ID:
+        package_configuration["offline_l4t_preinstall"] = {
+            "scope": {
+                "jetpack_version": "6.0",
+                "l4t_version": "36.3",
+            },
+            "vendor_marker": (
+                "/opt/nvidia/l4t-packages/"
+                ".nv-l4t-disable-boot-fw-update-in-preinstall"
+            ),
+            "lifetime": "construction-chroot-only",
         }
     return recipe
 

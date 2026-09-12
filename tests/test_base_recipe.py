@@ -4,6 +4,8 @@ import pytest
 
 from orin_stage.base._json import json_digest
 from orin_stage.base.recipe import (
+    JP60_ALLOWED_REMOVAL_SET,
+    JP60_REMOVAL_POLICY_VERSION,
     JP623_ALLOWED_REMOVAL_SET,
     JP623_REMOVAL_POLICY_VERSION,
     construction_recipe_digest_for_target,
@@ -71,10 +73,27 @@ def test_jp623_target_recipe_preserves_existing_digest() -> None:
     )
 
 
+def test_jp60_recipe_has_scoped_removal_and_offline_preinstall_contract() -> None:
+    recipe = construction_recipe_for_target(_target("jetson-orin@jp6.0"))
+    package_configuration = recipe["package_configuration"]
+    policy = package_configuration["removal_policy"]  # type: ignore[index]
+    offline = package_configuration["offline_l4t_preinstall"]  # type: ignore[index]
+
+    assert policy["version"] == JP60_REMOVAL_POLICY_VERSION  # type: ignore[index]
+    assert tuple(policy["allowed_removal_set"]) == JP60_ALLOWED_REMOVAL_SET  # type: ignore[index]
+    assert offline["scope"] == {  # type: ignore[index]
+        "jetpack_version": "6.0",
+        "l4t_version": "36.3",
+    }
+    assert offline["lifetime"] == "construction-chroot-only"  # type: ignore[index]
+    assert construction_recipe_digest_for_target(
+        _target("jetson-orin@jp6.0")
+    ) != construction_recipe_digest_v1()
+
+
 @pytest.mark.parametrize(
     "selector",
     [
-        "jetson-orin@jp6.0",
         "jetson-orin@jp6.1",
         "jetson-orin@jp6.2",
         "jetson-orin@jp6.2.1",

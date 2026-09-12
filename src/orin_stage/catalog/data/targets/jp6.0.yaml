@@ -111,11 +111,7 @@ packages:
     is_full_jetpack_dependency_closure: false
   meta_package:
     name: nvidia-jetpack
-    version_build: null
-    version_build_candidates:
-      - "6.0+b87"
-      - "6.0+b106"
-    exact_selection_deferred_to_lock: true
+    version_build: "6.0+b106"
     architecture: arm64
     runtime_name: nvidia-jetpack-runtime
     development_name: nvidia-jetpack-dev
