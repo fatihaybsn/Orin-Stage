@@ -271,6 +271,28 @@ def test_sudo_failure_is_short_domain_error(monkeypatch, capsys) -> None:
     assert "Traceback" not in error
 
 
+def test_target_ensure_preserves_multiline_safety_diagnostic(
+    monkeypatch,
+    capsys,
+) -> None:
+    _normal_user(monkeypatch)
+    monkeypatch.setattr(
+        "orin_stage.cli.ensure_jp6_release",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            PrivilegedBaseError(
+                "JetPack package transaction requires removals.\n"
+                "packages_to_remove:\n- obsolete-a\n- obsolete-b\n"
+                "Installation was NOT performed."
+            )
+        ),
+    )
+
+    assert main(["target", "ensure", SELECTOR, "--allow-validation-pending"]) == 1
+    error = capsys.readouterr().err
+    assert "packages_to_remove:\n- obsolete-a\n- obsolete-b" in error
+    assert "Installation was NOT performed." in error
+
+
 def test_download_and_construction_output(monkeypatch, capsys, tmp_path: Path) -> None:
     _normal_user(monkeypatch)
     monkeypatch.setattr(

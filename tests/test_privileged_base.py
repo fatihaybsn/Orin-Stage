@@ -167,6 +167,33 @@ def test_sudo_child_failure_is_short_domain_error(tmp_path: Path) -> None:
         )
 
 
+def test_sudo_child_failure_preserves_multiline_safety_diagnostic(
+    tmp_path: Path,
+) -> None:
+    def runner(command: tuple[str, ...], **kwargs):
+        return subprocess.CompletedProcess(
+            command,
+            1,
+            "",
+            "error: JetPack package transaction requires removals.\n"
+            "\npackages_to_remove:\n- obsolete-a\n- obsolete-b\n"
+            "\nInstallation was NOT performed.\n",
+        )
+
+    with pytest.raises(PrivilegedBaseError) as raised:
+        ensure_jp6_base_with_sudo(
+            _target(),
+            acquisition_receipt_path=tmp_path / "receipt.json",
+            data_root=tmp_path,
+            qemu_binary=Path("/usr/bin/qemu-aarch64-static"),
+            runner=runner,
+            which=lambda name: "/usr/bin/sudo" if name == "sudo" else None,
+        )
+
+    message = str(raised.value)
+    assert "packages_to_remove:\n- obsolete-a\n- obsolete-b" in message
+    assert message.endswith("Installation was NOT performed.")
+
 def test_privileged_child_rejects_non_root(capsys, tmp_path: Path) -> None:
     def forbidden(*args, **kwargs):
         raise AssertionError("builder must not run")
@@ -256,7 +283,7 @@ def test_privileged_child_reports_builder_failure_without_traceback(
     )
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert captured.err == "error: base construction failed\n"
+    assert captured.err == "error: base construction failed\ninternal details\n"
     assert "Traceback" not in captured.err
 
 

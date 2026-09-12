@@ -39,6 +39,7 @@ from .receipt import (
     write_base_receipt,
 )
 from .recipe import (
+    JP60_CANONICAL_ID,
     construction_recipe_digest_for_target,
     package_removal_policy_for_target,
 )
@@ -317,6 +318,9 @@ def ensure_jp6_base(
                 rootfs,
                 qemu_binary=qemu_binary,
                 runner=runner,
+                disable_l4t_boot_fw_preinstall=(
+                    target.canonical_id == JP60_CANONICAL_ID
+                ),
             ) as chroot:
                 package_set = resolve_construction_package_set(
                     chroot,

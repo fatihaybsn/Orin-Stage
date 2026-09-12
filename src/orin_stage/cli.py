@@ -180,7 +180,7 @@ def _run_target_ensure(
         )
         output = _format_target_ensure_result(result)
     except (RuntimeError, ValueError, OSError) as exc:
-        detail = str(exc).splitlines()[0]
+        detail = str(exc)
         print(f"error: {detail}", file=sys.stderr)
         return 1
     print(output)

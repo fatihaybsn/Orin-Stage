@@ -26,8 +26,11 @@ from orin_stage.base.packages import (
     validate_final_nvidia_sources,
 )
 from orin_stage.base.recipe import (
+    JP60_ALLOWED_REMOVAL_SET,
+    JP60_REMOVAL_POLICY_VERSION,
     JP623_ALLOWED_REMOVAL_SET,
     JP623_REMOVAL_POLICY_VERSION,
+    package_removal_policy_for_target,
 )
 from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 
@@ -86,9 +89,37 @@ Conf cuda-cudart-12-6 (12.6.77-1 NVIDIA:repo [arm64])
     )
 
 
+def test_parse_apt_simulation_accepts_upgrade_reverse_dependency_suffix() -> None:
+    output = (
+        "Inst libopencv-dev [4.5.4+dfsg-9ubuntu4] "
+        "(4.8.0-1-g6371ee1 L4T Jetson r36.3:stable [arm64]) "
+        "[libopencv-contrib-dev:arm64 libopencv-viz-dev:arm64 ]\n"
+    )
+
+    assert parse_apt_simulation(output) == (
+        ("libopencv-dev", "4.8.0-1-g6371ee1", "arm64", "upgrade"),
+    )
+
+
 def test_parse_apt_simulation_rejects_unknown_inst_format() -> None:
     with pytest.raises(PackageResolutionError, match="cannot parse"):
         parse_apt_simulation("Inst impossible-format")
+
+
+def test_parse_apt_simulation_accepts_empty_trailing_affected_package_list() -> None:
+    output = (
+        "Inst nvidia-l4t-camera [36.3.0-20240506102626] "
+        "(36.3.0-20240719161631 L4T Jetson T234 r36.3:stable [arm64]) []\n"
+    )
+
+    assert parse_apt_simulation(output) == (
+        (
+            "nvidia-l4t-camera",
+            "36.3.0-20240719161631",
+            "arm64",
+            "upgrade",
+        ),
+    )
 
 
 def test_parse_apt_diagnostic_classifies_every_transaction_operation() -> None:
@@ -223,6 +254,31 @@ def test_jp623_removal_policy_rejects_other_releases() -> None:
 
     with pytest.raises(PackageResolutionError, match="applies only"):
         _removal_policy().validate_target(replace(target, record=record))
+
+
+def test_jp60_has_release_scoped_exact_opencv_removal_policy() -> None:
+    policy = package_removal_policy_for_target(_target("jetson-orin@jp6.0"))
+
+    assert policy is not None
+    assert policy.version == JP60_REMOVAL_POLICY_VERSION
+    assert policy.jetpack_version == "6.0"
+    assert policy.l4t_version == "36.3"
+    assert policy.allowed_removal_set == JP60_ALLOWED_REMOVAL_SET
+    assert len(policy.allowed_removal_set) == 19
+
+
+def test_jp60_removal_policy_rejects_package_outside_exact_allowlist() -> None:
+    policy = package_removal_policy_for_target(_target("jetson-orin@jp6.0"))
+    assert policy is not None
+    report = packages_module.AptSimulationDiagnostic(
+        packages_to_install=(),
+        packages_to_remove=("libopencv-core-dev", "systemd"),
+        packages_to_upgrade=(),
+        packages_to_downgrade=(),
+    )
+
+    with pytest.raises(PackageResolutionError, match="systemd"):
+        packages_module._validate_removal_report(report, policy)
 
 
 @pytest.mark.parametrize(

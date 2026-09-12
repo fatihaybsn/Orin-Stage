@@ -165,8 +165,7 @@ def ensure_jp6_base_with_sudo(
             f"privileged base builder could not start: {exc}"
         ) from exc
     if completed.returncode != 0:
-        details = completed.stderr.strip().splitlines()
-        detail = details[-1] if details else f"exit {completed.returncode}"
+        detail = completed.stderr.strip() or f"exit {completed.returncode}"
         if detail.startswith("error: "):
             detail = detail.removeprefix("error: ")
         raise PrivilegedBaseError(f"privileged base builder failed: {detail}")
@@ -206,7 +205,7 @@ def main(
             qemu_binary=args.qemu.expanduser().resolve(),
         )
     except (RuntimeError, ValueError, OSError) as exc:
-        detail = str(exc).splitlines()[0]
+        detail = str(exc)
         print(f"error: {detail}", file=sys.stderr)
         return 1
 

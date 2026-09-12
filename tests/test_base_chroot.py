@@ -7,6 +7,29 @@ from orin_stage.base import chroot as chroot_module
 from orin_stage.base.chroot import Arm64ConstructionChroot
 
 
+def test_chroot_failure_preserves_stdout_and_stderr(tmp_path: Path) -> None:
+    rootfs = tmp_path / "rootfs"
+    rootfs.mkdir()
+
+    def runner(command, **kwargs):
+        return subprocess.CompletedProcess(
+            command,
+            100,
+            "Preparing package-a\nUnpacking package-a\n",
+            "dpkg returned an error\n",
+        )
+
+    chroot = Arm64ConstructionChroot(rootfs, runner=runner)
+    chroot._prepared = True
+    try:
+        chroot.run(("/usr/bin/apt-get", "install", "package-a"))
+        raise AssertionError("unreachable")
+    except chroot_module.ChrootError as exc:
+        message = str(exc)
+        assert "stdout:\nPreparing package-a\nUnpacking package-a" in message
+        assert "stderr:\ndpkg returned an error" in message
+
+
 def test_chroot_construction_markers_are_temporary(tmp_path: Path, monkeypatch) -> None:
     rootfs = tmp_path / "rootfs"
     (rootfs / "usr" / "bin").mkdir(parents=True)
@@ -37,14 +60,29 @@ def test_chroot_construction_markers_are_temporary(tmp_path: Path, monkeypatch) 
         runner=runner,
         host_resolv_conf=host_resolv,
         binfmt_root=binfmt,
+        disable_l4t_boot_fw_preinstall=True,
     ) as chroot:
         assert (rootfs / "usr" / "bin" / "qemu-aarch64-static").is_file()
         assert (rootfs / "usr" / "sbin" / "policy-rc.d").is_file()
+        assert (
+            rootfs
+            / "opt"
+            / "nvidia"
+            / "l4t-packages"
+            / ".nv-l4t-disable-boot-fw-update-in-preinstall"
+        ).is_file()
         assert original_resolv.read_text(encoding="utf-8") == "nameserver 1.1.1.1\n"
         chroot.run(("/usr/bin/apt-get", "-s", "install", "example"))
 
     assert not (rootfs / "usr" / "bin" / "qemu-aarch64-static").exists()
     assert not (rootfs / "usr" / "sbin" / "policy-rc.d").exists()
+    assert not (
+        rootfs
+        / "opt"
+        / "nvidia"
+        / "l4t-packages"
+        / ".nv-l4t-disable-boot-fw-update-in-preinstall"
+    ).exists()
     assert original_resolv.read_text(encoding="utf-8") == "nameserver 127.0.0.53\n"
     assert any(call[0] == "mount" for call in calls)
     assert any(call[0] == "umount" for call in calls)

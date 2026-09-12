@@ -15,6 +15,15 @@ class ChrootError(RuntimeError):
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 
 
+def _failure_output(completed: subprocess.CompletedProcess[str]) -> str:
+    sections: list[str] = []
+    if completed.stdout.strip():
+        sections.append(f"stdout:\n{completed.stdout.rstrip()}")
+    if completed.stderr.strip():
+        sections.append(f"stderr:\n{completed.stderr.rstrip()}")
+    return "\n".join(sections) or "no command output"
+
+
 class Arm64ConstructionChroot(AbstractContextManager["Arm64ConstructionChroot"]):
     """Minimal QEMU-backed chroot used only while constructing the ARM64 base."""
 
@@ -26,16 +35,19 @@ class Arm64ConstructionChroot(AbstractContextManager["Arm64ConstructionChroot"])
         runner: Runner = subprocess.run,
         host_resolv_conf: Path = Path("/etc/resolv.conf"),
         binfmt_root: Path = Path("/proc/sys/fs/binfmt_misc"),
+        disable_l4t_boot_fw_preinstall: bool = False,
     ) -> None:
         self.rootfs = Path(rootfs)
         self.qemu_binary = Path(qemu_binary)
         self.runner = runner
         self.host_resolv_conf = Path(host_resolv_conf)
         self.binfmt_root = Path(binfmt_root)
+        self.disable_l4t_boot_fw_preinstall = disable_l4t_boot_fw_preinstall
         self._mounted: list[Path] = []
         self._resolv_state: tuple[str, object] | None = None
         self._qemu_created = False
         self._policy_rcd_created = False
+        self._l4t_preinstall_marker_created = False
         self._prepared = False
 
     @property
@@ -132,6 +144,24 @@ class Arm64ConstructionChroot(AbstractContextManager["Arm64ConstructionChroot"])
         path.write_text("#!/bin/sh\nexit 101\n", encoding="utf-8")
         path.chmod(0o755)
 
+    def _prepare_l4t_preinstall_marker(self) -> None:
+        if not self.disable_l4t_boot_fw_preinstall:
+            return
+        path = (
+            self.rootfs
+            / "opt"
+            / "nvidia"
+            / "l4t-packages"
+            / ".nv-l4t-disable-boot-fw-update-in-preinstall"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists() or path.is_symlink():
+            raise ChrootError(
+                f"construction L4T preinstall marker already exists: {path}"
+            )
+        path.touch(mode=0o644)
+        self._l4t_preinstall_marker_created = True
+
     def _mount(self, command: Sequence[str], target: Path) -> None:
         target.mkdir(parents=True, exist_ok=True)
         self._host_run(command)
@@ -147,6 +177,7 @@ class Arm64ConstructionChroot(AbstractContextManager["Arm64ConstructionChroot"])
             self._require_binfmt()
             self._prepare_qemu()
             self._prepare_policy_rcd()
+            self._prepare_l4t_preinstall_marker()
             self._prepare_resolv_conf()
             self._mount(
                 ("mount", "-t", "proc", "proc", str(self.rootfs / "proc")),
@@ -200,7 +231,8 @@ class Arm64ConstructionChroot(AbstractContextManager["Arm64ConstructionChroot"])
         if check and completed.returncode != 0:
             raise ChrootError(
                 f"ARM64 chroot command failed ({completed.returncode}): "
-                f"{' '.join(str(part) for part in command)}\n{completed.stderr}"
+                f"{' '.join(str(part) for part in command)}\n"
+                f"{_failure_output(completed)}"
             )
         return completed
 
@@ -224,6 +256,16 @@ class Arm64ConstructionChroot(AbstractContextManager["Arm64ConstructionChroot"])
             policy = self.rootfs / "usr" / "sbin" / "policy-rc.d"
             policy.unlink(missing_ok=True)
             self._policy_rcd_created = False
+        if self._l4t_preinstall_marker_created:
+            marker = (
+                self.rootfs
+                / "opt"
+                / "nvidia"
+                / "l4t-packages"
+                / ".nv-l4t-disable-boot-fw-update-in-preinstall"
+            )
+            marker.unlink(missing_ok=True)
+            self._l4t_preinstall_marker_created = False
         if self._qemu_created:
             qemu = self.rootfs / self.qemu_guest_path.lstrip("/")
             qemu.unlink(missing_ok=True)

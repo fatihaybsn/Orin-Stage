@@ -133,7 +133,8 @@ class ConstructionPackageSet:
 _SIMULATED_INSTALL = re.compile(
     r"^Inst\s+(?P<name>\S+?)(?::(?P<name_arch>[^\s]+))?"
     r"(?:\s+\[(?P<old_version>[^\]]+)\])?\s+"
-    r"\((?P<version>\S+)(?:\s+.*?)?\s+\[(?P<architecture>[^\]]+)\]\)$"
+    r"\((?P<version>\S+)(?:\s+.*?)?\s+\[(?P<architecture>[^\]]+)\]\)"
+    r"(?:\s+\[[^\]]*\])?$"
 )
 _SIMULATED_REMOVE = re.compile(r"^Remv\s+(?P<name>\S+)")
 _APT_TRANSACTION_SECTIONS = {
