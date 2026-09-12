@@ -70,6 +70,26 @@ def test_catalog_construction_artifacts_get_official_sha1_and_local_sha256(
     assert artifacts[0].size == len(bsp)
 
 
+def test_official_manifest_filename_is_used_for_declared_case_variant(
+    tmp_path: Path,
+) -> None:
+    bsp = b"official-bsp"
+    rootfs = b"official-rootfs"
+    target = _target(bsp, rootfs)
+    target.record["construction_inputs"]["bsp"]["filename"] = (
+        "jetson_linux_r36.5.2_aarch64.tbz2"
+    )
+    (tmp_path / "Jetson_Linux_R36.5.2_aarch64.tbz2").write_bytes(bsp)
+    (tmp_path / "Tegra_Linux_Sample-Root-Filesystem_R36.5.2_aarch64.tbz2").write_bytes(rootfs)
+
+    artifacts = verify_catalog_construction_artifacts(
+        target, download_root=tmp_path.resolve()
+    )
+
+    assert artifacts[0].filename == "Jetson_Linux_R36.5.2_aarch64.tbz2"
+    assert artifacts[0].relative_path == "Jetson_Linux_R36.5.2_aarch64.tbz2"
+
+
 def test_bad_nvidia_sha1_is_rejected(tmp_path: Path) -> None:
     bsp = b"official-bsp"
     rootfs = b"official-rootfs"

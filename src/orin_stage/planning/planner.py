@@ -270,8 +270,11 @@ def _plan_artifact(
     sdk_manager_target: str | None,
     manifest: NormalizedSdkManagerManifest | None,
 ) -> PlannedArtifact:
-    catalog_artifact = target.record["construction_inputs"][kind]
-    filename = str(catalog_artifact["filename"])
+    # The official checksum manifest spelling is the exact on-disk identity.
+    # Catalog semantic validation already proves that the construction input
+    # names the same artifact without permitting a fuzzy directory lookup.
+    official_artifact = target.record["checksums"]["official"]["artifacts"][kind]
+    filename = str(official_artifact["filename"])
     role = f"construction-{kind.replace('_', '-')}"
 
     manifest_artifact: ManifestArtifactEvidence | None = None

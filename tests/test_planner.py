@@ -52,6 +52,17 @@ def _target(*, supported: bool = True):
     return replace(target, support_status="supported") if supported else target
 
 
+def _jp60_target():
+    resolver = TargetResolver(
+        CATALOG_PATHS.targets_dir,
+        CATALOG_PATHS.schema_path,
+    )
+    return replace(
+        resolver.resolve("jetson-orin@jp6.0"),
+        support_status="supported",
+    )
+
+
 def _verified_artifact(
     kind: str,
     filename: str,
@@ -119,6 +130,73 @@ def _publish_acquisition(
         role_digest=JP6_DEVELOPER_ROLE_V1.digest(),
     )
     metadata_bytes = b"normalized sdk manager evidence"
+    receipt = make_receipt(
+        discovery,
+        JP6_DEVELOPER_ROLE_V1,
+        response,
+        download_root=downloads,
+        artifacts=artifacts,
+        sdk_manager_metadata=(
+            AcquisitionMetadataFile(
+                relative_path="sdkm.json",
+                size=len(metadata_bytes),
+                sha256=hashlib.sha256(metadata_bytes).hexdigest(),
+            ),
+        ),
+    )
+    receipt_dir = data_root / "sdkm" / "receipts" / receipt.acquisition_digest
+    metadata = receipt_dir / "metadata" / "sdkm.json"
+    metadata.parent.mkdir(parents=True)
+    metadata.write_bytes(metadata_bytes)
+    write_receipt_atomic(receipt_dir / "receipt.json", receipt)
+    return artifacts
+
+
+def _publish_jp60_acquisition(
+    data_root: Path,
+    target,
+) -> tuple[VerifiedAcquisitionArtifact, ...]:
+    official = target.record["checksums"]["official"]["artifacts"]
+    artifacts = (
+        _verified_artifact(
+            "bsp",
+            str(official["bsp"]["filename"]),
+            f"jp60/{official['bsp']['filename']}",
+            b"verified jp60 bsp",
+        ),
+        _verified_artifact(
+            "sample_rootfs",
+            str(official["sample_rootfs"]["filename"]),
+            f"jp60/{official['sample_rootfs']['filename']}",
+            b"verified jp60 sample rootfs",
+        ),
+    )
+    downloads = data_root / "sdkm" / "downloads"
+    for artifact, content in zip(
+        artifacts,
+        (b"verified jp60 bsp", b"verified jp60 sample rootfs"),
+    ):
+        path = downloads / artifact.relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+
+    discovery = SdkManagerDiscovery(
+        sdk_manager_version="2.4.1.13536",
+        query_source="archived",
+        target=VerifiedSdkManagerTarget(
+            canonical_id=target.canonical_id,
+            jetpack_version="6.0",
+            sdk_manager_display_label="JetPack 6.0 (rev. 2)",
+            sdk_manager_target="JETSON_ORIN_NX_TARGETS",
+        ),
+    )
+    response = SdkManagerResponseFile(
+        path=data_root / "sdkm" / "responses" / "jp60.ini",
+        sha256="a" * 64,
+        role_id=JP6_DEVELOPER_ROLE_V1.role_id,
+        role_digest=JP6_DEVELOPER_ROLE_V1.digest(),
+    )
+    metadata_bytes = b"normalized sdk manager jp60 evidence"
     receipt = make_receipt(
         discovery,
         JP6_DEVELOPER_ROLE_V1,
@@ -271,6 +349,34 @@ def test_all_verified_artifacts_have_zero_download_and_reuse_base(
     assert first.base_status is BasePlanStatus.BASE_REUSE
     assert first.base_digest is not None
     json.dumps(first.to_dict(), sort_keys=True)
+
+
+def test_jp60_uses_exact_official_filename_spelling_for_cached_artifacts(
+    tmp_path: Path,
+) -> None:
+    target = _jp60_target()
+    artifacts = _publish_jp60_acquisition(tmp_path, target)
+    index = rebuild_artifact_index(tmp_path)
+
+    assert (
+        target.record["construction_inputs"]["bsp"]["filename"]
+        != target.record["checksums"]["official"]["artifacts"]["bsp"]["filename"]
+    )
+
+    plan = plan_release(
+        target,
+        hardware_profile=PROFILE_16GB,
+        artifact_index=index,
+        data_root=tmp_path,
+        sdk_manager_manifest=_manifest(target, artifacts),
+    )
+
+    assert plan.verified_cached_count == 2
+    assert plan.download_required_count == 0
+    assert plan.sdkm_decision_count == 0
+    assert tuple(artifact.filename for artifact in plan.artifacts) == tuple(
+        artifact.filename for artifact in artifacts
+    )
 
 
 def test_one_missing_artifact_adds_only_its_exact_size(tmp_path: Path) -> None:

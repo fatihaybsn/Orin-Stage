@@ -109,19 +109,23 @@ def verify_catalog_construction_artifacts(
                 f"{expected_filename!r} vs {official_filename!r}"
             )
 
-        path = _find_exact_regular_file(root, expected_filename)
+        # The checksum manifest spelling is the authoritative downloaded
+        # artifact name. Some NVIDIA release pages use a case-only variant;
+        # accepting the manifest's exact name avoids any directory-wide,
+        # case-insensitive or fuzzy lookup.
+        path = _find_exact_regular_file(root, official_filename)
         sha1, sha256, size = _hash_file(path)
         expected_sha1 = checksum_entry["digest"].lower()
         if sha1 != expected_sha1:
             raise AcquisitionArtifactChecksumError(
-                f"NVIDIA SHA-1 mismatch for {expected_filename}: "
+                f"NVIDIA SHA-1 mismatch for {official_filename}: "
                 f"expected {expected_sha1}, got {sha1}"
             )
 
         verified.append(
             VerifiedAcquisitionArtifact(
                 kind=kind,
-                filename=expected_filename,
+                filename=official_filename,
                 relative_path=str(path.relative_to(root)),
                 size=size,
                 sha1=sha1,
