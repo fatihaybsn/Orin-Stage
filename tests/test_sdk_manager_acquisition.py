@@ -31,12 +31,36 @@ sdkmanager --cli --action install --product Jetson --version 6.2.3 --target JETS
 """
 
 
+class FakeArchivedSdkManagerClient(SdkManagerClient):
+    def version(self) -> str:
+        return "2.4.1.13536"
+
+    def query_jetson(self, *, archived: bool = False) -> str:
+        if not archived:
+            return """
+JetPack 6.2.3
+sdkmanager --cli --action install --product Jetson --version 6.2.3 --target JETSON_ORIN_NX_TARGETS --flash
+"""
+        return """
+JetPack 6.0 (rev. 2)
+sdkmanager --cli --action install --product Jetson --version 6.0 --target JETSON_ORIN_NX_TARGETS --flash
+"""
+
+
 def _target():
     resolver = TargetResolver(
         targets_dir=CATALOG_PATHS.targets_dir,
         schema_path=CATALOG_PATHS.schema_path,
     )
     return resolver.resolve("jetson-orin@jp6.2.3")
+
+
+def _jp60_target():
+    resolver = TargetResolver(
+        targets_dir=CATALOG_PATHS.targets_dir,
+        schema_path=CATALOG_PATHS.schema_path,
+    )
+    return resolver.resolve("jetson-orin@jp6.0")
 
 
 def _write_sdkm_state(root: Path) -> Path:
@@ -130,6 +154,50 @@ def test_end_to_end_acquisition_publishes_receipt_and_then_hits_cache(
 
     assert second.cache_hit is True
     assert executions == 1
+
+
+def test_archived_discovery_is_propagated_to_download_execution(
+    tmp_path: Path, monkeypatch
+) -> None:
+    data_root = tmp_path.resolve() / "data"
+    sdkm_state = _write_sdkm_state(tmp_path.resolve())
+    (sdkm_state / "dist" / "sdkml3_jetpack_60.json").write_text(
+        json.dumps(
+            {
+                "release": {
+                    "releaseVersion": "6.0",
+                    "targetHW": ["JETSON_ORIN_NX_TARGETS"],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "orin_stage.acquisition.sdk_manager_acquisition.verify_catalog_construction_artifacts",
+        lambda target, *, download_root: _fake_verified_artifacts(download_root),
+    )
+
+    commands: list[tuple[str, ...]] = []
+
+    def fake_execute(plan) -> None:
+        commands.append(plan.command)
+        plan.metadata_directory.mkdir(parents=True, exist_ok=True)
+        (plan.metadata_directory / "sdkm-export.ini").write_text(
+            "exported=true\n", encoding="utf-8"
+        )
+
+    result = ensure_sdk_manager_acquisition(
+        FakeArchivedSdkManagerClient(),
+        _jp60_target(),
+        required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
+        data_root=data_root,
+        execute=fake_execute,
+        sdk_manager_state_root=sdkm_state,
+    )
+
+    assert result.discovery.query_source == "archived"
+    assert commands and commands[0][-1] == "--archived-versions"
 
 
 def test_corrupted_cache_forces_download_again(tmp_path: Path, monkeypatch) -> None:

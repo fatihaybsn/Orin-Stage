@@ -22,6 +22,7 @@ def build_response_file_execution_plan(
     metadata_directory: Path,
     logs_directory: Path,
     executable: str = "sdkmanager",
+    archived_versions: bool = False,
 ) -> SdkManagerExecutionPlan:
     metadata = Path(metadata_directory)
     logs = Path(logs_directory)
@@ -30,7 +31,7 @@ def build_response_file_execution_plan(
     if not response_file.path.is_absolute():
         raise ValueError("SDK Manager response-file path must be absolute")
 
-    command = (
+    command = [
         executable,
         "--cli",
         "--auto",
@@ -43,8 +44,10 @@ def build_response_file_execution_plan(
         "--export-logs",
         str(logs),
         "--exit-on-finish",
-    )
-    return SdkManagerExecutionPlan(command, metadata, logs)
+    ]
+    if archived_versions:
+        command.append("--archived-versions")
+    return SdkManagerExecutionPlan(tuple(command), metadata, logs)
 
 
 def execute_downloadonly(

@@ -190,6 +190,7 @@ def ensure_sdk_manager_acquisition(
                 metadata_directory=metadata,
                 logs_directory=logs,
                 executable=client.executable,
+                archived_versions=discovery.query_source == "archived",
             )
             execute(execution_plan)
 

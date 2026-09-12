@@ -49,6 +49,19 @@ def test_execution_plan_uses_response_file_and_exports_evidence(tmp_path: Path) 
     assert "--flash" not in plan.command
 
 
+def test_execution_plan_requests_archived_catalog_when_discovery_used_it(
+    tmp_path: Path,
+) -> None:
+    plan = build_response_file_execution_plan(
+        _response(tmp_path),
+        metadata_directory=(tmp_path / "metadata").resolve(),
+        logs_directory=(tmp_path / "logs").resolve(),
+        archived_versions=True,
+    )
+
+    assert plan.command[-1] == "--archived-versions"
+
+
 def test_execution_does_not_capture_auth_output(tmp_path: Path) -> None:
     plan = build_response_file_execution_plan(
         _response(tmp_path),
