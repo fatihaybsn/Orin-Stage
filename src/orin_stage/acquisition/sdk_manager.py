@@ -64,7 +64,12 @@ class SdkManagerClient:
         completed = self._run("--ver", timeout_seconds=timeout_seconds)
         return completed.stdout.strip()
 
-    def query_jetson(self, *, archived: bool = False) -> str:
+    def query_jetson(
+        self,
+        *,
+        archived: bool = False,
+        primary_only: bool = False,
+    ) -> str:
         """Return SDK Manager's unparsed Jetson query output.
 
         Standard discovery asks for all currently available Jetson versions.
@@ -80,9 +85,13 @@ class SdkManagerClient:
             "Jetson",
         ]
 
+        if archived and primary_only:
+            raise ValueError(
+                "SDK Manager query cannot request archived and primary-only catalogs together"
+            )
         if archived:
             arguments.append("--archived-versions")
-        else:
+        elif not primary_only:
             arguments.append("--show-all-versions")
 
         completed = self._run(*arguments)

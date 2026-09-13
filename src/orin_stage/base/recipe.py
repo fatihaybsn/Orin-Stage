@@ -6,7 +6,7 @@ from typing import Mapping
 from orin_stage.catalog.resolver import ResolvedCatalogTarget
 
 from ._json import json_digest
-from .packages import PackageRemovalPolicy
+from .packages import PackageRemovalPolicy, PackageSeed
 
 
 CONSTRUCTION_RECIPE_ID = "jp6-official-base-v1"
@@ -36,6 +36,36 @@ JP60_ALLOWED_REMOVAL_SET = (
     "libopencv-viz-dev",
 )
 JP623_CANONICAL_ID = "nvidia.jetpack-6.2.3.jetson-linux-36.5.2"
+JP61_CANONICAL_ID = "nvidia.jetpack-6.1.jetson-linux-36.4"
+JP61_SEED_PROFILE_VERSION = "jp6.1-exact-nvidia-meta-closure-v1"
+JP61_EXACT_META_SEED_NAMES = (
+    "nvidia-jetpack",
+    "nvidia-jetpack-runtime",
+    "nvidia-jetpack-dev",
+    "nvidia-container",
+    "nvidia-cuda",
+    "nvidia-cuda-dev",
+    "nvidia-cudnn9",
+    "nvidia-cudnn9-dev",
+    "nvidia-cupva",
+    "nvidia-nsight-graphics",
+    "nvidia-nsight-systems",
+    "nvidia-opencv",
+    "nvidia-opencv-dev",
+    "nvidia-tensorrt",
+    "nvidia-tensorrt-dev",
+    "nvidia-vpi",
+    "nvidia-vpi-dev",
+)
+JP61_ADDITIONAL_EXACT_SEEDS = (
+    ("nvidia-container-toolkit-base", "1.14.2-1", "arm64"),
+    ("libnvidia-container-tools", "1.14.2-1", "arm64"),
+    ("nvidia-container-toolkit", "1.14.2-1", "arm64"),
+    ("libnvidia-container1", "1.14.2-1", "arm64"),
+    ("pva-allow-2", "2.0.0~rc3", "all"),
+)
+JP61_REMOVAL_POLICY_VERSION = "jp6.1-opencv-replacement-v1"
+JP61_ALLOWED_REMOVAL_SET = JP60_ALLOWED_REMOVAL_SET
 JP623_REMOVAL_POLICY_VERSION = "jp6.2.3-opencv-replacement-v1"
 JP623_ALLOWED_REMOVAL_SET = (
     "libopencv-core-dev",
@@ -145,6 +175,10 @@ def package_removal_policy_for_target(
             JP623_REMOVAL_POLICY_VERSION,
             JP623_ALLOWED_REMOVAL_SET,
         ),
+        (JP61_CANONICAL_ID, "6.1", "36.4"): (
+            JP61_REMOVAL_POLICY_VERSION,
+            JP61_ALLOWED_REMOVAL_SET,
+        ),
     }
     selected = policies.get(
         (target.canonical_id, target.jetpack_version, target.l4t_version)
@@ -160,6 +194,39 @@ def package_removal_policy_for_target(
     )
 
 
+def package_seed_names_for_target(target: ResolvedCatalogTarget) -> tuple[str, ...]:
+    """Return the exact meta-package roots required by a release contract.
+
+    JP6.1 shares the rolling r36.4 repository suite with later JetPack releases.
+    Its top-level meta-package therefore needs the runtime and development meta
+    packages pinned explicitly to the catalog's exact build. Other validated
+    releases retain their established single-seed transaction.
+    """
+
+    if (
+        target.canonical_id,
+        target.jetpack_version,
+        target.l4t_version,
+    ) == (JP61_CANONICAL_ID, "6.1", "36.4"):
+        return JP61_EXACT_META_SEED_NAMES
+    return (str(target.record["packages"]["meta_package"]["name"]),)
+
+
+def package_seeds_for_target(target: ResolvedCatalogTarget) -> tuple[PackageSeed, ...]:
+    """Return exact APT roots without changing other releases' seed semantics."""
+
+    metadata = target.record["packages"]["meta_package"]
+    version = str(metadata["version_build"])
+    architecture = str(metadata["architecture"])
+    seeds = tuple(
+        PackageSeed(name, version, architecture)
+        for name in package_seed_names_for_target(target)
+    )
+    if target.canonical_id == JP61_CANONICAL_ID:
+        seeds += tuple(PackageSeed(*item) for item in JP61_ADDITIONAL_EXACT_SEEDS)
+    return seeds
+
+
 def construction_recipe_for_target(
     target: ResolvedCatalogTarget,
 ) -> Mapping[str, object]:
@@ -169,6 +236,24 @@ def construction_recipe_for_target(
     package_configuration = recipe["package_configuration"]
     assert isinstance(package_configuration, dict)
     policy = package_removal_policy_for_target(target)
+    seeds = package_seeds_for_target(target)
+    if len(seeds) > 1:
+        package_configuration["exact_meta_package_seed_profile"] = {
+            "version": JP61_SEED_PROFILE_VERSION,
+            "scope": {
+                "jetpack_version": target.jetpack_version,
+                "l4t_version": target.l4t_version,
+            },
+            "packages": [
+                {
+                    "name": seed.name,
+                    "version": seed.version,
+                    "architecture": seed.architecture,
+                }
+                for seed in seeds
+            ],
+            "version_source": "official-repository-exact-dependency-closure",
+        }
     if policy is None:
         package_configuration["removal_policy"] = {
             "version": "deny-all-v1",

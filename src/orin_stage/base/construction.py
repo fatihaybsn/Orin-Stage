@@ -42,6 +42,7 @@ from .recipe import (
     JP60_CANONICAL_ID,
     construction_recipe_digest_for_target,
     package_removal_policy_for_target,
+    package_seeds_for_target,
 )
 from .sandbox import HostConstructionSandbox
 from .validation import build_final_manifest, validate_runtime_state
@@ -326,6 +327,7 @@ def ensure_jp6_base(
                     chroot,
                     target,
                     removal_policy=removal_policy,
+                    seed_packages=package_seeds_for_target(target),
                     runner=runner,
                 )
                 lock = build_canonical_target_lock(

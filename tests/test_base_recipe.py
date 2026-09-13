@@ -4,6 +4,10 @@ import pytest
 
 from orin_stage.base._json import json_digest
 from orin_stage.base.recipe import (
+    JP61_EXACT_META_SEED_NAMES,
+    JP61_ALLOWED_REMOVAL_SET,
+    JP61_REMOVAL_POLICY_VERSION,
+    JP61_SEED_PROFILE_VERSION,
     JP60_ALLOWED_REMOVAL_SET,
     JP60_REMOVAL_POLICY_VERSION,
     JP623_ALLOWED_REMOVAL_SET,
@@ -91,10 +95,29 @@ def test_jp60_recipe_has_scoped_removal_and_offline_preinstall_contract() -> Non
     ) != construction_recipe_digest_v1()
 
 
+def test_jp61_recipe_has_versioned_exact_meta_closure_contract() -> None:
+    recipe = construction_recipe_for_target(_target("jetson-orin@jp6.1"))
+    package_configuration = recipe["package_configuration"]
+    profile = package_configuration["exact_meta_package_seed_profile"]  # type: ignore[index]
+
+    assert profile["version"] == JP61_SEED_PROFILE_VERSION  # type: ignore[index]
+    assert profile["scope"] == {  # type: ignore[index]
+        "jetpack_version": "6.1",
+        "l4t_version": "36.4",
+    }
+    packages = profile["packages"]  # type: ignore[index]
+    assert tuple(item["name"] for item in packages[:17]) == JP61_EXACT_META_SEED_NAMES
+    removal = package_configuration["removal_policy"]  # type: ignore[index]
+    assert removal["version"] == JP61_REMOVAL_POLICY_VERSION  # type: ignore[index]
+    assert tuple(removal["allowed_removal_set"]) == JP61_ALLOWED_REMOVAL_SET  # type: ignore[index]
+    assert construction_recipe_digest_for_target(
+        _target("jetson-orin@jp6.1")
+    ) != construction_recipe_digest_v1()
+
+
 @pytest.mark.parametrize(
     "selector",
     [
-        "jetson-orin@jp6.1",
         "jetson-orin@jp6.2",
         "jetson-orin@jp6.2.1",
         "jetson-orin@jp6.2.2",

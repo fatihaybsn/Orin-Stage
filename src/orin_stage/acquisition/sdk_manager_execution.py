@@ -23,6 +23,7 @@ def build_response_file_execution_plan(
     logs_directory: Path,
     executable: str = "sdkmanager",
     archived_versions: bool = False,
+    show_all_versions: bool = False,
 ) -> SdkManagerExecutionPlan:
     metadata = Path(metadata_directory)
     logs = Path(logs_directory)
@@ -45,8 +46,14 @@ def build_response_file_execution_plan(
         str(logs),
         "--exit-on-finish",
     ]
+    if archived_versions and show_all_versions:
+        raise ValueError(
+            "SDK Manager execution cannot request archived and all-current catalogs together"
+        )
     if archived_versions:
         command.append("--archived-versions")
+    elif show_all_versions:
+        command.append("--show-all-versions")
     return SdkManagerExecutionPlan(tuple(command), metadata, logs)
 
 

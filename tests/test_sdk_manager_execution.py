@@ -62,6 +62,30 @@ def test_execution_plan_requests_archived_catalog_when_discovery_used_it(
     assert plan.command[-1] == "--archived-versions"
 
 
+def test_execution_plan_requests_all_current_versions_when_discovery_used_it(
+    tmp_path: Path,
+) -> None:
+    plan = build_response_file_execution_plan(
+        _response(tmp_path),
+        metadata_directory=(tmp_path / "metadata").resolve(),
+        logs_directory=(tmp_path / "logs").resolve(),
+        show_all_versions=True,
+    )
+
+    assert plan.command[-1] == "--show-all-versions"
+
+
+def test_execution_plan_rejects_conflicting_visibility_scopes(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="archived and all-current"):
+        build_response_file_execution_plan(
+            _response(tmp_path),
+            metadata_directory=(tmp_path / "metadata").resolve(),
+            logs_directory=(tmp_path / "logs").resolve(),
+            archived_versions=True,
+            show_all_versions=True,
+        )
+
+
 def test_execution_does_not_capture_auth_output(tmp_path: Path) -> None:
     plan = build_response_file_execution_plan(
         _response(tmp_path),

@@ -28,7 +28,9 @@ class FakeSdkManagerClient(SdkManagerClient):
     def version(self) -> str:
         return "2.4.1.13536"
 
-    def query_jetson(self, *, archived: bool = False) -> str:
+    def query_jetson(
+        self, *, archived: bool = False, primary_only: bool = False
+    ) -> str:
         assert archived is False
         return """
 JetPack 6.2.3
@@ -199,7 +201,9 @@ def test_query_target_mismatch_is_rejected_before_managed_publish(tmp_path: Path
     source = _downloads(tmp_path / "existing", bsp, rootfs).resolve()
 
     class WrongTargetClient(FakeSdkManagerClient):
-        def query_jetson(self, *, archived: bool = False) -> str:
+        def query_jetson(
+            self, *, archived: bool = False, primary_only: bool = False
+        ) -> str:
             assert archived is False
             return """
 JetPack 6.2.3

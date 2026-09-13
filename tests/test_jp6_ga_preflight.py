@@ -23,17 +23,22 @@ def _query_output(display_label: str, version: str, install_method: str | None) 
 
 
 class FakeSdkManagerClient:
-    def __init__(self, *, current: str, archived: str) -> None:
+    def __init__(self, *, primary: str, current: str, archived: str) -> None:
+        self.primary = primary
         self.current = current
         self.archived = archived
-        self.query_calls: list[bool] = []
+        self.query_calls: list[tuple[bool, bool]] = []
 
     def version(self) -> str:
         return "2.4.1.13536"
 
-    def query_jetson(self, *, archived: bool = False) -> str:
-        self.query_calls.append(archived)
-        return self.archived if archived else self.current
+    def query_jetson(
+        self, *, archived: bool = False, primary_only: bool = False
+    ) -> str:
+        self.query_calls.append((archived, primary_only))
+        if archived:
+            return self.archived
+        return self.primary if primary_only else self.current
 
 
 def _resolver() -> TargetResolver:
@@ -44,7 +49,7 @@ def _resolver() -> TargetResolver:
     "selector,query_source,display_label,install_method",
     [
         ("jetson-orin@jp6.0", "archived", "JetPack 6.0 (rev. 2)", None),
-        ("jetson-orin@jp6.1", "current", "JetPack 6.1 (rev. 1)", None),
+        ("jetson-orin@jp6.1", "current-all", "JetPack 6.1 (rev. 1)", None),
         ("jetson-orin@jp6.2", "current", "JetPack 6.2 (rev. 2)", None),
         ("jetson-orin@jp6.2.1", "current", "JetPack 6.2.1 (rev. 1)", None),
         ("jetson-orin@jp6.2.2", "current", "JetPack 6.2.2", None),
@@ -61,7 +66,8 @@ def test_every_ga_target_has_exact_discovery_and_read_only_response_planning(
     target = _resolver().resolve(selector)
     output = _query_output(display_label, target.jetpack_version, install_method)
     client = FakeSdkManagerClient(
-        current=output if query_source == "current" else "",
+        primary=output if query_source == "current" else "",
+        current=output if query_source == "current-all" else "",
         archived=output if query_source == "archived" else "",
     )
 
@@ -84,7 +90,12 @@ def test_every_ga_target_has_exact_discovery_and_read_only_response_planning(
     assert discovery.target.jetpack_version == target.jetpack_version
     assert discovery.target.sdk_manager_display_label == display_label
     assert discovery.target.sdk_manager_target == SDKM_TARGET
-    assert client.query_calls == ([False, True] if query_source == "archived" else [False])
+    expected_calls = {
+        "current": [(False, True)],
+        "current-all": [(False, True), (False, False)],
+        "archived": [(False, True), (False, False), (True, False)],
+    }
+    assert client.query_calls == expected_calls[query_source]
 
     assert f"version = {target.jetpack_version}" in response
     assert f"target = {SDKM_TARGET}" in response

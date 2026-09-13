@@ -660,17 +660,33 @@ def resolve_construction_package_set(
     target: ResolvedCatalogTarget,
     *,
     removal_policy: PackageRemovalPolicy | None = None,
+    seed_packages: Sequence[PackageSeed] | None = None,
     runner=subprocess.run,
 ) -> ConstructionPackageSet:
     """Resolve, download and byte-lock the exact transaction for nvidia-jetpack."""
 
     seed = package_seed_from_target(target)
+    seeds = tuple(seed_packages or (seed,))
+    seed_keys = tuple((item.name, item.architecture) for item in seeds)
+    if not seeds or seeds[0] != seed or len(seed_keys) != len(set(seed_keys)):
+        raise PackageResolutionError(
+            "construction package seed profile must start with the exact meta-package "
+            "and contain unique package/architecture pairs"
+        )
+    if any(
+        re.fullmatch(r"[a-z0-9][a-z0-9+.-]*", item.name) is None
+        or not item.version
+        or item.architecture not in {"all", "arm64"}
+        for item in seeds
+    ):
+        raise PackageResolutionError("construction package seed profile is malformed")
+    apt_specs = tuple(item.apt_spec for item in seeds)
     if removal_policy is not None:
         removal_policy.validate_target(target)
     chroot.run(("/usr/bin/apt-get", "update"), env={"DEBIAN_FRONTEND": "noninteractive"})
     simulation = _simulate_transaction(
         chroot,
-        (seed.apt_spec,),
+        apt_specs,
         removal_policy=removal_policy,
     )
     transaction = simulation.transaction

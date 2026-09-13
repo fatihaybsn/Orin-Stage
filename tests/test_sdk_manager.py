@@ -139,3 +139,33 @@ def test_query_jetson_can_request_archived_versions(
             "--archived-versions",
         )
     ]
+
+
+def test_query_jetson_can_request_only_primary_versions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen: list[tuple[str, ...]] = []
+
+    def fake_run(command, **kwargs):
+        seen.append(tuple(command))
+        return subprocess.CompletedProcess(command, 0, stdout="primary\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert SdkManagerClient().query_jetson(primary_only=True) == "primary\n"
+    assert seen == [
+        (
+            "sdkmanager",
+            "--query",
+            "non-interactive",
+            "--login-type",
+            "devzone",
+            "--product",
+            "Jetson",
+        )
+    ]
+
+
+def test_query_jetson_rejects_conflicting_visibility_scopes() -> None:
+    with pytest.raises(ValueError, match="archived and primary-only"):
+        SdkManagerClient().query_jetson(archived=True, primary_only=True)
