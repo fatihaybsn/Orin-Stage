@@ -89,6 +89,11 @@ JP62_EXACT_META_SEED_NAMES = (
 )
 JP62_REMOVAL_POLICY_VERSION = "jp6.2-opencv-replacement-v1"
 JP62_ALLOWED_REMOVAL_SET = JP60_ALLOWED_REMOVAL_SET
+JP621_CANONICAL_ID = "nvidia.jetpack-6.2.1.jetson-linux-36.4.4"
+JP621_SEED_PROFILE_VERSION = "jp6.2.1-exact-nvidia-meta-closure-v1"
+JP621_EXACT_META_SEED_NAMES = JP62_EXACT_META_SEED_NAMES
+JP621_REMOVAL_POLICY_VERSION = "jp6.2.1-opencv-replacement-v1"
+JP621_ALLOWED_REMOVAL_SET = JP60_ALLOWED_REMOVAL_SET
 JP623_REMOVAL_POLICY_VERSION = "jp6.2.3-opencv-replacement-v1"
 JP623_ALLOWED_REMOVAL_SET = (
     "libopencv-core-dev",
@@ -206,6 +211,10 @@ def package_removal_policy_for_target(
             JP62_REMOVAL_POLICY_VERSION,
             JP62_ALLOWED_REMOVAL_SET,
         ),
+        (JP621_CANONICAL_ID, "6.2.1", "36.4.4"): (
+            JP621_REMOVAL_POLICY_VERSION,
+            JP621_ALLOWED_REMOVAL_SET,
+        ),
     }
     selected = policies.get(
         (target.canonical_id, target.jetpack_version, target.l4t_version)
@@ -224,7 +233,7 @@ def package_removal_policy_for_target(
 def package_seed_names_for_target(target: ResolvedCatalogTarget) -> tuple[str, ...]:
     """Return the exact meta-package roots required by a release contract.
 
-    JP6.1 and JP6.2 share the rolling r36.4 repository suite with adjacent
+    JP6.1, JP6.2, and JP6.2.1 share the rolling r36.4 repository suite with adjacent
     releases. Their top-level meta-packages therefore need the runtime and
     development meta packages pinned explicitly to the catalog's exact build.
     Other validated releases retain their established single-seed transaction.
@@ -242,6 +251,12 @@ def package_seed_names_for_target(target: ResolvedCatalogTarget) -> tuple[str, .
         target.l4t_version,
     ) == (JP62_CANONICAL_ID, "6.2", "36.4.3"):
         return JP62_EXACT_META_SEED_NAMES
+    if (
+        target.canonical_id,
+        target.jetpack_version,
+        target.l4t_version,
+    ) == (JP621_CANONICAL_ID, "6.2.1", "36.4.4"):
+        return JP621_EXACT_META_SEED_NAMES
     return (str(target.record["packages"]["meta_package"]["name"]),)
 
 
@@ -271,11 +286,12 @@ def construction_recipe_for_target(
     policy = package_removal_policy_for_target(target)
     seeds = package_seeds_for_target(target)
     if len(seeds) > 1:
-        seed_profile_version = (
-            JP61_SEED_PROFILE_VERSION
-            if target.canonical_id == JP61_CANONICAL_ID
-            else JP62_SEED_PROFILE_VERSION
-        )
+        if target.canonical_id == JP61_CANONICAL_ID:
+            seed_profile_version = JP61_SEED_PROFILE_VERSION
+        elif target.canonical_id == JP621_CANONICAL_ID:
+            seed_profile_version = JP621_SEED_PROFILE_VERSION
+        else:
+            seed_profile_version = JP62_SEED_PROFILE_VERSION
         package_configuration["exact_meta_package_seed_profile"] = {
             "version": seed_profile_version,
             "scope": {
@@ -313,7 +329,7 @@ def construction_recipe_for_target(
             "pre_install_gate": "apt-simulation-exact-package-set",
             "post_install_audit": "dpkg-installed-set-exact-difference",
         }
-    if target.canonical_id in {JP60_CANONICAL_ID, JP62_CANONICAL_ID}:
+    if target.canonical_id in {JP60_CANONICAL_ID, JP62_CANONICAL_ID, JP621_CANONICAL_ID}:
         package_configuration["offline_l4t_preinstall"] = {
             "scope": {
                 "jetpack_version": target.jetpack_version,
