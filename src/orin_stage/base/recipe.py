@@ -94,6 +94,22 @@ JP621_SEED_PROFILE_VERSION = "jp6.2.1-exact-nvidia-meta-closure-v1"
 JP621_EXACT_META_SEED_NAMES = JP62_EXACT_META_SEED_NAMES
 JP621_REMOVAL_POLICY_VERSION = "jp6.2.1-opencv-replacement-v1"
 JP621_ALLOWED_REMOVAL_SET = JP60_ALLOWED_REMOVAL_SET
+JP622_CANONICAL_ID = "nvidia.jetpack-6.2.2.jetson-linux-36.5.0"
+JP622_SEED_PROFILE_VERSION = "jp6.2.2-exact-nvidia-meta-closure-v1"
+JP622_EXACT_META_SEED_NAMES = JP62_EXACT_META_SEED_NAMES
+JP622_REMOVAL_POLICY_VERSION = "jp6.2.2-opencv-replacement-v1"
+JP622_ALLOWED_REMOVAL_SET = (
+    "libopencv-core-dev",
+    "libopencv-dnn-dev",
+    "libopencv-flann-dev",
+    "libopencv-imgcodecs-dev",
+    "libopencv-imgproc-dev",
+    "libopencv-ml-dev",
+    "libopencv-photo-dev",
+    "libopencv-shape-dev",
+    "libopencv-video-dev",
+    "libopencv-viz-dev",
+)
 JP623_REMOVAL_POLICY_VERSION = "jp6.2.3-opencv-replacement-v1"
 JP623_ALLOWED_REMOVAL_SET = (
     "libopencv-core-dev",
@@ -215,6 +231,10 @@ def package_removal_policy_for_target(
             JP621_REMOVAL_POLICY_VERSION,
             JP621_ALLOWED_REMOVAL_SET,
         ),
+        (JP622_CANONICAL_ID, "6.2.2", "36.5.0"): (
+            JP622_REMOVAL_POLICY_VERSION,
+            JP622_ALLOWED_REMOVAL_SET,
+        ),
     }
     selected = policies.get(
         (target.canonical_id, target.jetpack_version, target.l4t_version)
@@ -233,7 +253,7 @@ def package_removal_policy_for_target(
 def package_seed_names_for_target(target: ResolvedCatalogTarget) -> tuple[str, ...]:
     """Return the exact meta-package roots required by a release contract.
 
-    JP6.1, JP6.2, and JP6.2.1 share the rolling r36.4 repository suite with adjacent
+    JP6.1, JP6.2, JP6.2.1, and JP6.2.2 share rolling repository suites with adjacent
     releases. Their top-level meta-packages therefore need the runtime and
     development meta packages pinned explicitly to the catalog's exact build.
     Other validated releases retain their established single-seed transaction.
@@ -257,6 +277,12 @@ def package_seed_names_for_target(target: ResolvedCatalogTarget) -> tuple[str, .
         target.l4t_version,
     ) == (JP621_CANONICAL_ID, "6.2.1", "36.4.4"):
         return JP621_EXACT_META_SEED_NAMES
+    if (
+        target.canonical_id,
+        target.jetpack_version,
+        target.l4t_version,
+    ) == (JP622_CANONICAL_ID, "6.2.2", "36.5.0"):
+        return JP622_EXACT_META_SEED_NAMES
     return (str(target.record["packages"]["meta_package"]["name"]),)
 
 
@@ -290,6 +316,8 @@ def construction_recipe_for_target(
             seed_profile_version = JP61_SEED_PROFILE_VERSION
         elif target.canonical_id == JP621_CANONICAL_ID:
             seed_profile_version = JP621_SEED_PROFILE_VERSION
+        elif target.canonical_id == JP622_CANONICAL_ID:
+            seed_profile_version = JP622_SEED_PROFILE_VERSION
         else:
             seed_profile_version = JP62_SEED_PROFILE_VERSION
         package_configuration["exact_meta_package_seed_profile"] = {

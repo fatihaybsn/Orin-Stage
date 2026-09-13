@@ -12,6 +12,10 @@ from orin_stage.base.recipe import (
     JP621_ALLOWED_REMOVAL_SET,
     JP621_REMOVAL_POLICY_VERSION,
     JP621_SEED_PROFILE_VERSION,
+    JP622_EXACT_META_SEED_NAMES,
+    JP622_ALLOWED_REMOVAL_SET,
+    JP622_REMOVAL_POLICY_VERSION,
+    JP622_SEED_PROFILE_VERSION,
     JP61_EXACT_META_SEED_NAMES,
     JP61_ALLOWED_REMOVAL_SET,
     JP61_REMOVAL_POLICY_VERSION,
@@ -181,16 +185,21 @@ def test_jp621_recipe_has_versioned_exact_meta_closure_and_offline_preinstall_co
     assert construction_recipe_digest_for_target(target) != construction_recipe_digest_v1()
 
 
-@pytest.mark.parametrize(
-    "selector",
-    [
-        "jetson-orin@jp6.2.2",
-    ],
-)
-def test_other_jp6_targets_keep_deny_all_removal_policy(selector: str) -> None:
-    recipe = construction_recipe_for_target(_target(selector))
-    policy = recipe["package_configuration"]["removal_policy"]  # type: ignore[index]
+def test_jp622_recipe_has_versioned_exact_meta_closure_contract() -> None:
+    target = _target("jetson-orin@jp6.2.2")
+    recipe = construction_recipe_for_target(target)
+    package_configuration = recipe["package_configuration"]
+    profile = package_configuration["exact_meta_package_seed_profile"]  # type: ignore[index]
 
-    assert policy["version"] == "deny-all-v1"  # type: ignore[index]
-    assert policy["decision"] == "reject-any-removal"  # type: ignore[index]
-    assert policy["allowed_removal_set"] == []  # type: ignore[index]
+    assert profile["version"] == JP622_SEED_PROFILE_VERSION  # type: ignore[index]
+    assert profile["scope"] == {  # type: ignore[index]
+        "jetpack_version": "6.2.2",
+        "l4t_version": "36.5.0",
+    }
+    packages = profile["packages"]  # type: ignore[index]
+    assert tuple(item["name"] for item in packages) == JP622_EXACT_META_SEED_NAMES
+    removal = package_configuration["removal_policy"]  # type: ignore[index]
+    assert removal["version"] == JP622_REMOVAL_POLICY_VERSION  # type: ignore[index]
+    assert tuple(removal["allowed_removal_set"]) == JP622_ALLOWED_REMOVAL_SET  # type: ignore[index]
+    assert target_requires_offline_l4t_preinstall(target) is False
+    assert construction_recipe_digest_for_target(target) != construction_recipe_digest_v1()
