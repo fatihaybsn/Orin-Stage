@@ -35,6 +35,8 @@ def test_execution_plan_uses_response_file_and_exports_evidence(tmp_path: Path) 
         "--auto",
         "--action",
         "downloadonly",
+        "--license",
+        "accept",
         "--response-file",
         str((tmp_path / "response.ini").resolve()),
         "--export-response-file",
@@ -44,8 +46,8 @@ def test_execution_plan_uses_response_file_and_exports_evidence(tmp_path: Path) 
         "--exit-on-finish",
     )
     assert "--auto" in plan.command
-    assert "--licenses" not in plan.command
-    assert "--license" not in plan.command
+    assert "--license" in plan.command
+    assert "accept" in plan.command
     assert "--flash" not in plan.command
 
 

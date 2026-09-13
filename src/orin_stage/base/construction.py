@@ -39,10 +39,10 @@ from .receipt import (
     write_base_receipt,
 )
 from .recipe import (
-    JP60_CANONICAL_ID,
     construction_recipe_digest_for_target,
     package_removal_policy_for_target,
     package_seeds_for_target,
+    target_requires_offline_l4t_preinstall,
 )
 from .sandbox import HostConstructionSandbox
 from .validation import build_final_manifest, validate_runtime_state
@@ -319,8 +319,8 @@ def ensure_jp6_base(
                 rootfs,
                 qemu_binary=qemu_binary,
                 runner=runner,
-                disable_l4t_boot_fw_preinstall=(
-                    target.canonical_id == JP60_CANONICAL_ID
+                disable_l4t_boot_fw_preinstall=target_requires_offline_l4t_preinstall(
+                    target
                 ),
             ) as chroot:
                 package_set = resolve_construction_package_set(

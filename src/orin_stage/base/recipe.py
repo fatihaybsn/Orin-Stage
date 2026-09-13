@@ -66,6 +66,29 @@ JP61_ADDITIONAL_EXACT_SEEDS = (
 )
 JP61_REMOVAL_POLICY_VERSION = "jp6.1-opencv-replacement-v1"
 JP61_ALLOWED_REMOVAL_SET = JP60_ALLOWED_REMOVAL_SET
+JP62_CANONICAL_ID = "nvidia.jetpack-6.2.jetson-linux-36.4.3"
+JP62_SEED_PROFILE_VERSION = "jp6.2-exact-nvidia-meta-closure-v1"
+JP62_EXACT_META_SEED_NAMES = (
+    "nvidia-jetpack",
+    "nvidia-jetpack-runtime",
+    "nvidia-jetpack-dev",
+    "nvidia-container",
+    "nvidia-cuda",
+    "nvidia-cuda-dev",
+    "nvidia-cudnn",
+    "nvidia-cudnn-dev",
+    "nvidia-cupva",
+    "nvidia-nsight-graphics",
+    "nvidia-nsight-systems",
+    "nvidia-opencv",
+    "nvidia-opencv-dev",
+    "nvidia-tensorrt",
+    "nvidia-tensorrt-dev",
+    "nvidia-vpi",
+    "nvidia-vpi-dev",
+)
+JP62_REMOVAL_POLICY_VERSION = "jp6.2-opencv-replacement-v1"
+JP62_ALLOWED_REMOVAL_SET = JP60_ALLOWED_REMOVAL_SET
 JP623_REMOVAL_POLICY_VERSION = "jp6.2.3-opencv-replacement-v1"
 JP623_ALLOWED_REMOVAL_SET = (
     "libopencv-core-dev",
@@ -179,6 +202,10 @@ def package_removal_policy_for_target(
             JP61_REMOVAL_POLICY_VERSION,
             JP61_ALLOWED_REMOVAL_SET,
         ),
+        (JP62_CANONICAL_ID, "6.2", "36.4.3"): (
+            JP62_REMOVAL_POLICY_VERSION,
+            JP62_ALLOWED_REMOVAL_SET,
+        ),
     }
     selected = policies.get(
         (target.canonical_id, target.jetpack_version, target.l4t_version)
@@ -197,10 +224,10 @@ def package_removal_policy_for_target(
 def package_seed_names_for_target(target: ResolvedCatalogTarget) -> tuple[str, ...]:
     """Return the exact meta-package roots required by a release contract.
 
-    JP6.1 shares the rolling r36.4 repository suite with later JetPack releases.
-    Its top-level meta-package therefore needs the runtime and development meta
-    packages pinned explicitly to the catalog's exact build. Other validated
-    releases retain their established single-seed transaction.
+    JP6.1 and JP6.2 share the rolling r36.4 repository suite with adjacent
+    releases. Their top-level meta-packages therefore need the runtime and
+    development meta packages pinned explicitly to the catalog's exact build.
+    Other validated releases retain their established single-seed transaction.
     """
 
     if (
@@ -209,6 +236,12 @@ def package_seed_names_for_target(target: ResolvedCatalogTarget) -> tuple[str, .
         target.l4t_version,
     ) == (JP61_CANONICAL_ID, "6.1", "36.4"):
         return JP61_EXACT_META_SEED_NAMES
+    if (
+        target.canonical_id,
+        target.jetpack_version,
+        target.l4t_version,
+    ) == (JP62_CANONICAL_ID, "6.2", "36.4.3"):
+        return JP62_EXACT_META_SEED_NAMES
     return (str(target.record["packages"]["meta_package"]["name"]),)
 
 
@@ -238,8 +271,13 @@ def construction_recipe_for_target(
     policy = package_removal_policy_for_target(target)
     seeds = package_seeds_for_target(target)
     if len(seeds) > 1:
+        seed_profile_version = (
+            JP61_SEED_PROFILE_VERSION
+            if target.canonical_id == JP61_CANONICAL_ID
+            else JP62_SEED_PROFILE_VERSION
+        )
         package_configuration["exact_meta_package_seed_profile"] = {
-            "version": JP61_SEED_PROFILE_VERSION,
+            "version": seed_profile_version,
             "scope": {
                 "jetpack_version": target.jetpack_version,
                 "l4t_version": target.l4t_version,
@@ -275,11 +313,11 @@ def construction_recipe_for_target(
             "pre_install_gate": "apt-simulation-exact-package-set",
             "post_install_audit": "dpkg-installed-set-exact-difference",
         }
-    if target.canonical_id == JP60_CANONICAL_ID:
+    if target.canonical_id in {JP60_CANONICAL_ID, JP62_CANONICAL_ID}:
         package_configuration["offline_l4t_preinstall"] = {
             "scope": {
-                "jetpack_version": "6.0",
-                "l4t_version": "36.3",
+                "jetpack_version": target.jetpack_version,
+                "l4t_version": target.l4t_version,
             },
             "vendor_marker": (
                 "/opt/nvidia/l4t-packages/"
@@ -288,6 +326,17 @@ def construction_recipe_for_target(
             "lifetime": "construction-chroot-only",
         }
     return recipe
+
+
+def target_requires_offline_l4t_preinstall(target: ResolvedCatalogTarget) -> bool:
+    """Return whether the target recipe specifies the offline L4T preinstall marker."""
+
+    recipe = construction_recipe_for_target(target)
+    package_configuration = recipe.get("package_configuration", {})
+    return (
+        isinstance(package_configuration, dict)
+        and "offline_l4t_preinstall" in package_configuration
+    )
 
 
 def construction_recipe_digest_for_target(target: ResolvedCatalogTarget) -> str:

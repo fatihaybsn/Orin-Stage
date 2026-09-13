@@ -27,6 +27,9 @@ from orin_stage.base.packages import (
     validate_final_nvidia_sources,
 )
 from orin_stage.base.recipe import (
+    JP62_EXACT_META_SEED_NAMES,
+    JP62_ALLOWED_REMOVAL_SET,
+    JP62_REMOVAL_POLICY_VERSION,
     JP61_EXACT_META_SEED_NAMES,
     JP61_ADDITIONAL_EXACT_SEEDS,
     JP61_ALLOWED_REMOVAL_SET,
@@ -322,6 +325,56 @@ def test_jp61_has_release_scoped_exact_opencv_removal_policy() -> None:
     assert policy.jetpack_version == "6.1"
     assert policy.l4t_version == "36.4"
     assert policy.allowed_removal_set == JP61_ALLOWED_REMOVAL_SET
+    assert len(policy.allowed_removal_set) == 19
+
+
+def test_jp62_pins_exact_nvidia_meta_closure_for_rolling_repository() -> None:
+    target = _target("jetson-orin@jp6.2")
+
+    assert package_seed_names_for_target(target) == JP62_EXACT_META_SEED_NAMES
+    seeds = package_seeds_for_target(target)
+    assert len(seeds) == 17
+    assert all(seed.version == "6.2+b77" and seed.architecture == "arm64" for seed in seeds)
+
+
+def test_jp62_exact_seed_profile_is_used_for_apt_simulation(monkeypatch) -> None:
+    target = _target("jetson-orin@jp6.2")
+    seeds = package_seeds_for_target(target)
+    seen: list[tuple[str, ...]] = []
+
+    class Chroot:
+        def run(self, command, *, check=True, env=None):
+            return subprocess.CompletedProcess(tuple(command), 0, "", "")
+
+    def fake_simulation(_chroot, apt_specs, *, removal_policy):
+        seen.append(tuple(apt_specs))
+        return packages_module._AptSimulationResult(
+            transaction=(),
+            diagnostic=packages_module.AptSimulationDiagnostic((), (), (), ()),
+        )
+
+    monkeypatch.setattr(packages_module, "_simulate_transaction", fake_simulation)
+
+    with pytest.raises(PackageResolutionError, match="empty construction transaction"):
+        resolve_construction_package_set(  # type: ignore[arg-type]
+            Chroot(),
+            target,
+            removal_policy=package_removal_policy_for_target(target),
+            seed_packages=seeds,
+        )
+
+    assert seen == [tuple(seed.apt_spec for seed in seeds)]
+    assert seen[0][0] == "nvidia-jetpack:arm64=6.2+b77"
+
+
+def test_jp62_has_release_scoped_exact_opencv_removal_policy() -> None:
+    policy = package_removal_policy_for_target(_target("jetson-orin@jp6.2"))
+
+    assert policy is not None
+    assert policy.version == JP62_REMOVAL_POLICY_VERSION
+    assert policy.jetpack_version == "6.2"
+    assert policy.l4t_version == "36.4.3"
+    assert policy.allowed_removal_set == JP62_ALLOWED_REMOVAL_SET
     assert len(policy.allowed_removal_set) == 19
 
 

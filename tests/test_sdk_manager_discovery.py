@@ -106,6 +106,30 @@ sdkmanager --cli --action install --product Jetson --version 6.1 --target JETSON
     assert client.query_calls == [(False, True), (False, False)]
 
 
+def test_discovery_records_all_current_visibility_for_jp62() -> None:
+    target = _resolver().resolve("jetson-orin@jp6.2")
+    client = FakeSdkManagerClient(
+        primary_output="""
+JetPack 6.2.3
+sdkmanager --cli --action install --product Jetson --version 6.2.3 --target JETSON_ORIN_NX_TARGETS --flash
+""",
+        current_output="""
+JetPack 6.2 (rev. 2)
+sdkmanager --cli --action install --product Jetson --version 6.2 --target JETSON_ORIN_NX_TARGETS --flash
+""",
+    )
+
+    result = discover_catalog_target(
+        client,
+        target,
+        required_sdk_manager_target="JETSON_ORIN_NX_TARGETS",
+    )
+
+    assert result.query_source == "current-all"
+    assert result.target.sdk_manager_display_label == "JetPack 6.2 (rev. 2)"
+    assert client.query_calls == [(False, True), (False, False)]
+
+
 def test_discovery_falls_back_to_archived_only_when_release_is_absent() -> None:
     target = _resolver().resolve("jetson-orin@jp6.0")
     client = FakeSdkManagerClient(

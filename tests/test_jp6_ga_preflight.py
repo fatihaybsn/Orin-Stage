@@ -50,7 +50,7 @@ def _resolver() -> TargetResolver:
     [
         ("jetson-orin@jp6.0", "archived", "JetPack 6.0 (rev. 2)", None),
         ("jetson-orin@jp6.1", "current-all", "JetPack 6.1 (rev. 1)", None),
-        ("jetson-orin@jp6.2", "current", "JetPack 6.2 (rev. 2)", None),
+        ("jetson-orin@jp6.2", "current-all", "JetPack 6.2 (rev. 2)", None),
         ("jetson-orin@jp6.2.1", "current", "JetPack 6.2.1 (rev. 1)", None),
         ("jetson-orin@jp6.2.2", "current", "JetPack 6.2.2", None),
         ("jetson-orin@jp6.2.3", "current", "JetPack 6.2.3", "direct_flash"),

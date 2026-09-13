@@ -4,6 +4,10 @@ import pytest
 
 from orin_stage.base._json import json_digest
 from orin_stage.base.recipe import (
+    JP62_EXACT_META_SEED_NAMES,
+    JP62_ALLOWED_REMOVAL_SET,
+    JP62_REMOVAL_POLICY_VERSION,
+    JP62_SEED_PROFILE_VERSION,
     JP61_EXACT_META_SEED_NAMES,
     JP61_ALLOWED_REMOVAL_SET,
     JP61_REMOVAL_POLICY_VERSION,
@@ -16,6 +20,7 @@ from orin_stage.base.recipe import (
     construction_recipe_for_target,
     construction_recipe_digest_v1,
     construction_recipe_v1,
+    target_requires_offline_l4t_preinstall,
 )
 from orin_stage.catalog import TargetResolver, builtin_catalog_paths
 
@@ -115,10 +120,40 @@ def test_jp61_recipe_has_versioned_exact_meta_closure_contract() -> None:
     ) != construction_recipe_digest_v1()
 
 
+def test_jp62_recipe_has_versioned_exact_meta_closure_and_offline_preinstall_contract() -> None:
+    target = _target("jetson-orin@jp6.2")
+    recipe = construction_recipe_for_target(target)
+    package_configuration = recipe["package_configuration"]
+    profile = package_configuration["exact_meta_package_seed_profile"]  # type: ignore[index]
+
+    assert profile["version"] == JP62_SEED_PROFILE_VERSION  # type: ignore[index]
+    assert profile["scope"] == {  # type: ignore[index]
+        "jetpack_version": "6.2",
+        "l4t_version": "36.4.3",
+    }
+    packages = profile["packages"]  # type: ignore[index]
+    assert tuple(item["name"] for item in packages) == JP62_EXACT_META_SEED_NAMES
+    removal = package_configuration["removal_policy"]  # type: ignore[index]
+    assert removal["version"] == JP62_REMOVAL_POLICY_VERSION  # type: ignore[index]
+    assert tuple(removal["allowed_removal_set"]) == JP62_ALLOWED_REMOVAL_SET  # type: ignore[index]
+    offline = package_configuration["offline_l4t_preinstall"]  # type: ignore[index]
+    assert offline["scope"] == {  # type: ignore[index]
+        "jetpack_version": "6.2",
+        "l4t_version": "36.4.3",
+    }
+    assert offline["lifetime"] == "construction-chroot-only"  # type: ignore[index]
+    assert target_requires_offline_l4t_preinstall(target) is True
+    assert target_requires_offline_l4t_preinstall(_target("jetson-orin@jp6.0")) is True
+    assert target_requires_offline_l4t_preinstall(_target("jetson-orin@jp6.2.3")) is False
+    assert construction_recipe_digest_for_target(target) != construction_recipe_digest_v1()
+    assert construction_recipe_digest_for_target(target) != construction_recipe_digest_for_target(
+        _target("jetson-orin@jp6.1")
+    )
+
+
 @pytest.mark.parametrize(
     "selector",
     [
-        "jetson-orin@jp6.2",
         "jetson-orin@jp6.2.1",
         "jetson-orin@jp6.2.2",
     ],

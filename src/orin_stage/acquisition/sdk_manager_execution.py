@@ -38,6 +38,8 @@ def build_response_file_execution_plan(
         "--auto",
         "--action",
         "downloadonly",
+        "--license",
+        "accept",
         "--response-file",
         str(response_file.path),
         "--export-response-file",
