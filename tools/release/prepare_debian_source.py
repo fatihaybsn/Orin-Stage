@@ -20,7 +20,7 @@ from typing import Iterable, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEPENDENCIES = REPO_ROOT / "release" / "dependencies"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 PACKAGE = "orin-stage"
 ROOT_NAME = f"{PACKAGE}-{VERSION}"
 SUPPORTED_SERIES = ("jammy", "noble")
