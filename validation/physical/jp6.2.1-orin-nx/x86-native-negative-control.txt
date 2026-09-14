@@ -1,0 +1,13 @@
+error: ARM64 reference probe result mismatch
+expected:
+probe_version=1
+bash=BASH_OK
+python_sha256=a010cbd21e9d9c398048a2758e24e61a1ba133e0a9adcbf4ab03f6d3aa8c2a51
+dpkg_arch=arm64
+exit_code=42
+actual:
+probe_version=1
+bash=BASH_OK
+python_sha256=a010cbd21e9d9c398048a2758e24e61a1ba133e0a9adcbf4ab03f6d3aa8c2a51
+dpkg_arch=amd64
+exit_code=42

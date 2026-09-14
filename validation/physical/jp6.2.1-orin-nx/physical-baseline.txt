@@ -1,0 +1,19 @@
+=== ORIN STAGE PHYSICAL REFERENCE BASELINE ===
+2026-09-14T17:20:22+03:00
+
+--- DEVICE MODEL ---
+NVIDIA Jetson Orin NX Engineering Reference Developer Kit
+
+--- ARCHITECTURE ---
+aarch64
+
+--- JETSON LINUX ---
+# R36 (release), REVISION: 4.4, GCID: 41062509, BOARD: generic, EABI: aarch64, DATE: Mon Jun 16 16:07:13 UTC 2025
+
+--- UBUNTU ---
+PRETTY_NAME="Ubuntu 22.04.5 LTS"
+VERSION_ID="22.04"
+
+--- NVIDIA RELEASE PACKAGES ---
+nvidia-jetpack 6.2.1+b38 arm64
+nvidia-l4t-core 36.4.4-20250616085344 arm64

@@ -1,0 +1,57 @@
+package=nvidia-l4t-core
+version=36.4.4-20250616085344
+architecture=arm64
+payload_count=51
+manifest_sha256=f6e810827630fabca25146ab2f039b7dca8f803ad454c0502a4382552476dc16
+--- payload_sha256 ---
+0f00fc4d9dee800eea6111b2ab37b5af25685f88962f783163f316483c6a9b10  /usr/lib/aarch64-linux-gnu/nvidia/libnvrm_host1x.so
+10b30c8247a4e320f43a56848b50f7832e17264848662456fe140b78fbf0d814  /usr/lib/aarch64-linux-gnu/nvidia/libnvfnet.so
+139d33523a72ed14dd8e2efee9b4e8bf5228c33c5e5366346987083b356d37f0  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_force.so
+1674000dea196106188edc814a9bc1a4f7f719aed6b4bd0529ff9e6cffafeb81  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_graphics.so
+17629c6bc06d3311424290c0cb1d1ed24e87df75f58bd39df15a81c51aee9563  /usr/share/doc/nvidia-l4t-core/changelog.Debian.gz
+1bdf59a3978a1a63477dd5e478b17637cc60792e39162fc7038a0bfd6942ed0a  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_gpucompute.so
+1d366e57e3692e68bd7c4060e0ac983f29cbcecb6ea05f2671e7ca61ba54ed01  /usr/lib/aarch64-linux-gnu/nvidia/libsensors.l4t.no_fusion.nvs.so
+1ea24161977624a8372b96e6327dbb3cc076b29b282e1a05cd331f751dc12b5a  /usr/lib/aarch64-linux-gnu/nvidia/libnvrm_chip.so
+201de3527831921cea091b71e1249c0457193d52fdb831c95514741e7a85a5ff  /usr/lib/aarch64-linux-gnu/nvidia/libnvphs.so
+20d37335359f1b9bb43168e6c7fc6b10281230ae4872c0c3ecfee9dc8a50986c  /usr/lib/aarch64-linux-gnu/nvidia/libnvvic.so
+2395cebf11be9a83df95be7fa872d147a0536b8b509f0a639e45070537cd3c87  /usr/share/doc/nvidia-tegra/LICENSE.libnvidia-rmapi-tegra
+2523255438751a9b5d9a246a2e4a3b149daeea762ef13696374349d118747aaa  /usr/lib/aarch64-linux-gnu/nvidia/libsensors_hal.nvs.so
+2bada190d9be05f162b2284d5b11097f62a1990b6c137a1f279cb26871d32737  /usr/lib/aarch64-linux-gnu/nvidia/libnvsciipc.so
+4187075af2487afdd98e6aa8ca68541f54c32cc7b6de26c3bc92869a3087ee11  /usr/lib/aarch64-linux-gnu/nvidia/libnvddk_2d_v2.so
+486bfcf6d8fafe969576d2b0d0084a40e201ae94fd6f97a8ff3cf4a92aa81ea3  /usr/lib/aarch64-linux-gnu/nvidia/libnvrm_sync.so
+4ff55689a662d61daa50300ee938a1c9b8f2420836f7f20719ed6276393a4343  /usr/share/doc/nvidia-l4t-core/copyright
+5bc82e43817a2c295384026a6c088fabcb02e0196c530b278d1851b0ebf04111  /usr/lib/aarch64-linux-gnu/nvidia/libnvfnetstorehdfx.so
+5d85a47cdefca08753c4e85a045448051438e3edb44fd984fd7cfeecb080baba  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_il.so
+5e6360702d5b04748929acf3c423c84d7604878905448d1d9c4bdb29a93cc452  /usr/lib/aarch64-linux-gnu/nvidia/libnvsocsys.so
+604626e0abb75ac933c1f2436a361fb90e45444c16e511df1ef14d0797459e2b  /usr/lib/aarch64-linux-gnu/nvidia/libnvrm_gpu.so
+69ea37b2788fb0b002406b817601c87a1f519ae57103ce93abb6bf827ecdc726  /usr/lib/aarch64-linux-gnu/nvidia/libnvidia-tls.so.540.4.0
+74635b4cb249827697936643ce475bae32f286898c552f7a261af9881700c60a  /usr/lib/aarch64-linux-gnu/nvidia/libnvfnetstoredefog.so
+7915e214b0b3b66b0f554c6f4aa6a795f137658e82b8ebdfcd8ae63498983c2e  /usr/lib/aarch64-linux-gnu/nvidia/libnvphsd.so
+7b945fd408f29e184609073d77b20c5078105511893a17c7e061497cde1554f5  /usr/share/doc/nvidia-tegra/Tegra_Software_License_Agreement-Tegra-Linux.txt.gz
+8018d5fd049aa7f99682509b703599de071e16fbdb993596f07b39f6bfb7dc61  /usr/lib/aarch64-linux-gnu/nvidia/libnvcolorutil.so
+8095e1fb7064ee7700242dd4c823a9aa998ac611b43592a2c9522f52292eec10  /usr/lib/aarch64-linux-gnu/nvidia/libnvimp.so
+8db2685a35aba8ba9c6407517613a3090802b949b8c75587bec604492482b576  /usr/lib/aarch64-linux-gnu/nvidia/libsensors.hal-client.nvs.so
+95efc5fa9bacd519a21cb503c5b26dbb3f4927b70a1ede46c584a7dfe767fe40  /usr/lib/aarch64-linux-gnu/nvidia/libnvpva.so
+9625fbbea15465c46f1967d61f553e50aca0628df4140c941f2db58b65b8bc99  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_tbc.so
+9b68a2c0901a8973612817e5bb69b99ae3f864b5fd625a6915019f15285e745f  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_boot.so
+a71d6ddeffdcdb063d50ad7d2bc3d70c889a5ad4e715971faf2082a9c53b3a62  /usr/lib/aarch64-linux-gnu/nvidia/libnvisp_utils.so
+a86d615161209513dfc849477c0dba08de7a60175c8245bd1ed0aa8ffaf3ef33  /usr/lib/aarch64-linux-gnu/nvidia/libnvrm_surface.so
+b4e004e877380d369a72d8117120dcab0b0dede3b251f808fd4ad43b6dea2219  /usr/lib/aarch64-linux-gnu/nvidia/libnvtegrahv.so
+bb1d7fc65be02047ce568d3ce914084c8a36845d38d86a66f55e52585bebf9f2  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_spincircle.so
+bd7ef41777f9642db898754836713d531e59f7e015fb61f9a0105084f2e519ac  /usr/lib/aarch64-linux-gnu/nvidia/libnvrm_mem.so
+c11b165a5e3227f0607e5213fafa73b6e80711a1409bc09a1793c617c640f4ad  /usr/lib/aarch64-linux-gnu/nvidia/libnvidia-rmapi-tegra.so.540.4.0
+dcec8792f5283e67e28af24d24c107dd19586e11f6e24c6853221fe5c3a8c146  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_generic.so
+dda3d67a5c4b2a14ae0beb3facad9633587cd5e5fcb83b0612883b0f0ab1db40  /usr/lib/aarch64-linux-gnu/nvidia/libnvddk_vic.so
+e055a9f6b7bc30f1d7c5869322b04424120b2e5fac42494b608e11e55c8be89f  /usr/lib/aarch64-linux-gnu/nvidia/libnvpvaumd.so
+e37ce1eb21538ba3e4c0d1d783f890a24b40ba8349bbfd92947d7955e3b00200  /usr/lib/aarch64-linux-gnu/nvidia/libnvpva_algorithms.so
+ea1bee217eb49ca90115caad4058228661a6f83433b048c2533bb69aa848fec4  /usr/lib/aarch64-linux-gnu/nvidia/libnvdc.so
+ee559d69d0c9d229305f636a10f49d2804febaf716e9af84f4bc2aba2580d883  /usr/lib/python3/dist-packages/pylibjetsonpower/__init__.py
+ef7c6d711dacd228aac4a5a832fda11082e84d412bba21004b0603f12b340966  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_ui.so
+f00efe6dcbcd2af8e402f93b2ce81aa48ce3cdb23b93af9e07db1e834678e984  /usr/lib/aarch64-linux-gnu/nvidia/libnvrm_stream.so
+f27cde7ded97e43eda53ac9cfe0b255df1b88ef9834cd1939ed393700325400e  /usr/lib/aarch64-linux-gnu/nvidia/libnvdla_runtime.so
+f3b9f119ee09de3788f9681653fa969916457ce774c028d9586462e67c50ca04  /usr/lib/aarch64-linux-gnu/nvidia/libjetsonpower.so
+f3f3ecff94537e7d5944fdbae7c6bd02d5eddca8fe1c29d8699ff2e54d26cebc  /usr/share/doc/nvidia-tegra/LICENSE.tegra_sensors
+f4916ae4480b5d3adcbe9e9b699c13e3809d05fd2195e2fed8761c46768fce41  /usr/lib/aarch64-linux-gnu/nvidia/ld.so.conf
+f5071f462a550f2da4d4afbc67798063c4bf87f8dcd32a0206ec031f276e3a29  /usr/sbin/nvphsd
+f6a53c636fe222f09dbf3147990f57780aa5d99c5829e487aab083d72906b13d  /usr/lib/aarch64-linux-gnu/nvidia/libnvgov_camera.so
+f72626b3c6bb85ad8c4e00e055a39e58cfaa1a7dadb4e1107c6628f2e31dc2c5  /usr/lib/aarch64-linux-gnu/nvidia/libnvos.so

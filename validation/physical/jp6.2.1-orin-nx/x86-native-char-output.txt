@@ -1,0 +1,3 @@
+CHAR_MIN=-128
+plain_char_signedness=signed
+value_as_int=-1

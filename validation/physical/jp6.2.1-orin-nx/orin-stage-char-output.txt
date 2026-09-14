@@ -1,0 +1,3 @@
+CHAR_MIN=0
+plain_char_signedness=unsigned
+value_as_int=255
