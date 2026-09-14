@@ -3,117 +3,192 @@
 [![CI](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/ci.yml/badge.svg)](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/ci.yml)
 [![Orin Stage ARM64 Reference](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/orin-stage-reference.yml/badge.svg)](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/orin-stage-reference.yml)
 
-**Orin Stage** is an open-source development workspace engine for x86_64 Linux workstations that bridges the critical gap between host development machines and physical edge deployments (AGX Orin, Orin NX, Orin Nano).
+**Orin Stage** is an open-source development workspace engine for x86_64 Linux. It builds release-specific **JetPack 6 / Jetson Linux ARM64 userspace environments** from official NVIDIA inputs, keeps them as persistent workspaces, and lets you test target-side software before moving to a physical Jetson.
 
-In mission-critical domains such as robotics, autonomous systems, defense, and physical AI, deploying complex software stacks requires absolute target parity. Orin Stage provisions fully configured, deterministic ARM64 **JetPack 6** userspace environments directly from official NVIDIA BSP, Sample RootFS, and SDK Manager releases into persistent, isolated workspaces. It empowers developers to build repositories, execute interactive ARM64 shell sessions, trial APT/pip package dependencies, audit system libraries and filesystem states, and cross-compile with exact sysroot fidelity — providing a complete local staging ground before deploying to physical edge devices.
+The goal is simple: reduce the gap between development on an x86_64 workstation and deployment to **Jetson AGX Orin, Orin NX, and Orin Nano**.
 
----
-
-## 🎯 The Problem
-
-Developing edge software on an x86_64 workstation for an ARM64 Jetson target introduces subtle, difficult-to-debug discrepancies:
-- **Architecture & ABI Differences:** ARM64 vs. x86_64 instruction execution, native compilation flags, and C/C++ ABI incompatibilities.
-- **Ecosystem & Library Parity:** Exact JetPack/L4T userspace versions, Ubuntu releases, system libraries, and CUDA/TensorRT/cuDNN runtime dependencies.
-- **Python & Native Dependency Drift:** Discrepancies in prebuilt Python wheels, shared library linking, and missing target dependencies.
-- **Synthetic Container Gaps:** Standard Docker/Ubuntu images lack official NVIDIA BSP integration, proper Debian/APT package configurations, and authentic rootfs layouts.
-
-Orin Stage eliminates these blind spots by synthesizing an authentic, fully configured Jetson target userspace directly on your workstation.
+Orin Stage is a **userspace development tool, not a Jetson hardware emulator**. GPU, DLA, camera, kernel, firmware, boot, power, thermal, and performance behavior still require a physical Jetson.
 
 ---
 
-## 🚀 Key Features & Architectural Principles
+## 🎯 Why Orin Stage?
 
-- **Official NVIDIA Construction Pipeline:** Uses official Sample RootFS, BSP (`apply_binaries`), and SDK Manager packages with fully configured Debian/APT packages (`dpkg`, alternatives, ld cache).
-- **Shared SDK Manager Acquisition Cache:** Orchestrates `sdkmanager` CLI (`downloadonly` mode) with a centralized download cache. SHA-256 verification and acquisition receipts ensure artifacts are downloaded only once.
-- **Immutable Base & Isolated Workspaces:** Builds an immutable, verified ARM64 base once per target release. Users spawn independent, mutable directory-based workspaces without mutating the base.
-- **Stateless Podman Execution:** Podman is utilized strictly as a transient, rootless execution wrapper:
-  - **ARM64 Interactive Shell:** Runs ARM64 Bash, package managers, and CPU-only processes via QEMU user-mode emulation (`binfmt_misc`).
-  - **x86_64 Cross-Build Capsule:** Pinned cross-compilation container mounting the workspace as a read-only `/target` sysroot, preventing host environment contamination.
-- **Same-Tree Parity:** Interactive target shells and cross-build tools operate on the exact same canonical directory generation.
-- **Explicit Version Binding:** Workspaces are permanently bound to a chosen JetPack 6 release digest — no error-prone in-place upgrades or fragile rebase mechanisms.
-- **Honest Hardware Boundary:** Clearly delineates reproducible userspace (filesystem, packages, CPU execution, build toolchain) from hardware-dependent components (Tegra GPU/DLA acceleration, kernel modules, camera pipelines, flashing).
+Developing for Jetson from an x86_64 workstation can hide differences until deployment:
 
----
+- ARM64 vs. x86_64 architecture and ABI behavior
+- JetPack/L4T package and filesystem differences
+- Python wheels and native library compatibility
+- target-specific headers, libraries, loaders, and build assumptions
 
-## 🛠 Supported Scope
+A normal Ubuntu container is useful, but it does not automatically reproduce a JetPack target userspace.
 
-| Dimension | Supported | Out of Scope |
-|---|---|---|
-| **Hardware Family** | Jetson AGX Orin, Jetson Orin NX, Jetson Orin Nano | Jetson Xavier / TX2 / Nano, Non-NVIDIA edge hardware |
-| **Software Family** | JetPack 6.x / Jetson Linux (L4T 36.x) | JetPack 5.x / older, JetPack 7.x / Thor (future) |
-| **Host System** | Ubuntu 22.04 LTS (Jammy) and Ubuntu 24.04 LTS (Noble), x86_64 | macOS / Windows native (requires Linux container/VM) |
-| **Execution** | ARM64 CPU-only userspace (via QEMU), Cross-compilation | Full system hardware emulation, Tegra GPU execution |
-
-Both supported releases have been validated on native Linux hosts and WSL2.
-See the [0.1.0 host acceptance record](release/acceptance/0.1.0-host-acceptance.md)
-for the tested scope and provenance.
+Orin Stage creates a verified JetPack base from official NVIDIA inputs, then gives each project its own persistent mutable workspace. The same workspace is used for ARM64 userspace execution and as the target sysroot for cross-builds.
 
 ---
 
-## 📦 Technology Stack
+## 🧭 How it works
 
-- **Core Engine:** Python 3.10+
-- **Configuration & Schema:** YAML, JSON Schema (`jsonschema`), `PyYAML`
-- **Acquisition:** NVIDIA SDK Manager CLI (`sdkmanager`)
-- **Isolation & Execution:** Rootless Podman, QEMU user-mode (`qemu-aarch64-static`)
-- **Testing:** `pytest` (unit, semantic schema validation, receipt audits, acceptance tests)
+```text
+Official NVIDIA inputs
+        │
+        ▼
+Verified immutable JetPack base
+        │
+        ▼
+Persistent mutable workspace
+       / \
+      /   \
+     ▼     ▼
+ARM64 shell/run        x86_64 cross-build
+QEMU linux-user        same tree at /target:ro
+      \                 /
+       \               /
+        └──► Physical Jetson validation
+```
+
+Core ideas:
+
+- **Official inputs:** BSP, Sample RootFS, SDK Manager packages, exact target metadata.
+- **Immutable base:** a verified base is built once for an exact target and reused.
+- **Persistent workspace:** APT, pip, files, and configuration changes live outside the base.
+- **ARM64 execution:** CPU-only target processes run through QEMU linux-user and rootless Podman.
+- **Same-tree cross-build:** the same workspace is mounted read-only as `/target` for cross-compilation.
+- **Traceable identity:** target lock, base digest, workspace generation, and toolchain identity remain inspectable.
 
 ---
 
-## 💻 Workflow Example (Concept)
+## ✅ Physical Jetson validation
+
+A **JetPack 6.2.1 / Jetson Linux 36.4.4** workspace was compared with a physical **Jetson Orin NX 16 GB** reference device.
+
+<p align="center">
+  <img src="validation/physical/jp6.2.1-orin-nx/physical-orin-nx-jp621.jpeg"
+       alt="Physical Jetson Orin NX validation"
+       width="760">
+</p>
+
+The validation record checks the parts Orin Stage is designed to represent locally:
+
+| Check | Result |
+|---|---|
+| Target identity | JetPack 6.2.1 / L4T 36.4.4 / ARM64 matched |
+| NVIDIA package identity | `nvidia-jetpack` and `nvidia-l4t-core` versions matched |
+| `nvidia-l4t-core` payloads | **51 / 51** package-owned payload files matched byte-for-byte |
+| ARM64 artifact | the exact same binary was used on Orin Stage and the physical Jetson |
+| Runtime behavior | Orin Stage output matched the physical Jetson |
+| Negative control | native x86_64 produced the expected different architecture-sensitive result |
+| Evidence integrity | frozen SHA-256 manifests verify the recorded files |
+
+A small architecture-sensitive demo makes the difference visible:
+
+```text
+x86_64 host              Orin Stage / ARM64        Physical Orin NX
+-----------              ------------------        ----------------
+plain char: signed       plain char: unsigned      plain char: unsigned
+value:      -1           value:      255           value:      255
+                                └──────── MATCH ────────┘
+```
+
+This demo is not a claim of whole-device equivalence. The physical record combines it with exact JP6.2.1 package identity and package-owned payload verification.
+
+**[View the full JP6.2.1 physical validation record →](validation/physical/jp6.2.1-orin-nx/)**
+
+---
+
+## 📚 JetPack 6 target catalog
+
+| Selector | JetPack | Jetson Linux / L4T | Published physical record |
+|---|---:|---:|---|
+| `jetson-orin@jp6.0` | 6.0 | 36.3 | — |
+| `jetson-orin@jp6.1` | 6.1 | 36.4 | — |
+| `jetson-orin@jp6.2` | 6.2 | 36.4.3 | — |
+| `jetson-orin@jp6.2.1` | **6.2.1** | **36.4.4** | **Jetson Orin NX 16 GB** |
+| `jetson-orin@jp6.2.2` | 6.2.2 | 36.5.0 | — |
+| `jetson-orin@jp6.2.3` | 6.2.3 | 36.5.2 | — |
+
+Catalog presence and physical validation are intentionally separate. Use `ostg target list` to see the current support state reported by the installed build.
+
+---
+
+## 💻 Basic workflow
 
 ```bash
-# 1. List supported JetPack 6 targets in the catalog
+# Check the host
+ostg doctor
+
+# List exact JetPack targets
 ostg target list
 
-# 2. Ensure official artifacts and build the immutable base
-ostg target ensure jetson-orin@jp6.2.3
+# Acquire official inputs and ensure the target base
+ostg target ensure jetson-orin@jp6.2.1 --allow-validation-pending
 
-# 3. Create an isolated workspace for your project
-ostg workspace create --target jetson-orin@jp6.2.3 --name edge-vision
+# Create a persistent workspace
+ostg workspace create \
+  --target jetson-orin@jp6.2.1 \
+  --name demo \
+  --allow-validation-pending
 
-# 4. Open an interactive ARM64 shell inside the target environment
-ostg shell --workspace edge-vision
+# Open an ARM64 target shell
+ostg shell --workspace demo
 
-# 5. Cross-compile your host repository against the target sysroot
-ostg build --workspace edge-vision
+# Or run a target command directly
+ostg run --workspace demo -- /bin/uname -m
 
-# 6. Inspect workspace metadata, package state, and storage usage
-ostg inspect --workspace edge-vision
+# Cross-build using the same workspace as /target:ro
+ostg build --workspace demo -- <your-build-command>
+
+# Inspect target, base, workspace, and toolchain identity
+ostg inspect --workspace demo
+
+# Inspect disk usage
 ostg storage status
 ```
 
-If SDK Manager has already downloaded the JP6.2.3 BSP and Sample RootFS, Step 2
-can verify and adopt those bytes without downloading them again:
+`--allow-validation-pending` is an explicit opt-in for targets whose catalog status has not yet been promoted to `supported`.
 
-```bash
-python tools/adopt_jp623_acquisition.py \
-  --data-root /absolute/orin-stage-data \
-  --existing-download-folder /absolute/sdkmanager-download-folder
-```
+---
 
-The adoption verifies NVIDIA's catalog SHA-1 values, records local SHA-256 and
-size evidence, and publishes a normal acquisition receipt. On the same
-filesystem the managed download entries are hard links, so the large artifacts
-do not consume a second copy of their data.
+## 🔍 Scope
 
-## ✅ CI & Validation
+| Represented locally | Requires physical Jetson |
+|---|---|
+| JetPack / L4T userspace package state | GPU execution |
+| ARM64 CPU-only userspace via QEMU | DLA |
+| filesystem and dynamic-linker behavior | camera / sensor pipelines |
+| APT / pip / non-hardware dependency work | Jetson kernel, device nodes, ioctls |
+| cross-build against the target workspace | bootloader / firmware / device tree |
+| target-side CPU behavior within the tested corpus | performance / thermal / power behavior |
 
-Orin Stage uses two complementary GitHub Actions workflows:
+The physical validation record is therefore evidence for the **userspace and CPU-side scope tested there**, not for the hardware-specific items in the right column.
 
-* **CI:** Runs the full automated test suite on GitHub-hosted Ubuntu 22.04 / Python 3.10 and Ubuntu 24.04 / Python 3.12 x86_64 runners for every push and pull request to `main`.
-* **ARM64 Reference:** A manually triggered validation workflow that runs the same deterministic CPU/userspace probe through:
+---
 
-  1. a real Orin Stage JP6 workspace on a trusted self-hosted x86_64 runner using QEMU, and
-  2. a GitHub-hosted native Ubuntu 22.04 ARM64 runner.
+## 🧪 CI and validation
 
-The normalized results are compared automatically.
+Orin Stage currently uses complementary validation layers:
 
-The native ARM64 runner is a generic ARM64 Linux system, **not a Jetson device**. This workflow validates a small CPU/userspace execution reference only; GPU, DLA, camera, Jetson kernel/firmware behavior, performance, and matching physical Orin validation remain outside this CI layer.
+**CI** runs the automated test suite on GitHub-hosted x86_64 Ubuntu runners for normal code changes.
 
+**ARM64 Reference** is a manually triggered workflow that compares the same deterministic CPU/userspace probe between an Orin Stage JP6 workspace running through QEMU and a GitHub-hosted native ARM64 runner. The native ARM64 runner is generic ARM64 Linux, not a Jetson.
+
+**Physical Jetson validation** adds a matching JetPack reference device. The published JP6.2.1 record contains the terminal recording, exact artifact hashes, package/payload comparisons, negative control, and frozen evidence manifests.
+
+These layers answer different questions; none of them is presented as GPU or whole-system Jetson emulation.
+
+---
+
+## 🧰 Main components
+
+- Python 3.10+
+- NVIDIA SDK Manager
+- Rootless Podman
+- QEMU linux-user / `binfmt_misc`
+- pinned ARM64 cross-toolchain
+- YAML + JSON Schema target catalog
+- `pytest` test suite
 
 ---
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE) (or OSI/FSF compliant open-source license).
+Orin Stage is licensed under the [MIT License](LICENSE).
