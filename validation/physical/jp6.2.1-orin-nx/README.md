@@ -16,6 +16,15 @@ It is **not** a claim that QEMU reproduces Jetson GPU, DLA, camera, kernel, firm
 
 ---
 
+<p align="center">
+  <img
+    src="physical-validation.gif"
+    alt="JP6.2.1 physical validation terminal replay"
+    width="900">
+</p>
+
+---
+
 ## Result
 
 **PHYSICAL VALIDATION: PASS**

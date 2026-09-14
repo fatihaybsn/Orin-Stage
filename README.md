@@ -11,6 +11,19 @@ Orin Stage is a **userspace development tool, not a Jetson hardware emulator**. 
 
 ---
 
+<p align="center">
+  <img
+    src="validation/physical/jp6.2.1-orin-nx/physical-validation.gif"
+    alt="Orin Stage physical Jetson validation terminal replay"
+    width="900">
+</p>
+
+<p align="center">
+  <strong>Recorded validation:</strong> Orin Stage ↔ physical Jetson Orin NX
+</p>
+
+---
+
 ## 🎯 Why Orin Stage?
 
 Developing for Jetson from an x86_64 workstation can hide differences until deployment:
@@ -62,9 +75,14 @@ Core ideas:
 A **JetPack 6.2.1 / Jetson Linux 36.4.4** workspace was compared with a physical **Jetson Orin NX 16 GB** reference device.
 
 <p align="center">
-  <img src="validation/physical/jp6.2.1-orin-nx/physical-orin-nx-jp621.jpeg"
-       alt="Physical Jetson Orin NX validation"
-       width="760">
+  <img
+    src="validation/physical/jp6.2.1-orin-nx/physical-orin-nx-jp621.jpeg"
+    alt="Physical Jetson Orin NX validation"
+    width="680">
+</p>
+
+<p align="center">
+  <em>Physical reference device used for the JP6.2.1 validation.</em>
 </p>
 
 The validation record checks the parts Orin Stage is designed to represent locally:
