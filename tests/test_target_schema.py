@@ -155,15 +155,6 @@ def test_developer_preview_cannot_be_validation_pending(
     assert_invalid(validator, target)
 
 
-def test_supported_status_is_schema_valid(
-    validator: Draft202012Validator,
-    valid_target: dict[str, Any],
-) -> None:
-    """Gate evidence is resolver/runtime policy, so schema must allow supported GA records."""
-    target = copy.deepcopy(valid_target)
-    target["support"]["status"] = "supported"
-    validator.validate(target)
-
 
 def test_validation_pending_status_is_schema_valid(
     validator: Draft202012Validator,

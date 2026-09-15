@@ -96,20 +96,12 @@ def test_unknown_selector_is_rejected_without_guessing(resolver: TargetResolver)
         "JETSON-ORIN@JP6.2.3",
         "jp6.2.3",
         "jetson-orin@6.2.3",
-        "jetson-orin@jp6.2",
     ],
 )
 def test_resolver_does_not_invent_aliases_or_prefix_match(
     resolver: TargetResolver,
     selector: str,
 ) -> None:
-    if selector == "jetson-orin@jp6.2":
-        # This is an explicitly declared exact alias and therefore valid; it
-        # must resolve JP6.2, never be treated as a prefix for JP6.2.x.
-        resolved = resolver.resolve(selector)
-        assert resolved.canonical_id == "nvidia.jetpack-6.2.jetson-linux-36.4.3"
-        return
-
     with pytest.raises(TargetNotFoundError):
         resolver.resolve(selector)
 

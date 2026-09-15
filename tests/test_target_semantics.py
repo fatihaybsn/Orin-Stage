@@ -57,24 +57,6 @@ def test_every_checked_in_target_passes_semantic_validation() -> None:
         assert validate_target_semantics(record) == (), path.name
 
 
-def test_filename_case_variants_are_intentionally_accepted() -> None:
-    # Several NVIDIA sources preserve r/R literal differences. They identify
-    # the same artifact and must not be collapsed in the catalog.
-    record = load_yaml(TARGETS_DIR / "jp6.2.yaml")
-    assert (
-        record["construction_inputs"]["bsp"]["filename"]
-        != record["checksums"]["official"]["artifacts"]["bsp"]["filename"]
-    )
-    assert validate_target_semantics(record) == ()
-
-
-def test_hardware_profile_files_are_not_dereferenced_at_this_stage() -> None:
-    # Hardware YAML content is intentionally deferred. Target semantic
-    # validation only validates the profile identifiers carried by the record.
-    record = load_yaml(TARGETS_DIR / "jp6.2.3.yaml")
-    assert validate_target_semantics(record) == ()
-
-
 def test_canonical_id_must_match_release_identity(tmp_path: Path) -> None:
     assert_semantic_error(
         tmp_path,

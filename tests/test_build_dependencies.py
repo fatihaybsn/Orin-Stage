@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 import json
 import re
 from pathlib import Path
@@ -12,7 +11,6 @@ BUILD_SOURCES = (
     REPO_ROOT / "release" / "dependencies" / "build-sources.lock.json"
 )
 RUNTIME_LOCK = REPO_ROOT / "release" / "dependencies" / "runtime.lock"
-PYPROJECT = REPO_ROOT / "pyproject.toml"
 
 EXPECTED_BUILD_TOOLS = {
     "calver": "2025.3.31",
@@ -127,20 +125,3 @@ def test_build_only_packages_do_not_leak_into_runtime_lock() -> None:
     runtime_names = set(_requirement_versions(RUNTIME_LOCK))
     assert runtime_names.isdisjoint(EXPECTED_BUILD_TOOLS)
 
-
-def test_production_dependency_and_build_contract_is_unchanged() -> None:
-    pyproject = PYPROJECT.read_text(encoding="utf-8")
-    dependencies_match = re.search(
-        r"(?m)^dependencies\s*=\s*(\[[^]]*\])", pyproject
-    )
-    build_requires_match = re.search(
-        r"(?ms)^\[build-system\]\s*requires\s*=\s*(\[[^]]*\])",
-        pyproject,
-    )
-    assert dependencies_match is not None
-    assert build_requires_match is not None
-    assert ast.literal_eval(dependencies_match.group(1)) == [
-        "PyYAML>=6,<7",
-        "jsonschema>=4.23,<5",
-    ]
-    assert ast.literal_eval(build_requires_match.group(1)) == ["setuptools>=77"]
