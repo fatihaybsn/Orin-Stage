@@ -1,3 +1,10 @@
+orin-stage (0.2-1) UNRELEASED; urgency=medium
+
+  * Release Orin Stage 0.2 with the latest validated JP6 support and
+    project updates.
+
+ -- Fatih AYIBASAN <fathaybasn@gmail.com>  Tue, 15 Sep 2026 11:23:08 +0300
+
 orin-stage (0.1.1-1) UNRELEASED; urgency=medium
 
   * Update Orin Stage with the latest JP6 integration and fixes.

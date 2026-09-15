@@ -261,8 +261,8 @@ def verify_orin_wheel(path: Path) -> None:
         )
     if canonicalize_name(str(metadata.get("Name", ""))) != "orin-stage":
         raise WheelhouseError("Orin Stage wheel has the wrong project name")
-    if metadata.get("Version") != "0.1.1":
-        raise WheelhouseError("Orin Stage wheel version is not 0.1.1")
+    if metadata.get("Version") != "0.2":
+        raise WheelhouseError("Orin Stage wheel version is not 0.2")
     required = {
         "orin_stage/__init__.py",
         "orin_stage/catalog/data/schema/target.schema.json",
@@ -454,7 +454,7 @@ def verify_wheel_manifest(root: Path, series: str) -> tuple[Wheel, ...]:
         raise WheelhouseError("wheel manifest records are not sorted")
     build_lock = read_exact_lock(BUILD_LOCK)
     runtime_lock = read_exact_lock(RUNTIME_LOCK)
-    runtime_lock["orin-stage"] = "0.1.1"
+    runtime_lock["orin-stage"] = "0.2"
     validate_wheel_set(root / "build", build_lock, "build")
     validate_wheel_set(root / "runtime", runtime_lock, "runtime")
     orin = [wheel for wheel in wheels if wheel.name == "orin-stage"]
@@ -574,7 +574,7 @@ def build_wheelhouse(
         project = work / "project"
         _copy_project(project)
         before = set(runtime_output.glob("*.whl"))
-        print("BUILD orin-stage==0.1.1 role=runtime backend=setuptools.build_meta", flush=True)
+        print("BUILD orin-stage==0.2 role=runtime backend=setuptools.build_meta", flush=True)
         _run(
             (
                 str(python),
@@ -592,13 +592,13 @@ def build_wheelhouse(
             environment=environment,
         )
         orin_wheel = _find_new_wheel(
-            runtime_output, before, "orin-stage", "0.1.1", "runtime"
+            runtime_output, before, "orin-stage", "0.2", "runtime"
         )
         verify_orin_wheel(orin_wheel)
 
         build_wheels = validate_wheel_set(build_output, build_lock, "build")
         runtime_expected = dict(runtime_lock)
-        runtime_expected["orin-stage"] = "0.1.1"
+        runtime_expected["orin-stage"] = "0.2"
         runtime_wheels = validate_wheel_set(
             runtime_output, runtime_expected, "runtime"
         )

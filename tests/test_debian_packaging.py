@@ -116,8 +116,8 @@ def test_source_materializer_keeps_the_only_untracked_release_helpers_explicit()
 @pytest.mark.parametrize(
     ("series", "expected"),
     (
-        ("jammy", "0.1.1-1~jammy1"),
-        ("noble", "0.1.1-1~noble1"),
+        ("jammy", "0.2-1~jammy1"),
+        ("noble", "0.2-1~noble1"),
     ),
 )
 def test_source_materializer_generates_exact_ppa_versions(
@@ -125,7 +125,7 @@ def test_source_materializer_generates_exact_ppa_versions(
 ) -> None:
     source = _module("prepare_debian_source.py", f"debian_source_version_{series}_test")
 
-    assert source.ppa_version("0.1.1-1", series, 1) == expected
+    assert source.ppa_version("0.2-1", series, 1) == expected
 
 
 @pytest.mark.parametrize("series", ("jammy", "noble"))
@@ -139,7 +139,7 @@ def test_source_materializer_localizes_only_the_generated_changelog(
 
     version = source.localize_changelog(changelog, series, 1)
 
-    assert version == f"0.1.1-1~{series}1"
+    assert version == f"0.2-1~{series}1"
     localized = changelog.read_text(encoding="utf-8")
     assert localized.startswith(f"orin-stage ({version}) {series}; urgency=medium\n")
     assert localized.partition("\n")[2] == canonical.partition("\n")[2]
@@ -150,8 +150,8 @@ def test_source_materializer_rejects_invalid_ppa_version_inputs() -> None:
     source = _module("prepare_debian_source.py", "debian_source_invalid_version_test")
 
     with pytest.raises(source.DebianSourceError, match="unsupported Ubuntu series"):
-        source.ppa_version("0.1.1-1", "focal", 1)
+        source.ppa_version("0.2-1", "focal", 1)
     with pytest.raises(source.DebianSourceError, match="positive integer"):
-        source.ppa_version("0.1.1-1", "jammy", 0)
+        source.ppa_version("0.2-1", "jammy", 0)
     with pytest.raises(source.DebianSourceError, match="canonical changelog version"):
-        source.ppa_version("0.1.1-1~jammy1", "jammy", 1)
+        source.ppa_version("0.2-1~jammy1", "jammy", 1)

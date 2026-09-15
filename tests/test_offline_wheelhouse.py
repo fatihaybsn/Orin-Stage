@@ -47,7 +47,7 @@ def _wheel(
             f"Wheel-Version: 1.0\nTag: {python_tag}-{abi_tag}-{platform_tag}\n",
         )
         if orin:
-            archive.writestr("orin_stage/__init__.py", '__version__ = "0.1.1"\n')
+            archive.writestr("orin_stage/__init__.py", '__version__ = "0.2"\n')
             archive.writestr(
                 "orin_stage/catalog/data/schema/target.schema.json", "{}\n"
             )
@@ -92,14 +92,14 @@ def _locked_wheels(root: Path) -> tuple[dict[str, str], dict[str, str]]:
             abi_tag="cp310" if native else "none",
             platform_tag="linux_x86_64" if native else "any",
         )
-    _wheel(root / "runtime", "orin-stage", "0.1.1", orin=True)
+    _wheel(root / "runtime", "orin-stage", "0.2", orin=True)
     return build, runtime
 
 
 def test_exact_build_and_runtime_wheel_sets_match_locks(tmp_path: Path) -> None:
     build, runtime = _locked_wheels(tmp_path)
     build_wheels = wheelhouse.validate_wheel_set(tmp_path / "build", build, "build")
-    runtime["orin-stage"] = "0.1.1"
+    runtime["orin-stage"] = "0.2"
     runtime_wheels = wheelhouse.validate_wheel_set(
         tmp_path / "runtime", runtime, "runtime"
     )
@@ -133,16 +133,16 @@ def test_native_runtime_package_cannot_be_pure(tmp_path: Path, name: str) -> Non
 
 
 def test_orin_wheel_requires_catalog_license_and_entry_point(tmp_path: Path) -> None:
-    valid = _wheel(tmp_path, "orin-stage", "0.1.1", orin=True)
+    valid = _wheel(tmp_path, "orin-stage", "0.2", orin=True)
     wheelhouse.verify_orin_wheel(valid)
-    invalid = _wheel(tmp_path, "orin-stage", "0.1.1", build_tag="1")
+    invalid = _wheel(tmp_path, "orin-stage", "0.2", build_tag="1")
     with pytest.raises(wheelhouse.WheelhouseError, match="package or catalog"):
         wheelhouse.verify_orin_wheel(invalid)
 
 
 def test_wheel_manifest_hashes_and_exact_sets_are_verified(tmp_path: Path) -> None:
     build, runtime = _locked_wheels(tmp_path)
-    runtime["orin-stage"] = "0.1.1"
+    runtime["orin-stage"] = "0.2"
     wheels = (
         *wheelhouse.validate_wheel_set(tmp_path / "build", build, "build"),
         *wheelhouse.validate_wheel_set(tmp_path / "runtime", runtime, "runtime"),

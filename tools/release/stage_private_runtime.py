@@ -96,7 +96,7 @@ def runtime_wheels(wheelhouse: Path, series: str) -> tuple[Path, ...]:
         if wheel.role == "runtime"
     )
     expected = read_exact_lock(RUNTIME_LOCK)
-    expected["orin-stage"] = "0.1.1"
+    expected["orin-stage"] = "0.2"
     if len(selected) != len(expected):
         raise RuntimeStageError("runtime wheel count does not match runtime.lock")
     return selected
@@ -225,7 +225,7 @@ def _distribution_payload(python: Path, environment: dict[str, str], cwd: Path) 
 
 def validate_installed_distributions(installed: dict[str, str]) -> None:
     expected = read_exact_lock(RUNTIME_LOCK)
-    expected["orin-stage"] = "0.1.1"
+    expected["orin-stage"] = "0.2"
     actual_runtime = {name: installed.get(name) for name in expected}
     if actual_runtime != expected:
         raise RuntimeStageError(
