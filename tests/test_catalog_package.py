@@ -121,7 +121,7 @@ paths = builtin_catalog_paths()
 resolver = TargetResolver(paths.targets_dir, paths.schema_path)
 targets = resolver.list_targets()
 assert len(targets) == 6
-assert all(target.support_status == "validation-pending" for target in targets)
+assert all(target.support_status == "supported" for target in targets)
 print(paths.targets_dir)
 """
 

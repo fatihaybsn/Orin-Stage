@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 
@@ -183,10 +184,20 @@ def test_workspace_create_requires_validation_pending_flag(
     capsys,
 ) -> None:
     _normal_user(monkeypatch)
+    target = replace(_resolver().resolve(SELECTOR), support_status="validation-pending")
+
+    class PendingResolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def resolve(self, selector: str):
+            return replace(target, selector=selector)
+
+    monkeypatch.setattr("orin_stage.cli.TargetResolver", PendingResolver)
     monkeypatch.setattr(
         "orin_stage.cli._find_realized_target",
         lambda *args: (_ for _ in ()).throw(
-            AssertionError("target discovery must not run")
+            AssertionError("target discovery reached")
         ),
     )
 
@@ -194,6 +205,19 @@ def test_workspace_create_requires_validation_pending_flag(
     error = capsys.readouterr().err
     assert "validation-pending" in error
     assert "--allow-validation-pending" in error
+
+    with pytest.raises(AssertionError, match="target discovery reached"):
+        main(
+            [
+                "workspace",
+                "create",
+                "--target",
+                SELECTOR,
+                "--name",
+                "demo",
+                "--allow-validation-pending",
+            ]
+        )
 
 
 def test_workspace_create_rejects_root_invocation(monkeypatch, capsys) -> None:
@@ -208,7 +232,6 @@ def test_workspace_create_rejects_root_invocation(monkeypatch, capsys) -> None:
                 SELECTOR,
                 "--name",
                 "demo",
-                "--allow-validation-pending",
             ]
         )
         == 1
@@ -262,17 +285,14 @@ def test_workspace_create_uses_generic_target_and_requires_its_exact_base(
                 "jetson-orin@jp6.2",
                 "--name",
                 "demo",
-                "--allow-validation-pending",
             ]
         )
         == 1
     )
     error = capsys.readouterr().err
     assert "Target is not ensured. Run:" in error
-    assert (
-        "ostg target ensure jetson-orin@jp6.2 --allow-validation-pending"
-        in error
-    )
+    assert "ostg target ensure jetson-orin@jp6.2" in error
+    assert "--allow-validation-pending" not in error
 
 
 def test_workspace_create_for_other_jp6_uses_resolved_exact_target(
@@ -318,7 +338,6 @@ def test_workspace_create_for_other_jp6_uses_resolved_exact_target(
                 "jetson-orin@jp6.1",
                 "--name",
                 "demo",
-                "--allow-validation-pending",
             ]
         )
         == 0
@@ -357,7 +376,6 @@ def test_workspace_create_without_ensured_base_is_explicit_and_offline(
                 SELECTOR,
                 "--name",
                 "demo",
-                "--allow-validation-pending",
             ]
         )
         == 1
@@ -435,7 +453,6 @@ def test_workspace_create_reuses_valid_seed_without_sudo(
                 SELECTOR,
                 "--name",
                 "demo",
-                "--allow-validation-pending",
             ]
         )
         == 0
@@ -480,7 +497,6 @@ def test_workspace_create_builds_missing_seed_once_then_uses_exact_identity(
                 SELECTOR,
                 "--name",
                 "created",
-                "--allow-validation-pending",
             ]
         )
         == 0
@@ -522,7 +538,6 @@ def test_workspace_create_rejects_partial_seed_without_sudo(
                 SELECTOR,
                 "--name",
                 "demo",
-                "--allow-validation-pending",
             ]
         )
         == 1
@@ -555,7 +570,6 @@ def test_workspace_create_surfaces_duplicate_name_error(
                 SELECTOR,
                 "--name",
                 "demo",
-                "--allow-validation-pending",
             ]
         )
         == 1

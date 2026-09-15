@@ -72,6 +72,16 @@ def test_validation_pending_requires_explicit_flag(
     capsys,
 ) -> None:
     _normal_user(monkeypatch)
+    target = replace(_resolver().resolve(SELECTOR), support_status="validation-pending")
+
+    class PendingResolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def resolve(self, selector: str):
+            return replace(target, selector=selector)
+
+    monkeypatch.setattr("orin_stage.cli.TargetResolver", PendingResolver)
     monkeypatch.setattr(
         "orin_stage.cli.ensure_jp6_release",
         lambda *args, **kwargs: (_ for _ in ()).throw(
@@ -91,6 +101,16 @@ def test_other_jp6_validation_pending_target_still_requires_opt_in(
     capsys,
 ) -> None:
     _normal_user(monkeypatch)
+    target = replace(_resolver().resolve("jetson-orin@jp6.1"), support_status="validation-pending")
+
+    class PendingResolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def resolve(self, selector: str):
+            return replace(target, selector=selector)
+
+    monkeypatch.setattr("orin_stage.cli.TargetResolver", PendingResolver)
     monkeypatch.setattr(
         "orin_stage.cli.ensure_jp6_release",
         lambda *args, **kwargs: (_ for _ in ()).throw(
@@ -110,11 +130,23 @@ def test_validation_pending_flag_accepts_jp623_and_reuses_base(
     tmp_path: Path,
 ) -> None:
     _normal_user(monkeypatch)
+    target = replace(_resolver().resolve(SELECTOR), support_status="validation-pending")
+
+    class PendingResolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def resolve(self, selector: str):
+            return replace(target, selector=selector)
+
+    monkeypatch.setattr("orin_stage.cli.TargetResolver", PendingResolver)
     calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
 
     def ensure(*args, **kwargs):
         calls.append((args, kwargs))
-        return _result(tmp_path, acquisition_cache_hit=None, base_reuse=True)
+        res = _result(tmp_path, acquisition_cache_hit=None, base_reuse=True)
+        res.target = target
+        return res
 
     monkeypatch.setattr("orin_stage.cli.ensure_jp6_release", ensure)
 
@@ -152,21 +184,9 @@ def test_supported_jp623_does_not_require_flag(
     tmp_path: Path,
 ) -> None:
     _normal_user(monkeypatch)
-    target = replace(_resolver().resolve(SELECTOR), support_status="supported")
-
-    class SupportedResolver:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def resolve(self, selector: str):
-            return replace(target, selector=selector)
-
-    monkeypatch.setattr("orin_stage.cli.TargetResolver", SupportedResolver)
 
     def ensure(*args, **kwargs):
-        result = _result(tmp_path, acquisition_cache_hit=True, base_reuse=True)
-        result.target = target
-        return result
+        return _result(tmp_path, acquisition_cache_hit=True, base_reuse=True)
 
     monkeypatch.setattr("orin_stage.cli.ensure_jp6_release", ensure)
 
@@ -191,7 +211,7 @@ def test_unavailable_target_is_rejected_even_with_flag(monkeypatch, capsys) -> N
     assert "unavailable" in capsys.readouterr().err
 
 
-def test_other_pending_jp6_release_enters_generic_orchestration(
+def test_other_supported_jp6_release_enters_generic_orchestration(
     monkeypatch, capsys, tmp_path: Path
 ) -> None:
     _normal_user(monkeypatch)
@@ -214,7 +234,6 @@ def test_other_pending_jp6_release_enters_generic_orchestration(
                 "target",
                 "ensure",
                 "jetson-orin@jp6.2",
-                "--allow-validation-pending",
             ]
         )
         == 0
@@ -235,7 +254,7 @@ def test_unknown_selector_is_short_domain_error(monkeypatch, capsys) -> None:
 def test_top_level_root_invocation_is_rejected(monkeypatch, capsys) -> None:
     monkeypatch.setattr("orin_stage.cli.os.geteuid", lambda: 0)
 
-    assert main(["target", "ensure", SELECTOR, "--allow-validation-pending"]) == 1
+    assert main(["target", "ensure", SELECTOR]) == 1
     error = capsys.readouterr().err
     assert "Run ostg target ensure as your normal user." in error
     assert "requests sudo only when base construction is required" in error
@@ -250,7 +269,7 @@ def test_sdk_manager_not_found_is_short_domain_error(monkeypatch, capsys) -> Non
         ),
     )
 
-    assert main(["target", "ensure", SELECTOR, "--allow-validation-pending"]) == 1
+    assert main(["target", "ensure", SELECTOR]) == 1
     error = capsys.readouterr().err
     assert "SDK Manager executable not found" in error
     assert "Traceback" not in error
@@ -265,7 +284,7 @@ def test_sudo_failure_is_short_domain_error(monkeypatch, capsys) -> None:
         ),
     )
 
-    assert main(["target", "ensure", SELECTOR, "--allow-validation-pending"]) == 1
+    assert main(["target", "ensure", SELECTOR]) == 1
     error = capsys.readouterr().err
     assert error.strip() == "error: sudo is not installed"
     assert "Traceback" not in error
@@ -287,7 +306,7 @@ def test_target_ensure_preserves_multiline_safety_diagnostic(
         ),
     )
 
-    assert main(["target", "ensure", SELECTOR, "--allow-validation-pending"]) == 1
+    assert main(["target", "ensure", SELECTOR]) == 1
     error = capsys.readouterr().err
     assert "packages_to_remove:\n- obsolete-a\n- obsolete-b" in error
     assert "Installation was NOT performed." in error
@@ -304,7 +323,7 @@ def test_download_and_construction_output(monkeypatch, capsys, tmp_path: Path) -
         ),
     )
 
-    assert main(["target", "ensure", SELECTOR, "--allow-validation-pending"]) == 0
+    assert main(["target", "ensure", SELECTOR]) == 0
     output = capsys.readouterr().out
     assert "Acquisition:  downloaded+verified" in output
     assert "Base:         constructed+validated" in output

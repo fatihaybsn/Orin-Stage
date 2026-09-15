@@ -38,7 +38,7 @@ def copy_catalog(tmp_path: Path) -> Path:
     return target_copy
 
 
-def test_target_list_exposes_only_ga_product_targets_without_promoting_any_release() -> None:
+def test_target_list_exposes_only_ga_product_targets() -> None:
     resolver = TargetResolver(TARGETS_DIR, SCHEMA_PATH)
 
     targets = resolver.list_targets()
@@ -46,9 +46,9 @@ def test_target_list_exposes_only_ga_product_targets_without_promoting_any_relea
     assert len(targets) == 6
     assert all(t.availability == "ga" for t in targets)
     assert all(t.lifecycle == "production" for t in targets)
-    assert sum(t.is_validation_pending for t in targets) == 6
+    assert sum(t.is_supported for t in targets) == 6
+    assert sum(t.is_validation_pending for t in targets) == 0
     assert sum(t.is_unavailable for t in targets) == 0
-    assert sum(t.is_supported for t in targets) == 0
 
 
 @pytest.mark.parametrize(
@@ -95,7 +95,7 @@ def test_target_list_contains_expected_production_vertical_slice() -> None:
     assert target.jetson_linux_version == "36.5.2"
     assert target.lifecycle == "production"
     assert target.availability == "ga"
-    assert target.support_status == "validation-pending"
+    assert target.support_status == "supported"
 
 
 def test_unavailable_ga_release_remains_visible_with_unavailable_status(tmp_path: Path) -> None:
@@ -132,23 +132,29 @@ def test_reference_dp_is_not_user_listed_but_remains_exactly_resolvable() -> Non
     assert dp.support_status == "unavailable"
 
 
-@pytest.mark.parametrize(
-    "selector,expected_status",
-    [
-        ("jetson-orin@jp6.2.3", "validation-pending"),
-        ("jetson-orin@jp6.0-dp", "unavailable"),
-    ],
-)
-def test_resolve_for_use_rejects_every_non_supported_state(
-    selector: str, expected_status: str
-) -> None:
+def test_resolve_for_use_rejects_unavailable_reference_target() -> None:
     resolver = TargetResolver(TARGETS_DIR, SCHEMA_PATH)
 
     with pytest.raises(TargetNotUsableError) as exc_info:
-        resolver.resolve_for_use(selector)
+        resolver.resolve_for_use("jetson-orin@jp6.0-dp")
 
-    assert exc_info.value.selector == selector
-    assert exc_info.value.support_status == expected_status
+    assert exc_info.value.selector == "jetson-orin@jp6.0-dp"
+    assert exc_info.value.support_status == "unavailable"
+
+
+def test_resolve_for_use_rejects_validation_pending_state(tmp_path: Path) -> None:
+    targets = copy_catalog(tmp_path)
+    path = targets / "jp6.2.3.yaml"
+    record = load_yaml(path)
+    record["support"]["status"] = "validation-pending"
+    write_yaml(path, record)
+
+    resolver = TargetResolver(targets, SCHEMA_PATH)
+    with pytest.raises(TargetNotUsableError) as exc_info:
+        resolver.resolve_for_use("jetson-orin@jp6.2.3")
+
+    assert exc_info.value.selector == "jetson-orin@jp6.2.3"
+    assert exc_info.value.support_status == "validation-pending"
 
 
 def test_resolve_for_use_accepts_only_explicit_supported_state(tmp_path: Path) -> None:
@@ -165,9 +171,14 @@ def test_resolve_for_use_accepts_only_explicit_supported_state(tmp_path: Path) -
     assert resolved.canonical_id == "nvidia.jetpack-6.2.3.jetson-linux-36.5.2"
 
 
-def test_identity_resolution_still_allows_inspecting_pending_target() -> None:
-    resolver = TargetResolver(TARGETS_DIR, SCHEMA_PATH)
+def test_identity_resolution_still_allows_inspecting_pending_target(tmp_path: Path) -> None:
+    targets = copy_catalog(tmp_path)
+    path = targets / "jp6.2.3.yaml"
+    record = load_yaml(path)
+    record["support"]["status"] = "validation-pending"
+    write_yaml(path, record)
 
+    resolver = TargetResolver(targets, SCHEMA_PATH)
     resolved = resolver.resolve("jetson-orin@jp6.2.3")
 
     assert resolved.is_validation_pending
@@ -199,11 +210,14 @@ def test_failed_reload_does_not_publish_partial_or_invalid_catalog(tmp_path: Pat
 
 def test_successful_reload_atomically_publishes_new_supported_state(tmp_path: Path) -> None:
     targets = copy_catalog(tmp_path)
+    path = targets / "jp6.2.3.yaml"
+    record = load_yaml(path)
+    record["support"]["status"] = "validation-pending"
+    write_yaml(path, record)
+
     resolver = TargetResolver(targets, SCHEMA_PATH)
     assert resolver.resolve("jetson-orin@jp6.2.3").is_validation_pending
 
-    path = targets / "jp6.2.3.yaml"
-    record = load_yaml(path)
     record["support"]["status"] = "supported"
     write_yaml(path, record)
 
@@ -218,4 +232,4 @@ def test_list_summaries_are_immutable_value_objects() -> None:
     summary = resolver.list_targets()[0]
 
     with pytest.raises((AttributeError, TypeError)):
-        summary.support_status = "supported"  # type: ignore[misc]
+        summary.support_status = "unavailable"  # type: ignore[misc]

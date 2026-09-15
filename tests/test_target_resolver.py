@@ -63,7 +63,7 @@ def test_every_production_alias_resolves_exactly(
     resolved = resolver.resolve(alias)
     assert resolved.selector == alias
     assert resolved.canonical_id == canonical_id
-    assert resolved.support_status == "validation-pending"
+    assert resolved.support_status == "supported"
 
 
 def test_canonical_id_and_alias_resolve_same_record(resolver: TargetResolver) -> None:
@@ -118,11 +118,11 @@ def test_resolved_record_is_a_copy_and_cannot_mutate_resolver_state(
     resolver: TargetResolver,
 ) -> None:
     first = resolver.resolve("jetson-orin@jp6.2.3")
-    first.record["support"]["status"] = "supported"
+    first.record["support"]["status"] = "unavailable"
 
     second = resolver.resolve("jetson-orin@jp6.2.3")
-    assert second.support_status == "validation-pending"
-    assert second.record["support"]["status"] == "validation-pending"
+    assert second.support_status == "supported"
+    assert second.record["support"]["status"] == "supported"
 
 
 def test_selector_namespace_contains_canonical_ids_and_declared_aliases(

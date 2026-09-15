@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -51,7 +52,10 @@ sdkmanager --cli --action install --product Jetson --version 6.2.3 --target JETS
 
 
 def test_validation_pending_catalog_target_can_be_checked_during_acquisition() -> None:
-    target = _resolver().resolve("jetson-orin@jp6.2.3")
+    target = replace(
+        _resolver().resolve("jetson-orin@jp6.2.3"),
+        support_status="validation-pending",
+    )
     assert target.is_validation_pending
 
     releases = (

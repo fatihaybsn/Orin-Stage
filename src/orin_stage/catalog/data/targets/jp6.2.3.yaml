@@ -4,7 +4,7 @@ aliases:
   - jetson-orin@jp6.2.3
 
 support:
-  status: validation-pending
+  status: supported
 release:
   jetpack:
     version: "6.2.3"

@@ -136,7 +136,7 @@ def test_inspect_resolves_workspace_by_name_or_id_and_shows_exact_identities(
     assert f"Canonical ID:        {PRIMARY_SELECTOR}" in output
     assert "JetPack:             6.2.3" in output
     assert "Jetson Linux/L4T:    36.5.2" in output
-    assert "Support status:      validation-pending" in output
+    assert "Support status:      supported" in output
     assert f"Target lock digest:  {lock_digest}" in output
     assert "Base\n" in output
     assert f"Digest:  {BASE_DIGEST}" in output

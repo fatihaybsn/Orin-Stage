@@ -123,12 +123,12 @@ def test_target_list_shows_six_ga_targets_in_semantic_order(capsys) -> None:
     assert lines[0].split() == ["TARGET", "JETPACK", "L4T", "STATUS"]
     rows = [line.split() for line in lines[1:]]
     assert rows == [
-        ["jetson-orin@jp6.0", "6.0", "36.3", "validation-pending"],
-        ["jetson-orin@jp6.1", "6.1", "36.4", "validation-pending"],
-        ["jetson-orin@jp6.2", "6.2", "36.4.3", "validation-pending"],
-        ["jetson-orin@jp6.2.1", "6.2.1", "36.4.4", "validation-pending"],
-        ["jetson-orin@jp6.2.2", "6.2.2", "36.5.0", "validation-pending"],
-        ["jetson-orin@jp6.2.3", "6.2.3", "36.5.2", "validation-pending"],
+        ["jetson-orin@jp6.0", "6.0", "36.3", "supported"],
+        ["jetson-orin@jp6.1", "6.1", "36.4", "supported"],
+        ["jetson-orin@jp6.2", "6.2", "36.4.3", "supported"],
+        ["jetson-orin@jp6.2.1", "6.2.1", "36.4.4", "supported"],
+        ["jetson-orin@jp6.2.2", "6.2.2", "36.5.0", "supported"],
+        ["jetson-orin@jp6.2.3", "6.2.3", "36.5.2", "supported"],
     ]
     assert "Developer Preview" not in output
     assert "jp6.0-dp" not in output

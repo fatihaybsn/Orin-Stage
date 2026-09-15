@@ -98,7 +98,7 @@ def test_target_list_loads_packaged_catalog_outside_repository(tmp_path: Path) -
     assert completed.returncode == 0
     assert "jetson-orin@jp6.2.3" in completed.stdout
     assert "6.2.3" in completed.stdout
-    assert "validation-pending" in completed.stdout
+    assert "supported" in completed.stdout
     assert completed.stderr == ""
 
 

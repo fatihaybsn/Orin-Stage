@@ -115,16 +115,16 @@ This demo is not a claim of whole-device equivalence. The physical record combin
 
 ## 📚 JetPack 6 target catalog
 
-| Selector | JetPack | Jetson Linux / L4T | Published physical record |
-|---|---:|---:|---|
-| `jetson-orin@jp6.0` | 6.0 | 36.3 | — |
-| `jetson-orin@jp6.1` | 6.1 | 36.4 | — |
-| `jetson-orin@jp6.2` | 6.2 | 36.4.3 | — |
-| `jetson-orin@jp6.2.1` | **6.2.1** | **36.4.4** | **Jetson Orin NX 16 GB** |
-| `jetson-orin@jp6.2.2` | 6.2.2 | 36.5.0 | — |
-| `jetson-orin@jp6.2.3` | 6.2.3 | 36.5.2 | — |
+| Selector | JetPack | Jetson Linux / L4T | Support | Published physical record |
+|---|---:|---:|---|---|
+| `jetson-orin@jp6.0` | 6.0 | 36.3 | supported | — |
+| `jetson-orin@jp6.1` | 6.1 | 36.4 | supported | — |
+| `jetson-orin@jp6.2` | 6.2 | 36.4.3 | supported | — |
+| `jetson-orin@jp6.2.1` | **6.2.1** | **36.4.4** | **supported** | **Jetson Orin NX 16 GB** |
+| `jetson-orin@jp6.2.2` | 6.2.2 | 36.5.0 | supported | — |
+| `jetson-orin@jp6.2.3` | 6.2.3 | 36.5.2 | supported | — |
 
-Catalog presence and physical validation are intentionally separate. Use `ostg target list` to see the current support state reported by the installed build.
+All current GA JetPack 6 catalog targets have completed the project's physical validation gate. The JP6.2.1 record is the published detailed physical validation record demonstrating the validation methodology and evidence model. Use `ostg target list` to see the current support state reported by the installed build.
 
 ---
 
@@ -138,13 +138,12 @@ ostg doctor
 ostg target list
 
 # Acquire official inputs and ensure the target base
-ostg target ensure jetson-orin@jp6.2.1 --allow-validation-pending
+ostg target ensure jetson-orin@jp6.2.1
 
 # Create a persistent workspace
 ostg workspace create \
   --target jetson-orin@jp6.2.1 \
-  --name demo \
-  --allow-validation-pending
+  --name demo
 
 # Open an ARM64 target shell
 ostg shell --workspace demo
@@ -162,7 +161,7 @@ ostg inspect --workspace demo
 ostg storage status
 ```
 
-`--allow-validation-pending` is an explicit opt-in for targets whose catalog status has not yet been promoted to `supported`.
+`--allow-validation-pending` is an explicit opt-in for future or non-promoted targets whose catalog status has not yet been promoted to `supported`.
 
 ---
 

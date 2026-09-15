@@ -163,3 +163,13 @@ def test_supported_status_is_schema_valid(
     target = copy.deepcopy(valid_target)
     target["support"]["status"] = "supported"
     validator.validate(target)
+
+
+def test_validation_pending_status_is_schema_valid(
+    validator: Draft202012Validator,
+    valid_target: dict[str, Any],
+) -> None:
+    """Schema allows validation-pending status for GA records."""
+    target = copy.deepcopy(valid_target)
+    target["support"]["status"] = "validation-pending"
+    validator.validate(target)

@@ -24,7 +24,7 @@ def _target(bsp: bytes, rootfs: bytes) -> ResolvedCatalogTarget:
         selector="jetson-orin@jp6.2.3",
         canonical_id="nvidia.jetpack-6.2.3.jetson-linux-36.5.2",
         aliases=("jetson-orin@jp6.2.3",),
-        support_status="validation-pending",
+        support_status="supported",
         source_path=Path("catalog/targets/jp6.2.3.yaml"),
         record={
             "construction_inputs": {

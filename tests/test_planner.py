@@ -49,7 +49,7 @@ def _target(*, supported: bool = True):
         CATALOG_PATHS.schema_path,
     )
     target = resolver.resolve("jetson-orin@jp6.2.3")
-    return replace(target, support_status="supported") if supported else target
+    return target if supported else replace(target, support_status="validation-pending")
 
 
 def _jp60_target():
@@ -57,10 +57,7 @@ def _jp60_target():
         CATALOG_PATHS.targets_dir,
         CATALOG_PATHS.schema_path,
     )
-    return replace(
-        resolver.resolve("jetson-orin@jp6.0"),
-        support_status="supported",
-    )
+    return resolver.resolve("jetson-orin@jp6.0")
 
 
 def _verified_artifact(
