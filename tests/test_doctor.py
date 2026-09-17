@@ -86,6 +86,8 @@ def _healthy_environment(tmp_path: Path) -> dict[str, object]:
             return _completed(command, stdout="podman version 5.4.2\n")
         if command == ("/usr/bin/podman", "unshare", "true"):
             return _completed(command)
+        if command == ("/usr/bin/sudo", "-n", "true"):
+            return _completed(command)
         if command == (str(qemu), "--version"):
             return _completed(command, stdout="qemu-aarch64 version 8.2.2\n")
         raise AssertionError(f"unexpected command: {command}")
@@ -123,6 +125,23 @@ def test_healthy_doctor_exits_zero_and_formats_deterministically(tmp_path: Path)
     assert "128.0 GiB" in report
     assert "PASS  sudo" in report
     assert report.endswith("Summary: 11 PASS, 0 WARN, 0 FAIL")
+
+
+def test_formatter_places_help_under_its_check_only() -> None:
+    report = format_report(
+        [
+            DoctorCheck(CheckStatus.PASS, "Healthy", "working"),
+            DoctorCheck(CheckStatus.INFO, "Informational", "observed"),
+            DoctorCheck(CheckStatus.FAIL, "Broken", "missing", fix="repair-now"),
+            DoctorCheck(CheckStatus.WARN, "Decision", "needs input", action="decide"),
+            DoctorCheck(CheckStatus.FAIL, "Investigate", "failed", hint="inspect"),
+        ]
+    )
+
+    assert "PASS  Healthy        working\nINFO  Informational  observed" in report
+    assert "FAIL  Broken         missing\n      Fix: repair-now" in report
+    assert "WARN  Decision       needs input\n      Action: decide" in report
+    assert "FAIL  Investigate    failed\n      Hint: inspect" in report
 
 
 def test_non_linux_host_fails_and_exits_one(tmp_path: Path) -> None:
@@ -169,6 +188,35 @@ def test_missing_sudo_is_only_a_warning(tmp_path: Path) -> None:
 
     result = _checks_by_name(checks)["sudo"]
     assert result.status is CheckStatus.WARN
+    assert result.action == "Install the sudo package from an administrator/root session."
+    assert doctor_exit_code(checks) == 0
+
+
+def test_sudo_probe_is_non_interactive_and_warns_when_unusable(tmp_path: Path) -> None:
+    environment = _healthy_environment(tmp_path)
+    healthy_runner = environment["runner"]
+    observed: list[tuple[str, ...]] = []
+
+    def runner(
+        command: tuple[str, ...], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        if command[0] == "/usr/bin/sudo":
+            observed.append(command)
+            assert kwargs["timeout"] == 10
+            return _completed(
+                command,
+                returncode=1,
+                stderr="sudo: a password is required\n",
+            )
+        return healthy_runner(command, **kwargs)  # type: ignore[operator]
+
+    environment["runner"] = runner
+    checks = run_doctor(**environment)  # type: ignore[arg-type]
+
+    result = _checks_by_name(checks)["sudo"]
+    assert observed == [("/usr/bin/sudo", "-n", "true")]
+    assert result.status is CheckStatus.WARN
+    assert result.action is not None
     assert doctor_exit_code(checks) == 0
 
 
@@ -190,7 +238,11 @@ def test_missing_qemu_static_is_a_warning(tmp_path: Path) -> None:
 
     checks = run_doctor(**environment)  # type: ignore[arg-type]
 
-    assert _checks_by_name(checks)["QEMU static"].status is CheckStatus.WARN
+    result = _checks_by_name(checks)["QEMU static"]
+    assert result.status is CheckStatus.WARN
+    assert result.fix == (
+        "sudo apt update && sudo apt install --reinstall -y qemu-user-static"
+    )
     assert doctor_exit_code(checks) == 0
 
 
@@ -204,6 +256,43 @@ def test_missing_binfmt_entry_fails(tmp_path: Path) -> None:
 
     assert _checks_by_name(checks)["ARM64 binfmt"].status is CheckStatus.FAIL
     assert doctor_exit_code(checks) == 1
+
+
+@pytest.mark.parametrize(
+    ("version", "expected_fix"),
+    [
+        (
+            "22.04",
+            "sudo apt update && sudo apt install --reinstall -y qemu-user-static "
+            "binfmt-support && sudo update-binfmts --import qemu-aarch64 && sudo "
+            "update-binfmts --enable qemu-aarch64",
+        ),
+        (
+            "24.04",
+            "sudo apt update && sudo apt install --reinstall -y qemu-user-static && "
+            "sudo systemctl restart systemd-binfmt.service",
+        ),
+    ],
+)
+def test_binfmt_fix_matches_ubuntu_release(
+    tmp_path: Path,
+    version: str,
+    expected_fix: str,
+) -> None:
+    environment = _healthy_environment(tmp_path)
+    Path(environment["os_release_path"]).write_text(
+        f'ID=ubuntu\nVERSION_ID="{version}"\nPRETTY_NAME="Ubuntu {version} LTS"\n',
+        encoding="utf-8",
+    )
+    empty_binfmt_root = tmp_path / "empty-binfmt"
+    empty_binfmt_root.mkdir()
+    environment["binfmt_root"] = empty_binfmt_root
+
+    checks = run_doctor(**environment)  # type: ignore[arg-type]
+
+    result = _checks_by_name(checks)["ARM64 binfmt"]
+    assert result.fix == expected_fix
+    assert f"      Fix: {expected_fix}" in format_report(checks)
 
 
 def test_binfmt_without_fix_binary_flag_fails(tmp_path: Path) -> None:
@@ -232,6 +321,24 @@ def test_missing_subid_mapping_fails(tmp_path: Path, missing: str) -> None:
     assert doctor_exit_code(checks) == 1
 
 
+def test_too_small_subid_mapping_fails_with_user_action(tmp_path: Path) -> None:
+    environment = _healthy_environment(tmp_path)
+    Path(environment["subuid_path"]).write_text(
+        "alice:100000:1024\n",
+        encoding="utf-8",
+    )
+
+    checks = run_doctor(**environment)  # type: ignore[arg-type]
+
+    result = _checks_by_name(checks)["subuid/subgid"]
+    assert result.status is CheckStatus.FAIL
+    assert result.action == (
+        "Configure non-overlapping subordinate UID/GID ranges for alice in "
+        "/etc/subuid and /etc/subgid."
+    )
+    assert f"      Action: {result.action}" in format_report(checks)
+
+
 def test_failed_podman_unshare_fails(tmp_path: Path) -> None:
     environment = _healthy_environment(tmp_path)
     healthy_runner = environment["runner"]
@@ -247,8 +354,34 @@ def test_failed_podman_unshare_fails(tmp_path: Path) -> None:
 
     checks = run_doctor(**environment)  # type: ignore[arg-type]
 
-    assert _checks_by_name(checks)["podman unshare"].status is CheckStatus.FAIL
+    result = _checks_by_name(checks)["podman unshare"]
+    assert result.status is CheckStatus.FAIL
+    assert result.error == "cannot create namespace"
+    assert result.hint == (
+        "Rootless Podman could not create the user namespace. Check the error "
+        "shown above."
+    )
+    report = format_report(checks)
+    assert "      Error: cannot create namespace" in report
+    assert f"      Hint: {result.hint}" in report
     assert doctor_exit_code(checks) == 1
+
+
+def test_missing_podman_has_copy_paste_fix(tmp_path: Path) -> None:
+    environment = _healthy_environment(tmp_path)
+    healthy_which = environment["which"]
+
+    def which(name: str) -> str | None:
+        if name == "podman":
+            return None
+        return healthy_which(name)  # type: ignore[operator]
+
+    environment["which"] = which
+    checks = run_doctor(**environment)  # type: ignore[arg-type]
+
+    result = _checks_by_name(checks)["Podman"]
+    assert result.fix == "sudo apt update && sudo apt install -y podman"
+    assert f"      Fix: {result.fix}" in format_report(checks)
 
 
 def test_doctor_does_not_create_or_acquire_managed_toolchain(
@@ -272,6 +405,7 @@ def test_doctor_does_not_create_or_acquire_managed_toolchain(
     toolchain = _checks_by_name(checks)["Managed JP6 toolchain"]
     assert toolchain.status is CheckStatus.INFO
     assert toolchain.detail == "not acquired"
+    assert toolchain.action is None
     assert not data_root.exists()
 
 
@@ -318,6 +452,7 @@ def test_doctor_warns_for_invalid_managed_toolchain(
     toolchain = _checks_by_name(checks)["Managed JP6 toolchain"]
     assert toolchain.status is CheckStatus.WARN
     assert toolchain.detail == "invalid: receipt mismatch"
+    assert toolchain.action is not None
 
 
 def test_unusable_existing_data_root_fails(tmp_path: Path) -> None:
