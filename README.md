@@ -3,13 +3,24 @@
 [![CI](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/ci.yml/badge.svg)](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/ci.yml)
 [![Orin Stage ARM64 Reference](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/orin-stage-reference.yml/badge.svg)](https://github.com/fatihaybsn/Orin-Stage/actions/workflows/orin-stage-reference.yml)
 
-**Orin Stage** is a local development workspace engine for **NVIDIA Jetson Orin + JetPack 6**.
+**Orin Stage** is a local development workspace engine for **NVIDIA Jetson Orin + JetPack 6**. For now, the project is intentionally focused on the Jetson Orin family and the JetPack 6 release family.
 
-On an x86_64 Ubuntu machine, it can build an exact JetPack / Jetson Linux ARM64 userspace from official NVIDIA inputs, keep that environment as a persistent workspace, run ARM64 userspace through QEMU, and cross-build against the very same target tree.
+On an x86_64 Ubuntu machine, Orin Stage builds a verified ARM64 userspace for a selected JetPack 6 target from official NVIDIA inputs and keeps it as a persistent, **mutable workspace**. You can open an ARM64 target shell, run userspace commands through **QEMU**, install packages, use tools such as APT and pip, modify files and configuration, test CPU-side behavior, and return later to the same workspace with your changes still in place.
 
-The point is not to replace the Jetson. It is to move more target-side work earlier, before you have to copy everything to a board just to discover an architecture, package, loader, filesystem, or ABI problem.
+The same workspace can also be used as the target sysroot while cross-building natively on x86_64. This means the environment you inspect and modify from the ARM64 shell is also the environment your build sees, instead of maintaining a separate sysroot that can drift away from the target state.
 
-> **Orin Stage is a userspace development tool, not a Jetson hardware emulator.** GPU, DLA, camera, Jetson kernel, firmware, bootloader, device-tree, power, thermal, and real performance behavior still require a physical Jetson.
+Workspaces are isolated from one another. You can keep different JetPack 6 releases side by side, or create multiple independent workspaces from the same verified base for different projects and experiments. Changes made in one workspace do not modify another workspace or the **immutable base** it was created from.
+
+Orin Stage does not install the JetPack target environment directly into the host Ubuntu operating system. Instead, its persistent target state is stored as filesystem trees under a dedicated data root on the host, which defaults to `~/.local/share/orin-stage` and can be changed when needed. Workspace files remain there between sessions, while Podman runs commands against the existing workspace root filesystem rather than copying the workspace into a separate container image. The host still needs Orin Stage and its runtime dependencies, but working with a target does not require installing the JetPack target userspace into the host system directories or turning the host into a full JetPack development machine with the broader host-side NVIDIA software stack.
+
+The goal is not to emulate a Jetson device or pretend that its hardware is present. Orin Stage focuses on the part of the Jetson software environment that can be meaningfully reproduced without the physical device: the target userspace, package and filesystem state, ARM64 CPU-side execution, dependency work, target-side inspection, and cross-building.
+
+GPU, DLA, camera, Jetson kernel and device behavior, firmware, bootloader, device tree, timing, power, thermals, and real hardware performance still require a physical Jetson.
+
+The userspace environment Orin Stage is designed to represent has also been checked against **physical Jetson hardware**. In the **recorded** JetPack 6.2.1 / Jetson Linux 36.4.4 **validation** against a Jetson Orin NX 16 GB, the target and NVIDIA package identities matched, all 51 package-owned `nvidia-l4t-core` payload files that were checked matched byte-for-byte, and the same ARM64 test binary produced matching behavior on Orin Stage and the physical Jetson.
+
+This validation is evidence for the software surface Orin Stage is designed to reproduce; it is not a claim that Orin Stage reproduces the entire Jetson device.
+
 
 ---
 
@@ -46,9 +57,9 @@ A physical board is still the final reference, but not every iteration needs GPU
 
 That matters in a few practical situations:
 
-- **Trying another JetPack version without destroying the old environment.** Switching a physical Jetson between releases can mean reflashing or rebuilding device state. Orin Stage keeps exact releases side by side, so a JP6.1 workspace can stay untouched while you prepare JP6.2.3.
-- **Keeping several environments for the same release.** One verified JP6.2.3 base can back `project-a`, `project-b`, and `experiment` workspaces. A package or configuration change in one does not modify the others.
-- **Using a shared, remote, or rented Jetson more efficiently.** If board access is limited or billed by time, software-side iteration can stay local and the real device can be reserved for GPU, DLA, camera, kernel/device, timing, power, thermal, and performance work.
+- * **Trying and comparing different JetPack releases without replacing the current environment.** Switching a physical Jetson between releases can mean reflashing or rebuilding device state. Orin Stage keeps exact JetPack releases side by side, so a JP6.1 workspace can remain untouched while you prepare JP6.2.3, build the same project against both environments, or compare userspace and CPU-side behavior before moving to physical-device validation.
+- * **Testing different setups on the same JetPack release.** One verified JP6.2.3 base can back multiple independent workspaces for different projects, dependency sets, package changes, configurations, or experiments. You can modify one environment freely, keep another as a clean reference, and compare different setups without one workspace affecting the others.
+- * **Using physical Jetson time more efficiently.** Whether the device is on your desk, shared, remote, or rented by the hour, CPU-side software iteration can stay local in Orin Stage. The physical Jetson can then be reserved for final validation and the work that actually requires hardware, such as GPU, DLA, camera, kernel/device behavior, timing, power, thermals, and performance. For rented hardware, this can reduce billed time; for an owned device, it still reduces the amount of routine development that has to happen on or through the board.
 - **Experimenting without constantly rebuilding the target from zero.** Once the NVIDIA inputs and exact base are already verified, they can be reused instead of being downloaded and constructed again for every workspace.
 - **Working when the board is simply not available.** You can still inspect the target package state, test ARM64 CPU-side behavior, resolve dependencies, and prepare builds before the next hardware session.
 
@@ -108,14 +119,21 @@ sudo apt install orin-stage
 
 This is a project-maintained Launchpad PPA, not a package from the official Ubuntu archive.
 
-Then check the host:
+The package installs the `ostg` command together with the core runtime dependencies Orin Stage owns. You do **not** need to clone this repository, manually install those dependencies one by one, or maintain a project virtual environment for normal use.
+
+After installation, check the host:
 
 ```bash
 ostg --version
 ostg doctor
 ```
 
-The Debian package installs the `ostg` command and the runtime dependencies Orin Stage owns. You do **not** need to clone this repository or maintain a project virtual environment for normal use.
+`ostg doctor` verifies that the host is ready for Orin Stage. Package installation alone does not guarantee that every required host setting or external tool is ready. If doctor finds a problem, it reports the issue and, where appropriate, shows a `Fix:`, `Action:`, or `Hint:` telling you what to do next.
+
+Apply the reported fixes or actions as needed, then run `ostg doctor` again. Once the required checks pass, you can continue with target acquisition and workspace creation.
+
+`ostg doctor` only diagnoses the host and provides guidance; it does not silently install packages or reconfigure the system for you.
+
 
 ### NVIDIA SDK Manager
 
