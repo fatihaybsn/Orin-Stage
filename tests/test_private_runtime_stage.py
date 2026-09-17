@@ -48,7 +48,7 @@ def test_launcher_contract_uses_isolated_private_interpreter_and_preserves_argv(
 def test_runtime_distribution_validation_accepts_only_runtime_and_bootstrap() -> None:
     stage = _module()
     installed = stage.read_exact_lock(stage.RUNTIME_LOCK)
-    installed.update({"orin-stage": "0.2", "pip": "24.0", "setuptools": "68.0"})
+    installed.update({"orin-stage": "0.2.1", "pip": "24.0", "setuptools": "68.0"})
 
     stage.validate_installed_distributions(installed)
 
@@ -57,7 +57,7 @@ def test_runtime_distribution_validation_accepts_only_runtime_and_bootstrap() ->
 def test_runtime_distribution_validation_rejects_build_or_unexpected_packages(extra: str) -> None:
     stage = _module()
     installed = stage.read_exact_lock(stage.RUNTIME_LOCK)
-    installed["orin-stage"] = "0.2"
+    installed["orin-stage"] = "0.2.1"
     installed[extra] = "1.0"
 
     with pytest.raises(stage.RuntimeStageError):

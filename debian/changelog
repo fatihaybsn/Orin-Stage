@@ -1,3 +1,10 @@
+orin-stage (0.2.1-1) UNRELEASED; urgency=medium
+
+  * Improve ostg doctor with actionable Fix, Action, and Hint guidance.
+  * Surface podman unshare errors and strengthen sudo and subordinate ID checks.
+
+ -- Fatih AYIBASAN <fathaybasn@gmail.com>  Thu, 17 Sep 2026 19:38:02 +0300
+
 orin-stage (0.2-1) UNRELEASED; urgency=medium
 
   * Release Orin Stage 0.2 with the latest validated JP6 support and

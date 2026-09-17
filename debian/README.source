@@ -12,7 +12,7 @@ upstream-policy suitability.
 
 The tracked `debian/changelog` uses an unsuffixed, `UNRELEASED` version as the
 canonical packaging revision.  `prepare_debian_source.py` localizes only the
-changelog copied into the generated source tree.  For the 0.2 release, these
+changelog copied into the generated source tree.  For the 0.2.1 release, these
 commands produce the target PPA versions:
 
 ```
@@ -27,7 +27,7 @@ python3 tools/release/prepare_debian_source.py \
   --output release/dependencies/generated/debian-source-noble
 ```
 
-The generated changelog versions are `0.2-1~jammy1` and
-`0.2-1~noble1`, with matching `jammy` and `noble` distributions.  The
-upstream orig version remains 0.2.  The helper does not sign, upload, tag, or
+The generated changelog versions are `0.2.1-1~jammy1` and
+`0.2.1-1~noble1`, with matching `jammy` and `noble` distributions.  The
+upstream orig version remains 0.2.1.  The helper does not sign, upload, tag, or
 create a GitHub release.
